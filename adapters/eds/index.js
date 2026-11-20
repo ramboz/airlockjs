@@ -1652,7 +1652,7 @@ export async function bootAlloy(opts = {}) {
     if (typeof fn === "function") {
       (typeof opts.onDiagnostic === "function" ? opts.onDiagnostic : decisionDiagnostic)({
         level: "warn", kind: "unsupported-callback", option: name,
-        reason: `${name} is a function and cannot cross the airlock; it is not forwarded (shape the event on the main thread before push)`,
+        reason: `${name} is a function and cannot cross the airlock; it is not forwarded (shape the event on the main thread before push; use payloadDenylist to strip fields declaratively)`,
       });
     }
   }

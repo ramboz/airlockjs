@@ -61,6 +61,8 @@ The 6 function-valued options (`onBeforeEventSend`, `clickCollection.filterClick
 
 **Decided in 064-19 (2026-11-20):** `onBeforeEventSend`, `filterClickProperties`, `onBeforeLinkClickSend`, `createMediaSession.getPlayerDetails` and `sendConversationEvent.onStreamResponse` are **incompatible as functions** (they cannot cross the airlock and the chamber has no site code or DOM); each has a data-form equivalent on the main thread, see the slice 064-19 notes. `subscribeRulesetItems.callback` is **mediated as data** (results delivered through the `decisions` capability, no function). 064-20 and 064-22 cite that table.
 
+**Amendment (064-19, 2026-11-20):** rows 3, 5 and 8 run in the chamber (worker-native) with egress still mediated by the seal; row 12 `subscribeRulesetItems` is `mediated as data` (callback). Rows 4 to 7 and 9 are reachable only through the rig today: the `bootAlloy` handle has no command entry point (owner decision, see the slice notes).
+
 ### 2.2 Other rows
 
 | Area | Rows | Initial class | Slice |
@@ -534,6 +536,7 @@ Review rounds are capped at three before owner review (owner decision). Findings
 - Slice 064-02 (T2) review: one Opus 5.5 pass, 2 rounds (reviews/slice-02-*.md; D10 to D12 were added after the rounds, by owner decision). Round 1: needs-changes, 2 blocking, fixed; round 2: pass on all three passes.
 - Anything still open after round 3 goes to the pilot as a listed check.
 - Slice 064-18 (B2) review: one Opus 5.5 pass, 2 rounds (reviews/slice-18-*.md). Round 1: pass, 0 blocking, 3 to 6 non-blocking per pass; the medium findings (keepalive in-flight quota, seal holds throwing `TypeError`, S6 `s6-out` coverage) fixed in round 2. B2 changed three "today" facts in the frozen s2.2 Transport row (the fetch init is no longer dropped, `sendBeacon` is bridged through the seal, element loads are tagged, not inert); the table is left as frozen. The first-party CNAME edge domain stays the existing CAP freeze gap (DS-29, S9-06, an unverified row): B2 tests it synthetically (`edgeDomain` option, pinned host), and it is not re-captured without the owner. It is not a new open question.
+- Slice 064-19 (B3) review: one Opus 5.5 pass, 1 round (reviews/slice-19-*.md). Round 1: compliance and reconciliation changes-requested, craft pass. Fixed the low findings; the host command surface (H1), `s6-out` opt-out, 067-03 flush, `subscribeRulesetItems`, S4 production-path replay are carried in the slice notes and `docs/refinement-todo.md`.
 - Pilot count of extra captures: **0** (B1, 064-17, 2026-11-20). S1 with its variants, S2 and S5 replay clean from the frozen corpus alone; the kill criterion (more than 3) is not triggered. See section 4.11.
 
 ## 13. Clarifications

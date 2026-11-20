@@ -84,6 +84,7 @@ describe.runIf(real)("064-19 command coverage (real Chromium)", () => {
       const r = await replayFixture(browser, "s3-base", { event, commands: [{ command: "applyResponse", options: { renderDecisions: false, responseBody: body } }] });
       expect(r.results.applyResponse.error).toBeUndefined();
       expect(r.results.applyResponse.result).toBeTypeOf("object");
+      expect(r.network.filter((n) => /adobedc|edge\./.test(n.url))).toHaveLength(1);
       expect(kinds(r, "unknown-handle")).toEqual([]);
     }, T);
   });
@@ -152,6 +153,7 @@ describe.runIf(real)("064-19 command coverage (real Chromium)", () => {
       const r = await replayFixture(browser, "s6-pending-in", { event: null, bootOptions: boot, run: run(true, 3000) });
       expect(r.results.run.held).toBe(0);
       expect(r.network.map((n) => new URL(n.url).pathname)).toEqual(posts(r.fixture).map((q) => new URL(q.url).pathname));
+      expectRecorded(r, posts(r.fixture));
     }, T);
 
     it("s6-out: queued events are dropped; the set-consent n is held at the seal (the one documented S6 delta)", async () => {

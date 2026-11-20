@@ -381,7 +381,7 @@ defense-in-depth strip. **Superseded in part by [ADR-0062](decisions/adr-0062-st
   for the wrapped-SDK path). **Open question (020-02 arch review):** is pending-window data loss
   acceptable for alloy, or should hold+flush be prioritized? Resolution trigger: a deployment where
   the pending-consent window materially drops alloy analytics/personalization.
-  **Update (064-19, 2026-11-20):** with the 067-03 default (Alloy's own `defaultConsent:"pending"` queue holds pending events and flushes them on grant), the seam drop is only a backstop. It fires when a stale Alloy consent cookie says "in" while page consent is pending. That request is held once, visibly, and **dropped, not replayed**, when consent is then granted (`test/adobe-b3-commands.test.js`). Accepted: the window needs a stale cookie plus a pending page, and the diagnostic names it. Re-open only if a deployment sees this loss in practice.
+  **Update (064-19, 2026-11-20):** with the 067-03 default (Alloy's own `defaultConsent:"pending"` queue holds pending events and flushes them on grant), the seam drop is only a backstop. It fires when a stale Alloy consent cookie says "in" while page consent is pending. That request is held once, visibly, and **dropped, not replayed**, when consent is then granted (`test/adobe-b3-commands.test.js`). Carried, not accepted: ADR-0062 point 4 says hold means hold and flush on grant, so the owner decides whether Alloy gets a seam flush or the ADR is amended.
 - **The live `setConsent(collect:n)` flow + HTML-rig consent wiring** — 020 characterized the setConsent
   mechanism from the alloy@2.35.0 source; a live `configure → setConsent(collect:n) → sendEvent`
   (asserting the interact is suppressed) + wiring `rig/alloy-core-host-harness.html` /
@@ -1407,3 +1407,11 @@ the harness runs against the prod-profile `?martech=airlock` arm; AC4 currently 
 Also **050-01 AC5** — the deny→accept consent hold/flush parity is the shipped MVP8 mechanism (048-03), exercised only in the
 default-granted state on the live arena; re-run the deny→accept flow on a real `?martech=airlock` deploy to close it fully
 (low-risk — the mechanism ships).
+
+## S6 opt-out signal held at the seal (064-19, 2026-11-20)
+
+After an explicit refusal, Alloy's opt-out `privacy/set-consent` (`collect:n`) is held by the strict consent gate and never reaches Adobe (fixture `s6-out`). ADR-0062 point 5 covers the pre-consent hold only. Options: a shared seam exemption for `privacy/set-consent` without `query.identity.fetch` (needs main), or amend ADR-0062. Owner decision.
+
+## Host command surface for Alloy (064-19, 2026-11-20)
+
+`bootAlloy`'s handle has no entry point for `getIdentity`, `appendIdentityToUrl`, `applyResponse`, `getLibraryInfo`, `createEventMergeId`; they work in the chamber but only the test rig can call them. A mediated, allowlisted command entry is a new capability contract. Owner decision before 064-21 claims parity.
