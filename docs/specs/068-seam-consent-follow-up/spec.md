@@ -36,7 +36,7 @@ Out of scope: the real-Chromium proofs of the vendor-adobe tests (a follow-up co
 
 Both are settled (see section 0). The mechanism choices are slice design:
 
-- 068-01 parks the original request in the host and re-runs it through every gate on the next `setConsent`, rather than replaying from the chamber, because the chamber's fetch rejects on hold and has no consumer later.
+- 068-01 is opt-in per host (`flushOnGrant`, Alloy only) and parks the original request in the host and re-runs it through every gate on the next `setConsent`, rather than replaying from the chamber, because the chamber's fetch rejects on hold and has no consumer later.
 - 068-02 keeps core vendor-neutral: the connector declares the request path, one body marker and the keys that may leave; core only honours that declaration.
 
 ## 4. Definition of done
