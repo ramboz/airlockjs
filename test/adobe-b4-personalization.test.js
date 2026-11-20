@@ -152,6 +152,15 @@ describe("064-24 redirect ordering (hermetic)", () => {
     expect(r.isRedirecting()).toBe(false);
   });
 
+  it("two redirect items in one proposition navigate and display once", async () => {
+    const { r, log } = setup(async () => ({ sent: true }));
+    const two = { ...redirectProp, items: [redirectProp.items[0], { id: "i2", schema: redirectProp.items[0].schema, data: { content: "https://second.example/" } }] };
+    await r.render([two]);
+    await settled();
+    expect(log.filter((l) => l.startsWith("replace:"))).toEqual(["replace:https://redirect.example/x"]);
+    expect(log.filter((l) => l === "display")).toHaveLength(1);
+  });
+
   it("renders only the first redirect (stock onlyRenderThis): other propositions and later redirects are not rendered", async () => {
     const { r, log } = setup(async () => ({ sent: true }));
     const other = { id: "o", scope: "s", items: [{ id: "d", schema: "https://ns.adobe.com/personalization/default-content-item" }] };

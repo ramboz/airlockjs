@@ -15,7 +15,8 @@ last_verified: 2026-11-20
 **Acceptance Criteria:**
 
 1. View-scoped propositions in an `applyResponse` response body are stored in the host view cache, so a later push naming the view renders them and sends their display notification once (differential test against pinned stock).
-2. `track` waits for every pending delivery, not only the last one, and view propositions that reach `onDecisions` carry `renderAttempted` consistently with stock.
+2. `track` waits for every pending delivery, not only the last one, including the redirect display's keepalive send (a separate event, from 064-24), and view propositions that reach `onDecisions` carry `renderAttempted` consistently with stock.
+3. A warmed view-scoped redirect proposition behaves as pinned stock Alloy 2.31.1 does (navigates or not), shown by a differential test.
 
 **DoD:**
 - `npm test && npm run lint` and servo gate pass.
@@ -25,6 +26,6 @@ last_verified: 2026-11-20
 
 ## Notes
 
-From 064-24: (1) AC2 `track` must also wait for the redirect display's keepalive send, since it is a separate event; (2) decide whether a warmed view-scoped redirect proposition navigates (064-24 only renders a redirect on the delivering path).
+From 064-24: the redirect display is a separate keepalive event; AC2 and AC3 own the `track` wait and the warmed view-scoped redirect (064-24 only renders a redirect on the delivering path).
 
 Raised by the 064-23 round-2 craft and reconciliation reviews. No core change: the host view cache lives in `adapters/eds/index.js`. Stock's `applyResponse` runs the same personalization `onBeforeEvent` as a normal event; confirm against the pinned bundle before building.
