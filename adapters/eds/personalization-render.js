@@ -74,8 +74,8 @@ export function createViewCache() {
 }
 
 /**
- * The deliveries still in flight (064-28). More than one can overlap (the ruleset-item callback, a fetch answer, an
- * applied response), so `settled` waits for all of them, including any tracked while it waits. A rejected run never
+ * The deliveries still in flight (064-28). More than one can overlap (the ruleset-item callback and a fetch answer's
+ * delivery; an applied response is stored, not delivered), so `settled` waits for all of them, including any tracked while it waits. A rejected run never
  * rejects `settled`.
  */
 export function createDeliveryTracker() {

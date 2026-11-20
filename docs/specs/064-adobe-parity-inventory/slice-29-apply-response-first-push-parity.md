@@ -19,6 +19,7 @@ last_verified: 2026-11-20
 3. `track` (and so a caller awaiting it) waits for a redirect display's keepalive send to be issued, not only for its queue position, shown by a test that holds the display and observes `track` pending until it leaves.
 4. Under a consent hold, a redirect display queued at the front of the ring is not dropped by a later enqueue before older held events, and a dropped display settles `redirectDisplay` (not only the renderer timer), shown by a hermetic test.
 5. A push queued before an `applyResponse` finishes sees the warmed cache, as stock runs its commands in order, shown by a differential test.
+6. A failure while `applyResponse` stores its view propositions is reported as a warn diagnostic (today it is swallowed in `host-command.js`), shown by a fault-injection test. Carried from the 064-28 craft review: no wire input can make the store throw (`viewPropositionsOf` keeps only string-scoped objects), so 064-28 could not test it without injecting a fault.
 
 **DoD:**
 - `npm test && npm run lint` and servo gate pass.
