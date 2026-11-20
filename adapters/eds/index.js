@@ -1777,11 +1777,9 @@ export async function bootAlloy(opts = {}) {
       pinnedTenant: resolvedDatastreamId,
       disposition: "hold",
     },
-    // ADR-0006 / spec 016 — the host-owned endpoint CEILING, wired to the GROUNDED interact FLOOR
-    // (016-02 AC3/AC5's accepted trade-off): the honest interact origin+path passes; any off-floor
-    // destination is HELD. The un-grounded server-directed breadth (demdex/ID-sync URLs the Edge
-    // response returns at runtime) is held+surfaced fail-closed — grounding that breadth is the
-    // creds-gated live-Alloy follow-on (docs/refinement-todo.md), NOT a silent drop.
+    // ADR-0006 / spec 016 — the host-owned endpoint CEILING. Since 064-18 it is the stock Edge and
+    // demdex endpoints (incl. the location-hint path) plus the first-party edge domain, when set; any
+    // other destination is HELD and surfaced. ID-sync pixels are element loads, tagged by the chamber.
     endpointCeiling: [...ALLOY_STOCK_ENDPOINTS, ...(edgeDomainHost ? allowlistForEdgeDomain(edgeDomainHost) : [])],
     knownHandleTypes: ALLOY_KNOWN_HANDLE_TYPES,
     consent: consentRef,

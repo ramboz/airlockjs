@@ -96,12 +96,12 @@ const interactResponses = (fixture) => fixture.requests.filter((r) => r.method =
  * Replay one fixture.
  * @param {import("playwright").Browser} browser
  * @param {string} name fixture file stem
- * @param {{ bootOptions?: object, title?: string, commands?: {command: string, options?: object}[], extraHosts?: string[], respond?: Function }} [opts]
+ * @param {{ bootOptions?: object, title?: string, commands?: {command: string, options?: object}[], extraHosts?: string[], respond?: Function, extraCookies?: object[] }} [opts]
  *   `bootOptions` is merged into the bootAlloy options (a site opt-in such as a reduced `context`).
  *   064-18: `extraHosts` are further vendor hosts answered from the fixture (a first-party edge domain);
  *   `respond(request, index)` may return `{ status, headers, body }` to override the recorded answer.
  */
-export async function replayFixture(browser, name, { bootOptions = {}, title = "airlock064-page", seed = true, event = PAGE_VIEW, commands = [], extraHosts = [], respond = null } = {}) {
+export async function replayFixture(browser, name, { bootOptions = {}, title = "airlock064-page", seed = true, event = PAGE_VIEW, commands = [], extraHosts = [], respond = null, extraCookies = [] } = {}) {
   const fixture = await loadFixture(name);
   const { manifest, capture } = fixture;
   const input = manifest.input_state;
@@ -121,6 +121,9 @@ export async function replayFixture(browser, name, { bootOptions = {}, title = "
     userAgent: capture.user_agent,
   });
   try {
+    if (extraCookies.length) {
+      await context.addCookies(extraCookies.map((c) => ({ path: "/", secure: true, sameSite: "Lax", ...c })));
+    }
     if (seed) {
       const before = input.storage_before;
       if (before.cookies.length) {

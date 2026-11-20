@@ -64,8 +64,8 @@ describe.runIf(real)("064-18 egress bridge (real Chromium)", () => {
       expect(kinds(r, "endpoint-ceiling")).toEqual([]);
     }, T);
 
-    it("S6 transport: set-consent leaves on the recorded host and path", async () => {
-      const r = await replayFixture(browser, "s6-in", { commands: [{ command: "setConsent", options: { consent: [{ standard: "Adobe", version: "2.0", value: { collect: { val: "y" } } }] } }] });
+    for (const name of ["s6-in", "s6-out"]) it(`S6 transport (${name}): set-consent leaves on the recorded host and path`, async () => {
+      const r = await replayFixture(browser, name, { commands: [{ command: "setConsent", options: { consent: [{ standard: "Adobe", version: "2.0", value: { collect: { val: name === "s6-out" ? "n" : "y" } } }] } }] });
       const recorded = r.fixture.requests.find((q) => q.url.includes("/privacy/set-consent"));
       const sent = r.observed.find((o) => o.url.includes("/privacy/set-consent"));
       expect(sent, "set-consent emitted").toBeTruthy();
@@ -93,6 +93,20 @@ describe.runIf(real)("064-18 egress bridge (real Chromium)", () => {
     it("credentials: include is applied on the main thread: a wildcard CORS answer fails the request", async () => {
       const r = await replayFixture(browser, "s1-base", { respond: () => ({ status: 200, headers: { "access-control-allow-origin": "*", "content-type": "application/json" }, body: "{}" }) });
       expect(r.responses[0].status).toBe(0);
+    }, T);
+  });
+
+  describe("a seal hold does not trigger Alloy's other-host fallback", () => {
+    it("a consent-held request (stale 'in' cookie, page consent pending) is held once, with no second try", async () => {
+      // A returning profile with a stale consent cookie: Alloy sends, the seam holds it.
+      const r = await replayFixture(browser, "s2-base", {
+        bootOptions: { consentHold: null },
+        extraCookies: [{ name: "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_consent", value: "general=in", domain: new URL(r0Origin).hostname }],
+      });
+      expect(r.observed).toHaveLength(1);
+      expect(r.responses.map((x) => x.status)).toEqual([0]);
+      expect(kinds(r, "consent").filter((d) => d.disposition === "held" && d.beaconId)).toHaveLength(1);
+      expect(r.network.filter((n) => /adobedc|edge\./.test(n.url))).toEqual([]);
     }, T);
   });
 

@@ -34,7 +34,7 @@
  * mediated (intercepted) fetch above is the chamber's SOLE network-capable
  * surface. Right after the bundle loads (at the same point importScripts is
  * revoked) the chamber withholds every OTHER ambient network primitive a
- * classic Worker retains (applyEgressConfinement + denySendBeacon), so alloy's
+ * classic Worker retains (applyEgressConfinement; the shim navigator's sendBeacon is the bridge route, 064-18), so alloy's
  * OWN configure + sendEvent run UNDER confinement (R-004: alloy uses only
  * fetch, so it is not broken). A post-boot adversarial self-probe (runEgressProbe)
  * attempts each withheld primitive from inside the chamber and reports it
@@ -374,8 +374,12 @@ function resolveInterceptedFetch(m) {
   pendingFetches.delete(m.id);
   try {
     // A failed network request rejects a real fetch with a TypeError, and Alloy keys its
-    // third-party-domain fallback on that name (064-18, recorded S8).
-    if (m.status === 0) throw new TypeError(m.statusText || "Failed to fetch");
+    // third-party-domain fallback on that name (064-18, recorded S8). A seal hold or a timeout is
+    // not a network failure: a plain Error, so Alloy does not retry on the other host.
+    if (m.status === 0) {
+      const msg = m.statusText || "Failed to fetch";
+      throw m.networkError ? new TypeError(msg) : new Error(msg);
+    }
     const status = m.status || 200;
     // A null-body status (204 `collect`, 205, 304) cannot carry a body: `new Response("", {status:204})` throws.
     const noBody = status === 204 || status === 205 || status === 304;

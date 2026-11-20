@@ -403,7 +403,7 @@ Rate = settings not covered by S9, divided by all settings listed. Covered means
 - Not covered: 7 (DS-17, DS-18, DS-19, DS-20, DS-22, DS-24, DS-34).
 - **Out-of-inventory rate: 7 / 36 = 19.4%, above the 10% threshold. Kill criterion 6 trips on this count.** Scope is not changed. It is recorded and reported; the owner chose to proceed (D11).
 - Sensitivity only, not applied: if DS-17 to DS-20 were switched on in S9-07 as sub-toggles of the AEP service, the rate would be 3 / 36 = 8.3%. Those toggles show no effect without an owned decision, segment, destination or campaign, so they would still fail condition (c).
-- Observed `handle` types (064-18, from the 46-fixture corpus, 200 JSON responses): `identity:result`, `personalization:decisions`, `state:store`, `identity:exchange` (4 of the 8 consumed), plus `locationHint:result` and `consent:preferences`, which Alloy ignores. The known list is the 8 consumed types plus these 2 observed ignored ones, so nothing in the corpus is unknown. 6 observed, 0 outside the list.
+- Observed `handle` types (064-18, from the 46-fixture corpus, 59 HTTP 200 JSON responses): `identity:result`, `personalization:decisions`, `state:store`, `identity:exchange` (4 of the 8 consumed), plus `locationHint:result` and `consent:preferences`, which Alloy ignores. The known list was built as the 8 consumed types plus these 2 observed ignored ones, so nothing in the corpus is unknown by construction. 6 observed, 0 outside the list.
 
 Kill criteria 6 and 4 both tripped on the T2 counts. Neither was reached by a scope change. The owner proceeded on both (D11, D12). The 7 gap rows are known gaps owned by B6 (064-22) and stay outside the v1.0 compatibility claim until owned resources exist.
 
@@ -478,7 +478,7 @@ The probe does not run until the owner confirms both. The POC site loads no Allo
 | Held-out rule check | Yes | Section 4.7 |
 | Drift and field classes (point 10) | Yes, adapted | Alloy is versioned. Field classes are `fixed`, `generated`, `input-derived`, `server-context-derived` (a source field is named, for example the edge region or datastream), `volatile`. Request classes are in section 2.2. A field that differs across setups or days without an explanation makes the state `unstable` and goes to the owner |
 
-Completeness metric: out-of-inventory rate = (datastream settings and observed `handle` types not covered by S9) divided by (all listed). Threshold: above 10% is a kill criterion (item 6). Value so far: 7 of 36 settings = 19.4% (T2, 6.5); the `handle` half measured in 064-18 is 0 of 6 (0%), so the combined rate is still driven by the settings count. This is above the threshold, so kill criterion 6 tripped on the settings count; scope is not changed and the owner proceeded (D11).
+Completeness metric: out-of-inventory rate = (datastream settings and observed `handle` types not covered by S9) divided by (all listed). Threshold: above 10% is a kill criterion (item 6). Value so far: 7 of 36 settings = 19.4% (T2, 6.5); the `handle` half measured in 064-18 is 0 of 6 (0%), and the list was built from this same corpus, so that 0% follows from how it was built. Combined: 7 of 42 = 16.7%, still above the threshold and still driven by the settings count. This is above the threshold, so kill criterion 6 tripped on the settings count; scope is not changed and the owner proceeded (D11).
 
 Kill criteria, from ADR-0061 plus the completeness metric:
 
@@ -531,12 +531,9 @@ Review rounds are capped at three before owner review (owner decision). Findings
 - Alloy-source simplification pass, 2026-11-13 (owner-approved, one jig consistency check instead of new rounds): T1 dropped; field-rule table added (2.3); B1 to B12 regrouped into B1 to B8; exact expected OFAT differences added; 13 source-review errors fixed (row 18, `appendIdentityToUrl` class, Context class, handle list, unknown-handle rule, network and transport inventory, missing components, push build, RulesEngine globals, Assurance request side, edge domain kind factor, stale chamber comment and deprecation note); D8 recorded.
 - Slice 064-02 (T2) review: one Opus 5.5 pass, 2 rounds (reviews/slice-02-*.md; D10 to D12 were added after the rounds, by owner decision). Round 1: needs-changes, 2 blocking, fixed; round 2: pass on all three passes.
 - Anything still open after round 3 goes to the pilot as a listed check.
+- Slice 064-18 (B2) review: one Opus 5.5 pass, 2 rounds (reviews/slice-18-*.md). Round 1: pass, 0 blocking, 3 to 6 non-blocking per pass; the medium findings (keepalive in-flight quota, seal holds throwing `TypeError`, S6 `s6-out` coverage) fixed in round 2. B2 changed three "today" facts in the frozen s2.2 Transport row (the fetch init is no longer dropped, `sendBeacon` is bridged through the seal, element loads are tagged, not inert); the table is left as frozen. The first-party CNAME edge domain stays the existing CAP freeze gap (DS-29, S9-06, an unverified row): B2 tests it synthetically (`edgeDomain` option, pinned host), and it is not re-captured without the owner. It is not a new open question.
 - Pilot count of extra captures: **0** (B1, 064-17, 2026-11-20). S1 with its variants, S2 and S5 replay clean from the frozen corpus alone; the kill criterion (more than 3) is not triggered. See section 4.11.
 
 ## 13. Clarifications
 
 None open.
-
-### Extra capture needed (064-18)
-
-One: a first-party CNAME edge domain. `s1-edge-domain` is a plain default-domain repeat, so the first-party host path (DS-29, S9-06) is only tested synthetically in 064-18 (`edgeDomain` option, pinned host). Not recorded; owner decision.

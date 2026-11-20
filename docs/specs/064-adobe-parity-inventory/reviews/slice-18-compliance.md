@@ -1,10 +1,10 @@
 ---
 slice: 064-18 — B2: Egress bridge
 pass: compliance
-round: 1
+round: 2
 verdict: pass
 reviewer: independent reviewer (Copilot general-purpose sub-agent)
-reviewed_at: 2026-11-20T16:40:00Z
+reviewed_at: 2026-11-20T16:35:00Z
 prompt_source: review prompt, slice 064-18 (uncommitted worktree diff)
 ---
 
@@ -39,3 +39,26 @@ Evidence run: `npm test` (2909 passed), `npm run lint` (clean), and
 - **F3 — Low — `connectors/alloy/connector.js:32-42`.** s2.2 lists `collect` generally, but the
   list only allows the hinted `collect`. A hint-less `/ee/v1/collect` (unload before the hint is
   known) would be held visibly, not dropped, and it is not in the corpus. Note it for B3.
+
+## Round 2
+
+**Verdict: pass. 0 blocking findings, 1 non-blocking.**
+
+Evidence run: `npm test` (2914 passed), `npm run lint` (clean),
+`AIRLOCK_REAL_CHROMIUM=1 npx vitest run` (144 files, 2954 passed).
+
+- **F1 — fixed.** `s6-out` is in the S6 loop (`test/adobe-b2-egress.test.js:67-68`) and compares
+  clean on host and path, with `collect: n`.
+- **AC2 / AC5 still met after the C2 change.** A beacon and an `init.keepalive` fetch both reserve
+  from the 067-06 tracker (`core/wrapped-sdk-host.js:566-572`); past 64 KiB the request still goes
+  out once, plain (`test/egress-bridge-seam.test.js:128-157`). Nothing is dropped, so the AC5 "no
+  silent drop" reading holds.
+- **AC6 (S8) still met after the C1 change.** A rejected dispatch is flagged `networkError`
+  (`core/wrapped-sdk-host.js:599`), the chamber turns it into a `TypeError`
+  (`connectors/alloy/alloy-chamber.worker.js:381`), and the S8 blocked case still shows both hosts
+  tried. A held request now gets a plain `Error` and is held once (`test/adobe-b2-egress.test.js:99-111`).
+- **F4 — Low — `core/wrapped-sdk-host.js:546-551`.** The timeout reply is now a plain `Error`, so a
+  hung request no longer triggers Alloy's other-host fallback. That is the intended reading ("not a
+  network failure"), but no test pins it. Fine to leave; name it if B3 touches retries.
+
+F2 and F3 are carried in the slice notes as listed.

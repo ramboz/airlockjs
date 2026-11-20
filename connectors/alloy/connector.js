@@ -260,8 +260,8 @@ export function createAlloyConnector(config = {}) {
     // enforces (017-03/020-02/016-02), but reads the host-owned egressPurposes/endpointCeiling
     // wired in bootAlloy, NOT this manifest field; gating on the manifest itself is the tracked
     // "manifest mirror-drift" tightening, docs/inbox.md). ADVISORY endpoints (ADR-0006 — host
-    // allow-list wins) — a FLOOR, not a complete map: the server-directed demdex/ID-sync
-    // breadth is runtime-returned and creds-gated to MVP3 (see ALLOY_INTERACT_ENDPOINT).
+    // allow-list wins) — since 064-18 the stock Edge/demdex endpoints incl. the location-hint
+    // path; the server-directed ID-sync pixels are not listed (tagged `unbridged-load`, 064-22).
     endpoints: [...ALLOY_STOCK_ENDPOINTS],
     // ADR-0007 consent-purpose annotation: tags each declared endpoint / cookie /
     // read (and egress overall) with the purpose(s) it serves, so a grant resolves

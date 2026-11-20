@@ -134,7 +134,7 @@
 import { checkEndpointCeiling, resolveEndpointCeiling } from "./endpoint-ceiling.js";
 import { checkConfigIntegrity, pinnedDispatchUrl, hostOf } from "./config-integrity.js";
 import { egressVerdict, resolveConsent } from "./consent.js";
-import { sanitizeFetchInit, KEEPALIVE_BUDGET_BYTES } from "./egress.js";
+import { sanitizeFetchInit, createKeepaliveTracker } from "./egress.js";
 import { governPayload, resolveDenylist } from "./payload-governance.js";
 import { isValidCookieName, matchesGrantedName, resolveCookieGrant } from "./cookie-scope.js";
 import { resolveStorageGrant, storageKeyGranted } from "./storage-scope.js";
@@ -218,6 +218,9 @@ export function createWrappedSdkHost({
   consentHold,
   payloadDenylist = null,
   payloadDenylistOverride,
+  // 064-18: the in-flight keepalive tracker (067-06) shared by every keepalive request the chamber
+  // makes (beacons and `init.keepalive`). Default: one per host.
+  keepaliveTracker = createKeepaliveTracker(),
   grantedCookieNames: stockCookieNames = null,
   cookieGrantNarrowing,
   cookiePurposes = null,
@@ -560,9 +563,23 @@ export function createWrappedSdkHost({
         // A beacon (navigator.sendBeacon from the chamber) is a keepalive POST; past the browser's
         // keepalive budget it goes without keepalive rather than being dropped.
         const init = sanitizeFetchInit(m.init);
-        if (m.beacon) init.keepalive = new TextEncoder().encode(String(m.body || "")).length <= KEEPALIVE_BUDGET_BYTES;
+        // Every keepalive request (a beacon or `init.keepalive`) shares the 067-06 in-flight quota:
+        // past it, one plain fetch, no retry, nothing dropped.
+        let slot = null;
+        if (m.beacon || init.keepalive === true) {
+          const bytes = m.method === "GET" || m.body == null ? 0 : new TextEncoder().encode(String(m.body)).length;
+          slot = keepaliveTracker.reserve(bytes);
+          init.keepalive = slot.keepalive;
+        }
         state.mainDispatch.requests.push({ url: m.url, method: m.method, body: m.body, ...(Object.keys(init).length ? { init } : {}), ...(m.beacon ? { beacon: true } : {}) });
-        return caps.egress.dispatch({ url: m.url, method: m.method, headers: m.headers, body: m.body, ...(Object.keys(init).length ? { init } : {}) });
+        let sent;
+        try {
+          sent = caps.egress.dispatch({ url: m.url, method: m.method, headers: m.headers, body: m.body, ...(Object.keys(init).length ? { init } : {}) });
+        } catch (err) {
+          slot?.release();
+          throw err;
+        }
+        return slot ? Promise.resolve(sent).finally(slot.release) : sent;
       })
       .then((res) => {
         clearTimeout(timer);
@@ -577,7 +594,9 @@ export function createWrappedSdkHost({
       })
       .catch((err) => {
         clearTimeout(timer);
-        respond({ status: 0, statusText: String((err && err.message) || err), body: "" });
+        // `networkError`: a real dispatch failure (not a seal hold or timeout), so the chamber
+        // rejects like a failed fetch and the SDK's own fallback can run.
+        respond({ status: 0, statusText: String((err && err.message) || err), body: "", networkError: true });
       });
   }
 

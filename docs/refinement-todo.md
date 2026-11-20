@@ -642,11 +642,10 @@ geometry unchanged, exposure captured by GA4 / ignored by alloy) + `test/eds-boo
   tests; the full browser geometry/CWV/GA4-capture proof is `rig/alloy-decisions.mjs`.
 
 **Still open / follow-ons (from 033-02, unchanged):**
-- **endpoint-ceiling BREADTH grounding (creds-gated live-Alloy).** `bootAlloy`'s ceiling is the grounded interact
-  FLOOR (`ALLOY_INTERACT_ENDPOINT`, 016-02 AC3/AC5): the honest interact passes; the server-directed demdex/ID-sync
-  breadth the Edge *response* returns at runtime is HELD+surfaced fail-closed (NOT a silent drop). Grounding that
-  breadth into the declared set needs a live-Alloy run (creds-gated, like the 013 live re-probe) — until then the floor
-  holds it. Trigger: a real-Alloy adopter needs the server-directed syncs, or the alloy real-site residual (an Adobe-stack site — the reference intuit-class site runs no Adobe Web SDK, so the MVP9 rewire never exercises alloy; ADR-0018).
+- **endpoint-ceiling BREADTH grounding (creds-gated live-Alloy).** Since 064-18 `bootAlloy`'s ceiling is the stock Edge and
+  demdex endpoint list (`ALLOY_STOCK_ENDPOINTS`, incl. the location-hint path; interact, collect, identity/acquire,
+  set-consent). The server-directed ID-sync pixels the Edge *response* returns are element loads, not fetches: the
+  chamber tags them (`unbridged-load`, not silent); bridging them is 064-22. Trigger: a real-Alloy adopter needs the server-directed syncs, or the alloy real-site residual (an Adobe-stack site — the reference intuit-class site runs no Adobe Web SDK, so the MVP9 rewire never exercises alloy; ADR-0018).
 - **`pushCritical` unload fast-path for the wrapped-SDK interact.** alloy's interact is a synchronous vendor round-trip
   (not a sync `sendBeacon`), so `bootAlloy`'s `pushCritical` currently rides the SAME queued `driveEvent` — best-effort
   on unload, no true fast path. A closing `page_view` may not complete before teardown. Trigger: an adopter needs a

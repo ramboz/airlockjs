@@ -1,10 +1,10 @@
 ---
 slice: 064-18 — B2: Egress bridge
 pass: reconciliation
-round: 1
+round: 2
 verdict: pass
 reviewer: independent reviewer (Copilot general-purpose sub-agent)
-reviewed_at: 2026-11-20T16:40:00Z
+reviewed_at: 2026-11-20T16:35:00Z
 prompt_source: review prompt, slice 064-18 (uncommitted worktree diff)
 ---
 
@@ -50,3 +50,31 @@ prompt_source: review prompt, slice 064-18 (uncommitted worktree diff)
   open. `s6-pending-in` replays only set-consent, which matches the carried note.
 - "Upstream to main later" for the three core files matches the low regression risk in the craft
   pass.
+
+## Round 2
+
+**Verdict: pass. 0 blocking findings, 3 non-blocking.**
+
+- **R1 — fixed.** `spec.md:406` now says "59 HTTP 200 JSON responses".
+- **R2 — fixed.** `spec.md:481` says the handle 0% follows from how the list was built, and states
+  the combined rate (7 / 42 = 16.7%).
+- **R3 — fixed.** The s12 064-18 line (`spec.md:534`) names the three s2.2 Transport facts B2
+  changed and leaves the frozen table alone.
+- **R4 — fixed.** `docs/refinement-todo.md:645-648` describes `ALLOY_STOCK_ENDPOINTS` and points
+  ID-sync pixels at 064-22.
+- **R5 — fixed.** s12 has a 064-18 line (`spec.md:534`).
+- **"Extra capture needed" moved.** The s13 subsection is gone; s13 reads "None open", and s12 ties
+  the first-party CNAME edge domain to the existing CAP freeze gap (DS-29, S9-06). Matches the ask.
+- **Slice notes vs code.** The keepalive tracker, the `networkError` split, and the carried list
+  (C3, C4, C5, F2, F3, the `r0Origin` nit, 067-03, upstream) all match the diff and this round's review.
+
+New findings:
+
+- **R6 — Low — `slice-18-b2-egress-bridge.md:36`.** "see spec 064 end" now points at nothing; the
+  note lives in s12 (`spec.md:534`). Point it there.
+- **R7 — Low — `spec.md:534`.** "6 non-blocking per pass" is off: round 1 had 3 (compliance),
+  6 (craft) and 5 (reconciliation). Write "14 non-blocking across the three passes" or list them.
+- **R8 — Low — `test/adobe-b2-egress.test.js:99-111` vs the carried 067-03 note.** The new test
+  runs the same scenario as the 067-03 residual (stale "in" cookie, page consent pending) and calls
+  it "held once". Both are true (the seam holds and rejects it; it is not replayed on grant), but a
+  reader could take the test as closing 067-03. One clause in the carried note would stop that.
