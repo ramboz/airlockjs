@@ -119,4 +119,5 @@ Phase A passed the servo quality-gate (composite 1.0) before its push.
 - S9-06 / DS-29: first-party ID never reached the Edge; row stays unverified (needs a first-party CNAME edge domain).
 - Browser scope out-list (Firefox, Safari, mobile) and the other live-only rows stay as in spec 4.9 and 4.10.
 - S7 manifests (`s7-base`, `s7-repeat`) record the post-`pushState` URL (`/?spa-view=2`), not the load URL; the load URL is the capture URL with state S7.
+- POC cleanup: 5462fb75f842cb521f1f8d5e54ea6dbac342860a sets `enabled: false` (capture entry and gate code stay; it fails closed). Target activity 3864223 left active until 11-30.
 - Review (reviews/slice-04-*.md): fixed K1 (the withheld-ID scrub now fails closed and has a test), K2 (a fresh profile dir must be empty), the S12 header claim, S9-06/S9-11 claims, counts, S11 interval. Left non-blocking: K3-K8 (driver defaults, step handling, storage snapshot scope, S10 URL prefix, S12 converter script not committed, no driver test).
