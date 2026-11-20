@@ -93,8 +93,26 @@ Phase A passed the servo quality-gate (composite 1.0) before its push.
 - S9-10 (00:07, 11-20): Target service off. The decisions handle vanished after about 61 s (`s9-10`).
 - S9-09 (00:09): Analytics service off. Fixed 10 min wait (`s9-09`).
 - S9-12 (00:20): Access Type "Authenticated only". Waited 10 min. The unauthenticated sendEvent failed as expected (`s9-12`).
-- Attempt count: 41 after S9-12. Earlier notes calling S12 the "31st attempt" are off by one; the running total after S12 was 32.
+- Attempt count: 42 after S9-12 (corrected after the Phase B check). Earlier notes calling S12 the "31st attempt" are off by one; the running total after S12 was 32.
 - Datastream was NOT yet restored at this point; restore follows.
-- Restore (02:11 on 11-20): the owner restored every datastream setting to the baseline; the Target activity stays active to 2026-11-30 (owner choice). Waited 10 min, recorded `restore-s1` (attempt 42 of 60). Its response handles match `s1-base` (identity, personalization decisions, locationHint, state:store).
-- Phase B totals: 42 attempts of 60. Phase B stops here; day 2 (S11, S13) is next. The servo quality-gate ran for Phase A (composite 1.0) and for Phase B (see commit).
+- Restore (02:11 on 11-20): the owner restored every datastream setting to the baseline; the Target activity stays active to 2026-11-30 (owner choice). Waited 10 min, recorded `restore-s1` (attempt 43 of 60: 42 fixtures plus one Phase A re-record). Its response handles match `s1-base` (identity, personalization decisions, locationHint, state:store).
+- Phase B totals: 43 attempts of 60 (the earlier 42 undercounted by one). Phase B stops here; day 2 (S11, S13) is next. The servo quality-gate ran for Phase A (composite 1.0) and for Phase B (see commit).
 - Unexpected, for the record: activities 3258675 and 3711334 could not be located from this login; the readiness activity needed its end date extended through the Admin API (OAuth server-to-server credential, owner-directed); S9-03 restored only Target because Audience Manager was never on the datastream.
+
+## Phase C notes: day 2 (2026-11-20) and freeze
+
+- **S11** (owner chose to run day 2 now; UTC 2026-11-20, about 10 h after the Phase A S1/S3): `s11-s1` and `s11-s3`, each with a `capture.note` saying so. Compared with `s1-base` and `s3-base` (request, response body, response headers): only per-run values differ (page URL run id, timestamps and local time, request id, `x-request-id`, `date`, generated ECID and `demdex` cookie, the identity cookie payload). No drift in status, handle types, cluster (OR2) or location hint.
+- **S13** (egress): the owner's VPN was already on (Basel, CH) when I first recorded, which I caught from a neutral IP check (CH, Basel-City). That run is kept as `s13-vpn-ch` (egress `non-eea`, exit `vpn-ch-basel`; CH is not in the EEA; the manifest region field only allows `eea|non-eea`). With the VPN off a neutral check showed US, California; `s13-default` (exit `default-us-ca`) was recorded then. The first default attempt reused the profile directory of the earlier run, so it carried state (7 requests); it was discarded and re-recorded with a fresh profile (the driver does not detect a reused profile dir as returning; finding for tooling). Neutral probe, both egresses: Edge `locationHint` `or2:1800`, `x-adobe-edge: OR2;9`. Response fields compared: no differences except per-run values. Nothing for the chamber to handle; no stop. The owner turned the VPN off afterwards. No VPN credentials were seen or stored.
+- **Counts**: 46 fixtures against AC5's 48 (48 minus S9-07 and S9-08, which were skipped per spec). Attempts: 48 of the kill-criterion-4 limit of 60 (43 after Phase B, S11 x2, S13 x3 including the mislabelled and the stale-profile runs).
+- **Finding for 064-17 and 064-18:** the first Edge call goes to `adobedc.demdex.net/ee/v1/interact` and later calls (with state) go to `edge.adobedc.net/ee/<cluster>/v1/...`. A returning profile used `edge.adobedc.net` only. The chamber must handle both hosts; the Analytics receipt is not wire-visible.
+
+### Freeze note: live-only rows and gaps
+
+- S9-07 and S9-08 unverified: no owner test values (second Target environment, report suite, namespace, AEP dataset and schema, Event Forwarding property). Rows stay "no effect (C)" unverified.
+- S9-11 partial: no overrides lists, Data Prep or Event Forwarding flips; the bot rule used `referer` because the UI has no custom header.
+- DS-34 and Data Prep not read.
+- The Analytics receipt is not wire-visible; only Edge responses are recorded.
+- Target activities 3258675 and 3711334 are not visible from the owner's login (their `__view__` decisions appear while the property is on).
+- S12 `s12-owner` is a partial input state (owner HAR, demdex interact call only; no pin).
+- S9-03 restored Target only, because Audience Manager was never on the datastream.
+- S13 result: no response-field differences between the US default and CH VPN exits.

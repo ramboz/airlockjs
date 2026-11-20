@@ -11,6 +11,7 @@ import { buildManifest, finishFixture } from "./capture-fixture.mjs";
 //     --headed|--headless [--variant viewport|locale|timezone|referrer] \
 //     [--source <profile-source-id>] [--poc-commit <sha>] [--rerecord "why"]
 //     [--owner-change "text" --change-at <iso> --waited "text"]
+//     [--note "text"] [--egress-region eea|non-eea --egress-exit <id>]
 // Withheld IDs are read at runtime from the file named by AIRLOCK_PRIVATE_IDS
 // (outside the repo) and scrubbed to labels; nothing about that file is stored.
 
@@ -192,7 +193,7 @@ async function main() {
       capturedAt: new Date().toISOString(),
       input: {
         url: page.url(), referrer: settings.referrer, viewport: settings.viewport, locale: settings.locale,
-        timezone: settings.timezone, egress: { region: "non-eea", exit_id: "default" },
+        timezone: settings.timezone, egress: { region: args["egress-region"] ?? "non-eea", exit_id: args["egress-exit"] ?? "default" },
         browser: { name: "chromium", version }, mode: args.headless ? "headless" : "headed",
         profileKind: returning ? "returning" : "fresh",
       },
@@ -203,6 +204,7 @@ async function main() {
       recording_id: id, state, scenario, variant: args.variant ?? null,
       poc_commit: args["poc-commit"] ?? null, source_fixture: args.source ?? null,
       rerecord: args.rerecord ?? null,
+      note: args.note ?? null,
       owner_change: args["owner-change"] ? { change: args["owner-change"], at: args["change-at"] ?? null, waited: args.waited ?? null } : null,
       user_agent: ua, alloy_loads: alloy.loads, dropped, steps,
     };
