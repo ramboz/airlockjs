@@ -72,7 +72,7 @@ The three ACs were reworded to what is built and fully met; each ends `except <g
 - **Two linkClicks POSTs in the replay** were the rig booting airlock (click collection on) on the stock page too. The stock arm now boots with `clickCollectionEnabled:false`; the test asserts exactly one stock POST and compares full bodies.
 - **SPA view cache (C2)**: stock caches view-scoped propositions and renders/notifies on a push naming the view. Built in 064-23 (2026-11-20). Was the source of the S7 SPA-view display delta.
 - **Redirect display notification (C3)**: stock sends it with keepalive/`documentMayUnload`; closed in 064-24 (the airlock now sends it with keepalive before `location.replace`).
-- **Interact notification shape (C5)**: stock merges `propositionInteract` into the click event, sends `viewName`, reads `trackingLabel` from item characteristics, and has AJO auto-collect. Ours sends a separate event, uses `data-aep-click-label`, no AJO auto-collect. Compared on `decisioning` only -> 064-25.
+- **Interact notification shape (C5)**: stock merges `propositionInteract` into the click event, sends `viewName`, reads `trackingLabel` from item characteristics, and has AJO auto-collect. Ours sends a separate event, uses `data-aep-click-label`, no AJO auto-collect. Compared on `decisioning` only -> 064-25 (closed, DONE 2026-11-20).
 - **Trusted Types** for the template write is not addressed (per-item isolation only).
 - **Low carries**: K5 prehide selector injection/nonce/consent-out, K6 dedup attribute, K7 one observer per item, K10 remote fetches from rendered content sit outside the seal.
 - **`customCode` and script re-execution**: incompatible by design (no raw JS from a payload).
