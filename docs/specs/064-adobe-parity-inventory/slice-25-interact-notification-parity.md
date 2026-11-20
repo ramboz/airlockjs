@@ -19,6 +19,7 @@ last_verified:
 3. AJO auto-collect of click interactions is implemented or dispositioned with a reason.
 4. Full request bodies compare clean against stock (meta stripped), not `decisioning` only.
 5. Click-type items are left out of the display notification, as stock does (carried from 064-23; the renderer counts them today).
+6. When one event renders page-wide and view propositions, their display notifications go in one display event, as stock Alloy 2.31.1 does (carried from 064-23).
 
 **DoD:**
 - `npm test && npm run lint` and servo gate pass.
