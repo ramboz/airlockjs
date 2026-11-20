@@ -96,12 +96,13 @@ const interactResponses = (fixture) => fixture.requests.filter((r) => r.method =
  * Replay one fixture.
  * @param {import("playwright").Browser} browser
  * @param {string} name fixture file stem
- * @param {{ bootOptions?: object, title?: string, commands?: {command: string, options?: object}[], extraHosts?: string[], respond?: Function, extraCookies?: object[] }} [opts]
+ * @param {{ bootOptions?: object, title?: string, commands?: {command: string, options?: object}[], extraHosts?: string[], respond?: Function, extraCookies?: object[], run?: (page: import("playwright").Page) => Promise<unknown> }} [opts]
+ *   `event: null` skips the default page-view push; `run(page)` drives a scenario of its own (064-19) and its value lands in `results.run`.
  *   `bootOptions` is merged into the bootAlloy options (a site opt-in such as a reduced `context`).
  *   064-18: `extraHosts` are further vendor hosts answered from the fixture (a first-party edge domain);
  *   `respond(request, index)` may return `{ status, headers, body }` to override the recorded answer.
  */
-export async function replayFixture(browser, name, { bootOptions = {}, title = "airlock064-page", seed = true, event = PAGE_VIEW, commands = [], extraHosts = [], respond = null, extraCookies = [] } = {}) {
+export async function replayFixture(browser, name, { bootOptions = {}, title = "airlock064-page", seed = true, event = PAGE_VIEW, commands = [], extraHosts = [], respond = null, extraCookies = [], run = null } = {}) {
   const fixture = await loadFixture(name);
   const { manifest, capture } = fixture;
   const input = manifest.input_state;
@@ -173,7 +174,7 @@ export async function replayFixture(browser, name, { bootOptions = {}, title = "
 
     const results = {};
     const steps = capture.steps.map((s) => s.step);
-    if (steps.includes("sendEvent")) {
+    if (steps.includes("sendEvent") && event) {
       await page.evaluate((evt) => window.__handle.push(evt), event);
       await page.waitForFunction(() => window.__observed.length > 0, null, { timeout: 5000 }).catch(() => {});
     }
@@ -187,6 +188,7 @@ export async function replayFixture(browser, name, { bootOptions = {}, title = "
       }
     }
     for (const c of commands) results[c.command] = await page.evaluate((x) => window.__command(x.command, x.options), c);
+    if (run) results.run = await run(page);
     await page.waitForTimeout(250);
     const observed = await page.evaluate(() => window.__observed);
     const responses = await page.evaluate(() => window.__responses);

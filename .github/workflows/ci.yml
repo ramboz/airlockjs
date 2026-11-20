@@ -107,6 +107,11 @@ jobs:
         env:
           AIRLOCK_REAL_CHROMIUM: "1"
 
+      - name: GATING — 064-19 B3 command coverage and consent hold (real Chromium, pinned Alloy 2.31.1)
+        run: npx vitest run test/adobe-b3-commands.test.js
+        env:
+          AIRLOCK_REAL_CHROMIUM: "1"
+
       - name: GATING — real-Worker isolation invariant (07-02)
         run: npm run rig:isolation
 

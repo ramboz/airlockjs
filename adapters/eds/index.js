@@ -1647,6 +1647,16 @@ export async function bootAlloy(opts = {}) {
 
   const context = Array.isArray(opts.context) ? opts.context : ALLOY_DEFAULT_CONTEXT;
 
+  // 064-19 AC2: function-valued Alloy options cannot cross the airlock; say so instead of dropping silently.
+  for (const [name, fn] of [["onBeforeEventSend", opts.onBeforeEventSend], ["filterClickProperties", opts.clickCollection && opts.clickCollection.filterClickProperties], ["onBeforeLinkClickSend", opts.onBeforeLinkClickSend]]) {
+    if (typeof fn === "function") {
+      (typeof opts.onDiagnostic === "function" ? opts.onDiagnostic : decisionDiagnostic)({
+        level: "warn", kind: "unsupported-callback", option: name,
+        reason: `${name} is a function and cannot cross the airlock; it is not forwarded (shape the event on the main thread before push)`,
+      });
+    }
+  }
+
   // ADR-0016 prerequisite — fail LOUD here too (validateConnectorEntry also checks it
   // on the config path) so a direct bootAlloy caller gets an actionable error rather
   // than a downstream chamber fatal{phase:"load"}.

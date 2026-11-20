@@ -40,3 +40,46 @@ Why this is a design call: a function cannot cross the airlock (structured clone
 
 Consequence for 064-20 (B4): only `subscribeRulesetItems.callback` is B4's to verify, and the check is that results arrive as data through `decisions`, not that a function runs.
 Consequence for 064-22 (B6): cite this table for `getPlayerDetails` and `onStreamResponse`.
+
+### Results (rows 3 to 9, S3 to S7)
+
+Tests: `test/adobe-b3-commands.test.js` (hermetic matrix-owner and callback-diagnostic checks, plus real-Chromium replays gated in `browser-oracle`). Harness change: `replayFixture` gets `run(page)` and `event: null` (rig only, no shared seam changed).
+
+| Row | Command | Class | Fixture | Result |
+|---|---|---|---|---|
+| 3 | `sendEvent` | worker-native | S3 (`s3-base`, `s3-repeat`, `s11-s3`), S7 | clean |
+| 4 | `applyResponse` | worker-native | S3 recorded response | runs, no send, no unknown handle |
+| 5 | `getIdentity` | worker-native (one acquire on fresh) | S5 | clean (shape, ECID, `edge` as recorded; returning sends nothing) |
+| 6 | `appendIdentityToUrl` | **worker-native (AC3)** | S5 | `adobe_mc` with `TS`, `MCMID` = the ECID, `MCORGID`; no network after the acquire |
+| 7 | `getLibraryInfo` | worker-native | live | reports 2.31.1 |
+| 8 | `setConsent` | worker-native + seam hold | S6 | see below |
+| 9 | `createEventMergeId` | worker-native | live | UUID, no send |
+
+Rows 1 and 2 (`configure`, `setDebug`) are B1/B2's; rows 10 to 12 are B4's, 13 to 17 are B6's. A hermetic test asserts the matrix has 17 rows, each with an owner, and that B3 owns exactly rows 3 to 9.
+
+- **S4** (request side): the first interact carries `decisionScopes` `[scope, "__view__"]` and compares clean for all four fixtures. Rendering and the `propositionDisplay` second POST are B4's. The chamber's `sendEvent` hardcodes `renderDecisions:false`; the replay sends `renderDecisions:true` through the rig command (stock option), and the request body is identical, so no connector change is needed for the request side.
+- **S7**: page, link and SPA view compare clean. One expected difference on the first two interacts (page, link): the capture sent them from its own run URL (with `run=` id) before `pushState`; the replay page starts at the manifest URL. The link event is a manual `sendEvent` (the capture ran `clickCollectionEnabled:false`), so no `documentUnloading` path is exercised and **F3 stays carried** (hint-less `/ee/v1/collect` not on the allowlist; not in the corpus).
+- **S6** (hold on, page consent `pending`, two queued page views): nothing leaves while pending. `s6-in` and `s6-pending-in` (3 s wait): the grant sends the set-consent then both interacts, same paths and order as recorded, bodies clean (cookie-jar order of `meta.state.entries` compared as a set; it is incidental). **One documented delta, `s6-out`:** the recording shows the opt-out `set-consent` (`collect:n`) reaching demdex. Here the strict consent gate holds it (visible `kind:"consent"` diagnostic), so the refusal is not forwarded to Adobe; the queued events are dropped either way. This is the ADR-0062 consent-hold exception working as designed, but the opt-out signal not reaching the vendor is a product question: carried for the owner (forwarding it would need a shared seam exemption for `privacy/set-consent` without `query.identity.fetch`, which main would have to adopt).
+- **Lifecycle, Identity, Consent rows of s2.2**: covered above; ID-sync pixels stay with 064-22.
+
+### 067-03 residual: resolved
+
+Stale Alloy consent cookie "in" with page consent pending: the seam holds the interact once, visibly, no other-host retry (064-18). On a later grant the held request is **dropped, not flushed**: only Alloy's own `set-consent` goes out. Decision: accept. With the 067-03 default Alloy's own pending queue holds events, so the seam drop is a backstop for a narrow case; a seam hold-and-flush for Alloy needs a replay decouple that does not exist for the wrapped-SDK path (`docs/refinement-todo.md`, updated). Test: `067-03 residual` in the B3 test file.
+
+### AC2 code
+
+`bootAlloy` now reports a function-valued `onBeforeEventSend`, `clickCollection.filterClickProperties` or `onBeforeLinkClickSend` with a `kind:"unsupported-callback"` diagnostic (additive, adapter-only). Upstream to main with the Alloy connector.
+
+### For 064-20 (B4)
+
+- `subscribeRulesetItems.callback` is mediated as data (see AC2 table): check results arrive through `decisions`, not a function.
+- The S4 request side is checked here; B4 owns rendering and the `propositionDisplay` POST. Replay S4 with a rig `sendEvent` command (`renderDecisions:true`, `decisionScopes`), `event: null`.
+- Use `run(page)` in `replayFixture` for multi-step scenarios.
+
+### Shared-file changes to upstream to main
+
+None to `core/*`. Adapter/harness only: `adapters/eds/index.js` (`unsupported-callback` diagnostic), `rig/adobe-b1-replay.mjs` (`run`, `event:null`).
+
+### Extra captures needed
+
+0 new (the CNAME edge domain from 064-18 stays the one known gap).

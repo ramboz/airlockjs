@@ -381,6 +381,7 @@ defense-in-depth strip. **Superseded in part by [ADR-0062](decisions/adr-0062-st
   for the wrapped-SDK path). **Open question (020-02 arch review):** is pending-window data loss
   acceptable for alloy, or should hold+flush be prioritized? Resolution trigger: a deployment where
   the pending-consent window materially drops alloy analytics/personalization.
+  **Update (064-19, 2026-11-20):** with the 067-03 default (Alloy's own `defaultConsent:"pending"` queue holds pending events and flushes them on grant), the seam drop is only a backstop. It fires when a stale Alloy consent cookie says "in" while page consent is pending. That request is held once, visibly, and **dropped, not replayed**, when consent is then granted (`test/adobe-b3-commands.test.js`). Accepted: the window needs a stale cookie plus a pending page, and the diagnostic names it. Re-open only if a deployment sees this loss in practice.
 - **The live `setConsent(collect:n)` flow + HTML-rig consent wiring** — 020 characterized the setConsent
   mechanism from the alloy@2.35.0 source; a live `configure → setConsent(collect:n) → sendEvent`
   (asserting the interact is suppressed) + wiring `rig/alloy-core-host-harness.html` /
