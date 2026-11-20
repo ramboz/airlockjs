@@ -4,8 +4,8 @@ pass: reconciliation
 round: 2
 verdict: pass
 reviewer: independent reviewer (Claude Opus 5.5, Copilot jig:reviewer sub-agent)
-reviewed_at: 2026-11-20T18:22:53Z
-prompt_source: review prompt, slice 064-27 (commits 36fc4348, 4e4b0f5d)
+reviewed_at: 2026-11-20 (time not recorded)
+prompt_source: review prompt, slice 064-27 (commits 36fc4348, 4e4b0f5d; local commits, squashed into f248bf3a)
 ---
 
 # 064-27 reconciliation — Round 2

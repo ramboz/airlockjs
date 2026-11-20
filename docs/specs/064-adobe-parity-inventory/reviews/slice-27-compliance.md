@@ -4,8 +4,8 @@ pass: compliance
 round: 2
 verdict: pass
 reviewer: independent reviewer (Claude Opus 5.5, Copilot jig:reviewer sub-agent)
-reviewed_at: 2026-11-20T18:22:53Z
-prompt_source: review prompt, slice 064-27 (commits 36fc4348, 4e4b0f5d)
+reviewed_at: 2026-11-20 (time not recorded)
+prompt_source: review prompt, slice 064-27 (commits 36fc4348, 4e4b0f5d; local commits, squashed into f248bf3a)
 ---
 
 # 064-27 compliance — Round 2
@@ -26,7 +26,7 @@ Public-repo check: no private paths, the org ID is already in the corpus, sessio
 
 ## Round 2
 
-**Verdict: pass. 0 high, 0 medium, 2 nits.** (Round 2 re-reviewed commits 36fc4348 and 4e4b0f5d; reviewed_at above is the round-1 write time, round 2 ran later the same day.)
+**Verdict: pass. 0 high, 0 medium, 2 nits.**
 
 All round-1 findings re-verified: M1 fixed (only `Adobe.2.0` granted; TCF deferred until a consent path sends it, recorded in the connector JSDoc and slice notes); L1 fixed (evidence cites `alloy_debug`); L2 accepted and recorded in the slice notes; L3 fixed; L4 recorded (servo gate composite 1.0 pass, `npm test` 2937 passed, lint clean, real-Chromium tests 14/14 twice, GATING step at `ci.yml`).
 
