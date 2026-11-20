@@ -85,3 +85,7 @@ The freeze note does not restate the 4.10 browser-scope out-list (Firefox, Safar
 ## Resolution (round 1)
 
 Blocking findings fixed in the follow-up commit (see slice-04 notes, "Review" line); non-blocking items are carried as listed there. Round 2 not run.
+
+### Resolution (owner, 2026-11-20)
+
+C1: the owner accepted the S12 header differences as capture setup (`cache-control`/`pragma: no-cache` match DevTools "Disable cache"; UA, `sec-ch-ua` and `accept-language` are browser-set, not Alloy). AC4 is met by this decision.

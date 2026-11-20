@@ -121,3 +121,8 @@ Phase A passed the servo quality-gate (composite 1.0) before its push.
 - S7 manifests (`s7-base`, `s7-repeat`) record the post-`pushState` URL (`/?spa-view=2`), not the load URL; the load URL is the capture URL with state S7.
 - POC cleanup: 5462fb75f842cb521f1f8d5e54ea6dbac342860a sets `enabled: false` (capture entry and gate code stay; it fails closed). Target activity 3864223 left active until 11-30.
 - Review (reviews/slice-04-*.md): fixed K1 (the withheld-ID scrub now fails closed and has a test), K2 (a fresh profile dir must be empty), the S12 header claim, S9-06/S9-11 claims, counts, S11 interval. Left non-blocking: K3-K8 (driver defaults, step handling, storage snapshot scope, S10 URL prefix, S12 converter script not committed, no driver test).
+
+### Owner decisions (2026-11-20)
+
+- **S12 differences (AC4):** the owner accepted them as capture setup. `cache-control: no-cache` and `pragma: no-cache` match DevTools "Disable cache" on the owner's HAR; `user-agent`, `sec-ch-ua` and `accept-language` are browser-set, not Alloy. AC4 is met by this decision.
+- **Target activity IDs:** the owner chose to keep 3864223, 3258675 and 3711334 in the public repo. Any caller with the public datastream ID gets them back from Edge (same reasoning as D9 for the org and datastream IDs), and they grant no access.
