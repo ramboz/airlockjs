@@ -83,6 +83,18 @@ export const ALLOY_EVENTS = Object.freeze(["page_view"]);
 export const ALLOY_EGRESS_PURPOSES = Object.freeze(["analytics_storage", "personalization"]);
 
 /**
+ * 068-02 (ADR-0062 amendment, owner decision 2026-11-20): the one request the seam forwards after an
+ * explicit refusal, so Adobe records it. Alloy's `privacy/set-consent` with `collect: "n"`; only the
+ * `consent` and `meta` body keys leave, so the ECID `query.identity.fetch` stock Alloy adds is removed.
+ * Core reads this declaration and knows nothing about Alloy's request shape.
+ */
+export const ALLOY_CONSENT_OPT_OUT = Object.freeze({
+  path: "/privacy/set-consent",
+  match: Object.freeze({ path: Object.freeze(["consent", 0, "value", "collect", "val"]), equals: "n" }),
+  forward: Object.freeze(["consent", "meta"]),
+});
+
+/**
  * Alloy wrapped-SDK connector — spec 012-01.
  *
  * The wrapped-SDK archetype (contracts/connector.d.ts): a ConnectorFactory
