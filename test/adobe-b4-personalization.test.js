@@ -81,6 +81,17 @@ describe("064-20 the renderer (hermetic)", () => {
   });
 });
 
+describe("064-25 click metas (hermetic)", () => {
+  it("two click items of one proposition matching the same element report it once", async () => {
+    const el = { nodeType: 1, parentNode: null, getAttribute: () => null };
+    const doc = { querySelectorAll: () => [el], documentElement: {}, createElement: () => ({}) };
+    const r = createPropositionRenderer({ document: doc, window: { location: {} }, diagnose: () => {} });
+    const click = (id, selector) => ({ id, schema: "https://ns.adobe.com/personalization/dom-action", data: { type: "click", selector }, characteristics: { trackingLabel: "l" } });
+    await r.render([{ id: "p", scope: "s", scopeDetails: { decisionProvider: "TGT" }, items: [click("a", "#x"), click("b", ".y")] }]);
+    expect(r.collectInteraction(el).metas.map((m) => m.id)).toEqual(["p"]);
+  });
+});
+
 describe("064-24 redirect ordering (hermetic)", () => {
   const redirectProp = { id: "rp", scope: "__view__", scopeDetails: { k: 1 }, items: [{ id: "i", schema: "https://ns.adobe.com/personalization/redirect-item", data: { content: "https://redirect.example/x" } }] };
   const setup = (redirectDisplay, redirectTimeoutMs = 20) => {
@@ -458,7 +469,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       }, T);
     }
 
-    it("clickCollectionEnabled:false collects nothing", async () => {
+    it("clickCollectionEnabled:false collects no link clicks", async () => {
       const r = await replayFixture(browser, "s4-base", { event: null, bodyHtml: LINKS, bootOptions: { clickCollectionEnabled: false }, respond: synthetic([]), run: async (page) => { await page.click("#ext"); await page.waitForTimeout(800); } });
       expect(r.network.filter((n) => /linkClicks/.test(n.body || ""))).toHaveLength(0);
     }, T);
