@@ -1422,7 +1422,7 @@ Resolved. [ADR-0063](decisions/adr-0063-host-command-entry.md) (Accepted 2026-11
 
 ## Personalization follow-ups (064-20, 2026-11-20)
 
-- **SPA view cache (open) -> slice 064-23**, with first-event-only `decisionScopes`.
+- **SPA view cache (RESOLVED by 064-23, 2026-11-20)**, with first-event-only `decisionScopes`. Carried to 064-25: stock leaves click-type items out of the display notification; ours counts them.
 - **Redirect display notification (open) -> slice 064-24.** The seam keepalive path exists (064-18); the missing piece is the `documentUnloading` hint and the ordering before `location.replace`.
 - **Interact notification parity (open) -> slice 064-25.** Merged interact-in-click event, `viewName`, `trackingLabel` tokens, AJO auto-collect.
 - **Trusted Types for rendered HTML (open).** Template write is not behind a Trusted Types policy.

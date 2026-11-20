@@ -30,6 +30,45 @@ export const PREHIDING_ID = "alloy-prehiding";
 const SELECTOR_WAIT_MS = 3000;
 
 const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+const IDS_ATTR = "data-adobe-proposition-ids";
+
+/** Stock `getScopeType() === "view"`: a view-scoped proposition (not the page-wide `__view__` / web surface). */
+export function isViewProposition(p) {
+  if (!isObject(p) || typeof p.scope !== "string" || p.scope === VIEW_SCOPE || /^web:\/\//.test(p.scope)) return false;
+  const details = isObject(p.scopeDetails) ? p.scopeDetails : {};
+  return isObject(details.characteristics) && details.characteristics.scopeType === "view";
+}
+
+/**
+ * The SPA view cache (064-23), as stock Alloy 2.31.1 keeps it: view-scoped propositions from every response,
+ * keyed by lower-cased view name and merged per name, so a later push naming the view renders them without a
+ * request. A name with nothing cached gets stock's empty-view placeholder (a default-content item, no id).
+ * It is initialized by the first fetched response, even an empty one.
+ */
+export function createViewCache() {
+  let initialized = false;
+  const views = new Map();
+  const placeholder = (name) => ({ scope: name, scopeDetails: { characteristics: { scopeType: "view" } }, items: [{ schema: SCHEMA.DEFAULT }] });
+  return {
+    isInitialized: () => initialized,
+    markInitialized: () => { initialized = true; },
+    /** Store a response's view-scoped propositions (replacing per view name); returns them. */
+    store(propositions) {
+      initialized = true;
+      const byName = new Map();
+      for (const p of propositions) {
+        const key = p.scope.toLowerCase();
+        byName.set(key, [...(byName.get(key) || []), p]);
+      }
+      for (const [key, list] of byName) views.set(key, list);
+    },
+    /** The cached propositions for a view name, or the placeholder. */
+    get(name) {
+      const list = typeof name === "string" ? views.get(name.toLowerCase()) : null;
+      return list && list.length ? list : [placeholder(name)];
+    },
+  };
+}
 
 /** `a:eq(2) b` style selectors (stock extension): split on `:eq(n)` and walk the matches. */
 function selectAll(doc, selector, root) {
@@ -178,11 +217,17 @@ export function createPropositionRenderer(deps = {}) {
     try {
       const nodes = await awaitSelector(doc, selector, waitMs, win);
       let any = false;
+      const viewScoped = isViewProposition(proposition);
       for (const el of nodes) {
         const done = rendered.get(el) || new Set();
         if (done.has(item.id) && type === "rearrange") continue; // rearrange is idempotent-guarded like stock
-        if (applyAction(type, el, content)) { any = true; done.add(item.id); rendered.set(el, done); }
-        else { warn(`unknown dom-action type "${type}"`, { scope: proposition.scope }); return false; }
+        // Stock marks view-scoped items on the element and does not draw one twice (returning to a view).
+        const marked = viewScoped ? (el.getAttribute(IDS_ATTR) || "").split(",") : null;
+        if (marked && marked.includes(String(item.id))) { any = true; continue; }
+        if (applyAction(type, el, content)) {
+          any = true; done.add(item.id); rendered.set(el, done);
+          if (marked && el.setAttribute) el.setAttribute(IDS_ATTR, [...marked, String(item.id)].sort().join(","));
+        } else { warn(`unknown dom-action type "${type}"`, { scope: proposition.scope }); return false; }
       }
       if (!nodes.length) warn(`selector matched nothing: ${selector}`, { scope: proposition.scope });
       return any;

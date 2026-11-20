@@ -50,7 +50,7 @@ import { htmlOfDecision } from "../../connectors/alloy/decisions.js";
 import { createPropositionExposureReporter, PROPOSITION_EXPOSURE_EVENT } from "./decisions-exposure.js";
 import { VIEW_SCOPE, firstDuplicateScope } from "./placements.js";
 import { createHostCommandEntry } from "./host-command.js";
-import { createPropositionRenderer, displayNotificationXdm, interactNotificationXdm, applyPrehidingStyle } from "./personalization-render.js";
+import { createPropositionRenderer, createViewCache, isViewProposition, displayNotificationXdm, interactNotificationXdm, applyPrehidingStyle } from "./personalization-render.js";
 import { installLinkClickCollection } from "./link-click.js";
 import { sourceGa4Ctx, writeGa4SessionState } from "../../connectors/ga4/cookies.js";
 import { shapeMpConsent } from "../../connectors/ga4/consent.js";
@@ -1495,7 +1495,7 @@ function deriveDecisionScopes(placements, reserved) {
  *   it, not the mutable `window.airlock` global (fixing the reachable re-boot misroute). Absent
  *   on a standalone bootAlloy (never wired into a composite) -> the exposure is dropped+diagnosed.
  */
-function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer, personalization, renderDecisions = true }) {
+function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer, personalization, renderDecisions = true, viewCache, getContext = () => null }) {
   const exposureReporter = createPropositionExposureReporter(
     {
       // The exposure routes through the WIRED composite-emit ref (034-03 AC2/AC3) — `{ accepts,
@@ -1528,15 +1528,21 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer,
   const deliver = async (decisions) => {
     const displayed = [];
     const sink = [];
+    // 064-23: the event in flight decides whether this answer renders (stock's per-call `renderDecisions`) and
+    // which view it names; outside an event the boot default applies.
+    const ctx = getContext();
+    const render = ctx ? ctx.render : renderDecisions !== false;
     for (const decision of decisions || []) {
       const scope = decision && decision.scope;
       // 064-20 M3: ruleset items arrive as data and fan out to the site's main-thread subscribers.
       if (decision && decision.channel === "ruleset-items") { personalization.rulesetItems(decision.content); continue; }
       if (decision && decision.content) sink.push(decision.content);
       const handlePromise = scope != null ? reserved[scope] : undefined;
+      // 064-23: a view-scoped proposition goes to the view cache; only the view the event names is rendered (below).
+      if (!handlePromise && decision && isViewProposition(decision.content)) continue; // cached from the response; rendered only for the named view
       if (!handlePromise || !htmlOfDecision(decision)) {
         // `renderDecisions:false` (stock default): the site gets the propositions through onDecisions and renders them with applyPropositions.
-        if (renderDecisions === false) continue;
+        if (!render) continue;
         // 064-20: no reserved box to fill (or nothing html for it) -> the main-thread renderer
         // (default-content, dom-action, redirect).
         const out = await renderer.render([decision && decision.content]);
@@ -1564,6 +1570,12 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer,
       exposureReporter.report(decision); // then the proposition_display exposure (AC4)
       // A reserved-box fill keeps its own proposition_display exposure; no Edge display notification (the recorded
       // S4 notification likewise omits the readiness proposition the airlock fills itself).
+    }
+    // The fetch answer renders the named view too (stock's first request); a warm cache was handled before the send.
+    if (render && ctx && ctx.viewName && !ctx.warm) {
+      ctx.viewHandled = true;
+      const out = await renderer.render(viewCache.get(ctx.viewName));
+      displayed.push(...out.displayed);
     }
     personalization.decided(sink, displayed);
   };
@@ -1767,6 +1779,7 @@ export async function bootAlloy(opts = {}) {
         const headers = {};
         if (res.headers && typeof res.headers.forEach === "function") res.headers.forEach((v, k) => { headers[k] = v; });
         if (!headers["content-type"]) headers["content-type"] = "application/json";
+        if (personalizationConfigured && res.ok !== false) cacheViewPropositions(req.body, body);
         return { status: res.status, statusText: res.statusText, headers, body };
       },
     },
@@ -1806,6 +1819,22 @@ export async function bootAlloy(opts = {}) {
   // 064-20 (B4): the host-side personalization surface. Rendering, prehiding and click collection run on
   // the main thread (ADR-0014); every notification they produce goes through the same mediated `enqueue`.
   const renderer = createPropositionRenderer({ diagnose });
+  // 064-23: the SPA view cache and the event in flight (events run one at a time through the pump below).
+  const viewCache = createViewCache();
+  let currentEvent = null;
+  // The Edge answer carries every view's propositions, but the chamber's Alloy hands back only the page-wide
+  // and current-view ones; the main thread reads the rest here, off the response it already relays.
+  const cacheViewPropositions = (requestBody, responseBody) => {
+    try {
+      const asked = JSON.parse(requestBody);
+      if (!(asked && asked.events && asked.events.some((ev) => ev && ev.query && ev.query.personalization))) return;
+      const found = [];
+      for (const h of JSON.parse(responseBody).handle || []) {
+        if (h && h.type === "personalization:decisions" && Array.isArray(h.payload)) found.push(...h.payload.filter(isViewProposition));
+      }
+      viewCache.store(found);
+    } catch (e) { /* not a personalization exchange */ }
+  };
   const commands = createHostCommandEntry({ worker, renderer });
   const rulesetSubscribers = new Set();
   let pendingDelivery = Promise.resolve();
@@ -1826,7 +1855,7 @@ export async function bootAlloy(opts = {}) {
       }
     },
   };
-  if (personalizationConfigured) wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer, personalization, renderDecisions: opts.renderDecisions });
+  if (personalizationConfigured) wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer, personalization, renderDecisions: opts.renderDecisions, viewCache, getContext: () => currentEvent });
   // Stock prehiding: hide before the request, reveal after the first response (or on failure / backstop).
   const removePrehiding = typeof document !== "undefined" ? applyPrehidingStyle(document, opts.prehidingStyle) : () => {};
   let prehidingTimer = null;
@@ -1943,19 +1972,54 @@ export async function bootAlloy(opts = {}) {
   // `disposition: "dropped"`). A granted consent is never capped.
   const waiting = [];
   let running = false;
+  /** Per-event personalization context (064-23): the view it names, whether it renders, and the cache state when it started. */
+  const eventContext = (event) => {
+    if (isNotificationDescriptor(event)) return null;
+    const prm = (event && event.params) || {};
+    const xdm = prm.xdm || {};
+    const name = xdm.web && xdm.web.webPageDetails && xdm.web.webPageDetails.viewName;
+    return {
+      viewName: typeof name === "string" && name ? name : undefined,
+      render: typeof prm.renderDecisions === "boolean" ? prm.renderDecisions : opts.renderDecisions !== false,
+      warm: viewCache.isInitialized(),
+      viewHandled: false,
+    };
+  };
+  const withViewDisplay = async (event, viewName) => {
+    const out = await renderer.render(viewCache.get(viewName));
+    if (!out.displayed.length) return event;
+    const xdm = event.params.xdm ? { ...event.params.xdm } : {};
+    const have = (xdm._experience && xdm._experience.decisioning) || {};
+    xdm._experience = { ...(xdm._experience || {}), decisioning: { ...have, propositions: [...(have.propositions || []), ...out.displayed], propositionEventType: { ...(have.propositionEventType || {}), display: 1 } } };
+    return { ...event, params: { ...event.params, xdm } };
+  };
+  /** After an event settles: an answer that carried no decisions still gets the named view's display; a page view warms the cache. */
+  const finishEvent = async (ctx) => {
+    if (!ctx) return;
+    if (ctx.render && ctx.viewName && !ctx.warm && !ctx.viewHandled) {
+      const out = await renderer.render(viewCache.get(ctx.viewName));
+      if (out.displayed.length) notifyDisplayed(out.displayed);
+    }
+  };
   const consentOpen = () => resolveConsent(consentRef, "analytics_storage") === "granted";
   const pump = async () => {
     if (running) return;
     running = true;
     while (waiting.length) {
       const { event, resolve, reject } = waiting.shift();
+      currentEvent = personalizationConfigured ? eventContext(event) : null;
       try {
         sendStockContext();
-        resolve(await host.driveEvent(event));
+        let toSend = event;
+        // A warm view cache answers a push naming a view without a request: render it and fold its display
+        // notification into this event, as stock does.
+        if (currentEvent && currentEvent.warm && currentEvent.viewName && currentEvent.render) toSend = await withViewDisplay(event, currentEvent.viewName);
+        resolve(await host.driveEvent(toSend));
       } catch (e) {
         reject(e);
       } finally {
-        if (!isNotificationDescriptor(event)) { await pendingDelivery; endPrehiding(); }
+        if (!isNotificationDescriptor(event)) { await pendingDelivery; await finishEvent(currentEvent); endPrehiding(); }
+        currentEvent = null;
       }
     }
     running = false;

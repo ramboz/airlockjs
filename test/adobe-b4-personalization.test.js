@@ -106,26 +106,99 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     const VIEW = { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name: "airlock064-view-2", viewName: "airlock064-view-2" } } };
     for (const name of ["s7-base", "s7-repeat"]) {
       it(`${name}: the three interacts compare clean`, async () => {
+        // The capture driver's own options: the page view and the link click use sendEvent's default (renderDecisions
+        // false); the SPA view passes renderDecisions:true.
+        const steps = [{ xdm: PV_XDM, renderDecisions: false }, { xdm: LINK, renderDecisions: false }, { xdm: VIEW, renderDecisions: true }];
         const r = await replayFixture(browser, name, { event: null, bodyHtml: '<div id="v"></div>', bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] }, run: async (page) => {
-          for (const xdm of [PV_XDM, LINK, VIEW]) await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x }), xdm);
-          await page.waitForFunction(() => window.__observed.length >= 4, null, { timeout: 8000 }).catch(() => {});
+          for (const { xdm, renderDecisions } of steps) await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x.xdm, renderDecisions: x.renderDecisions }), { xdm, renderDecisions });
+          await page.waitForFunction(() => window.__observed.length >= 3, null, { timeout: 8000 }).catch(() => {});
+          await page.waitForTimeout(500);
         } });
         const expected = posts(r.fixture);
-        // Known deltas, all carried to 064-23 (not parity): the connector asks for the declared scopes on EVERY event
-        // (stock sends decisionScopes on the first only), so the click and the SPA view differ under
-        // query.personalization; the 4th POST is our display notification for the __view__ propositions the first
-        // answer carried; the recorded SPA view carries Alloy's view-cache display because stock caches view-scoped
-        // propositions and we have no view cache; the first two POSTs ignore webPageDetails.URL (064-19 note).
-        const VIEW_DISPLAY = /^events\[0\]\.xdm\._experience\.decisioning\./;
-        expect(r.observed).toHaveLength(expected.length + 1);
+        // Only the 064-19 note remains: the first two POSTs ignore webPageDetails.URL.
+        expect(r.observed).toHaveLength(expected.length);
         const url = "events[0].xdm.web.webPageDetails.URL";
         expected.forEach((e, i) => {
-          const diffs = diffBodies(sortedState(r.observed[i].body), sortedState(e.request_body)).filter((d) => !(i < 2 && d === url) && !(i > 0 && d.startsWith("events[0].query.personalization")) && !(i === 2 && VIEW_DISPLAY.test(d)));
+          const diffs = diffBodies(sortedState(r.observed[i].body), sortedState(e.request_body)).filter((d) => !(i < 2 && d === url));
           expect(diffs, `body ${i}`).toEqual([]);
         });
-        expect(JSON.parse(r.observed[3].body).events[0].xdm.eventType).toBe("decisioning.propositionDisplay");
       }, T);
     }
+  });
+
+  describe("064-23 SPA view cache and first-event-only decisionScopes vs pinned stock Alloy 2.31.1 (SYNTHETIC responses, no capture)", () => {
+    const view = (id, scope, items) => ({ id, scope, scopeDetails: { decisionProvider: "TGT", activity: { id: `act-${id}` }, characteristics: { scopeType: "view" } }, items });
+    const pageWide = { id: "pw", scope: "__view__", scopeDetails: { decisionProvider: "TGT", activity: { id: "act-pw" }, characteristics: { eventToken: "t" } }, items: [{ id: "pw-0", schema: `${NS}default-content-item`, meta: {} }] };
+    const PAYLOAD = [pageWide, view("vh", "home", [domAction("vh1", "setHtml", "#a", "<b>home</b>")]), view("vc", "cart", [domAction("vc1", "setHtml", "#b", "<b>cart</b>"), domAction("vc2", "setText", "#g", "cart text")])];
+    const viewXdm = (name) => ({ eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name, viewName: name } } });
+    /** The edge answers the first interact with `payload` and every later one with no decisions (as stock's edge does once the cache is warm). */
+    const answerFirst = (payload) => { let n = 0; return (req) => (req.method() === "POST" ? { status: 200, headers: { "content-type": "application/json", ...cors(req) }, body: edgeBody(n++ === 0 ? payload : []) } : { status: 204, headers: cors(req), body: "" }); };
+    const sum = (r) => r.network.filter((n) => n.method === "POST").map((n) => {
+      const e = JSON.parse(n.body).events[0];
+      const q = e.query && e.query.personalization;
+      return { type: e.xdm.eventType, scopes: q ? q.decisionScopes || null : null, hasQuery: !!q, decisioning: (e.xdm._experience && e.xdm._experience.decisioning) || null };
+    });
+    const sequence = async (browser, payload, steps, { placements = [{ scope: "__view__", selector: "#v", minHeight: 0 }], stockScopes } = {}) => {
+      const stock = await replayFixture(browser, "s4-base", { event: null, bodyHtml: ZONE, respond: answerFirst(payload), run: async (page) => {
+        const dom = [];
+        for (const [i, s] of steps.entries()) {
+          const options = { xdm: s.xdm, renderDecisions: s.renderDecisions, ...(i === 0 && stockScopes ? { decisionScopes: stockScopes } : {}) };
+          if (i === 0) await runStock(page, options); else await page.evaluate((o) => window.stockAlloy("sendEvent", o), options);
+          await page.waitForTimeout(700);
+          dom.push(await zoneDom(page));
+        }
+        return dom;
+      } });
+      const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + ZONE, bootOptions: { placements }, respond: answerFirst(payload), run: async (page) => {
+        const dom = [];
+        for (const s of steps) {
+          await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x.xdm, renderDecisions: x.renderDecisions }), s);
+          await page.waitForTimeout(900);
+          dom.push(await zoneDom(page));
+        }
+        return dom;
+      } });
+      return { stock, ours };
+    };
+    const PV = { xdm: PV_XDM, renderDecisions: false };
+
+    it("a push naming a cached view renders it and carries its display notification in that event, as stock", async () => {
+      const { stock, ours } = await sequence(browser, PAYLOAD, [PV, { xdm: viewXdm("cart"), renderDecisions: true }]);
+      expect(sum(ours)).toEqual(sum(stock));
+      expect(sum(stock)).toHaveLength(2);
+      expect(sum(stock)[1].decisioning.propositions[0].scope).toBe("cart");
+      expect(ours.results.run).toEqual(stock.results.run);
+      expect(ours.results.run[1]).toContain("<b>cart</b>");
+      expect(ours.results.run[1]).not.toContain("<b>home</b>");
+    }, T);
+
+    it("the first response renders nothing of the cache without renderDecisions, and only the named view with it, as stock", async () => {
+      const first = { xdm: viewXdm("home"), renderDecisions: true };
+      const { stock, ours } = await sequence(browser, PAYLOAD, [first]);
+      expect(sum(ours)).toEqual(sum(stock));
+      expect(ours.results.run).toEqual(stock.results.run);
+      expect(ours.results.run[0]).toContain("<b>home</b>");
+      expect(ours.results.run[0]).not.toContain("<b>cart</b>");
+    }, T);
+
+    it("returning to a view re-renders it once per push, and an unknown view sends the empty view notification, as stock", async () => {
+      const steps = [PV, { xdm: viewXdm("cart"), renderDecisions: true }, { xdm: viewXdm("home"), renderDecisions: true }, { xdm: viewXdm("cart"), renderDecisions: true }, { xdm: viewXdm("nowhere"), renderDecisions: true }, { xdm: viewXdm("cart"), renderDecisions: false }];
+      const { stock, ours } = await sequence(browser, PAYLOAD, steps);
+      expect(sum(ours)).toEqual(sum(stock));
+      expect(sum(stock)).toHaveLength(6);
+      expect(ours.results.run).toEqual(stock.results.run);
+    }, T);
+
+    it("declared decisionScopes ride the first event only, as stock; a later event carries none", async () => {
+      const placements = [{ scope: "__view__", selector: "#v", minHeight: 0 }, { scope: SCOPE, selector: "#hero", minHeight: 20 }];
+      const steps = [PV, { xdm: { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name: "airlock064-page-2" } } }, renderDecisions: false }, { xdm: viewXdm("cart"), renderDecisions: false }];
+      const { stock, ours } = await sequence(browser, PAYLOAD, steps, { placements, stockScopes: [SCOPE] });
+      const o = sum(ours);
+      expect(o[0].scopes).toEqual(expect.arrayContaining([SCOPE]));
+      expect(o.slice(1).map((x) => x.hasQuery)).toEqual([false, false]);
+      expect(o.map((x) => x.hasQuery)).toEqual(sum(stock).map((x) => x.hasQuery));
+      expect(o).toHaveLength(sum(stock).length);
+    }, T);
   });
 
   describe("AC1 rendering vs pinned stock Alloy 2.31.1 (SYNTHETIC responses, no capture)", () => {

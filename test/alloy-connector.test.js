@@ -268,6 +268,21 @@ describe("alloy connector — multi-scope decisionScopes on the interact (spec 0
     expect(options.decisionScopes).toEqual(["__view__", "products"]); // both scopes fetched, deduped
   });
 
+  it("064-23: sends the declared scopes on the first event only, as stock does; a later event carries none", async () => {
+    const alloy = fakeAlloy();
+    const connector = createAlloyConnector({ ...baseConfig(), alloy, decisionScopes: ["products", "cart"] });
+    await connector.init({});
+    alloy.mockClear();
+
+    await connector.handle(pageView());
+    await connector.handle(pageView());
+
+    const sends = alloy.calls.filter((c) => c.command === "sendEvent");
+    expect(sends[0].options.decisionScopes).toEqual(["products", "cart"]);
+    expect(sends[1].options.decisionScopes).toBeUndefined();
+    expect(sends[1].options.personalization).toBeUndefined();
+  });
+
   it("delivers ALL returned scopes (not just __view__) — the host maps each by scope", async () => {
     const alloy = fakeAlloyWithDecisions([prop("__view__", "AT:v"), prop("products", "AT:p")]);
     const deliver = vi.fn();

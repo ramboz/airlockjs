@@ -265,10 +265,12 @@ export function createAlloyConnector(config = {}) {
     ...configureExtras // debugEnabled / edgeDomain / etc. pass through to configure
   } = config;
 
-  // The merged, deduped scope set to request on every interact. EMPTY when none are
-  // configured → the interact carries NO `decisionScopes` (alloy's `__view__` default,
+  // The merged, deduped scope set to request on the FIRST interact only (064-23: stock Alloy's
+  // sendEvent carries `decisionScopes` once; later events ride its view cache and ask for none). EMPTY
+  // when none are configured → the interact carries NO `decisionScopes` (alloy's `__view__` default,
   // byte-unchanged from 033-02/033-03).
   const configuredScopes = mergeDecisionScopes(decisionScopes, personalization);
+  let scopesSent = false;
 
   // The granted capabilities, captured at init — `handle` delivers decisions
   // through `granted.decisions` (the push channel to the host). No capability
@@ -389,7 +391,8 @@ export function createAlloyConnector(config = {}) {
     if (notification) {
       // 064-20: a display/interact notification is not a personalization query (recorded S4 2nd POST).
       options.personalization = { defaultPersonalizationEnabled: false, sendDisplayEvent: false };
-    } else if (configuredScopes.length) {
+    } else if (configuredScopes.length && !scopesSent) {
+      scopesSent = true;
       options.decisionScopes = configuredScopes;
       // Live-Alloy caveat (the analogue of 034-01's split): on a cache-uninitialized
       // event real alloy's shouldRequestDefaultPersonalization() AUTO-ADDS `__view__`

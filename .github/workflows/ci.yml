@@ -118,7 +118,7 @@ jobs:
           AIRLOCK_REAL_CHROMIUM: "1"
 
       - name: GATING — 064-20 B4 personalization, prehiding, redirects, click collection (real Chromium, pinned Alloy 2.31.1)
-        # S4/S7 through the production path plus stock-vs-airlock differentials for rendering and click collection.
+        # S4/S7 through the production path plus stock-vs-airlock differentials for rendering, click collection and (064-23) the SPA view cache and first-event-only decisionScopes.
         run: npx vitest run test/adobe-b4-personalization.test.js
         env:
           AIRLOCK_REAL_CHROMIUM: "1"
