@@ -41,7 +41,7 @@ export function isViewProposition(p) {
 
 /**
  * The SPA view cache (064-23), as stock Alloy 2.31.1 keeps it: view-scoped propositions from every response,
- * keyed by lower-cased view name and merged per name, so a later push naming the view renders them without a
+ * keyed by lower-cased view name and replaced per name, so a later push naming the view renders them without a
  * request. A name with nothing cached gets stock's empty-view placeholder (a default-content item, no id).
  * It is initialized by the first fetched response, even an empty one.
  */

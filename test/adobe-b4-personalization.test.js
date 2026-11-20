@@ -194,10 +194,34 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       const steps = [PV, { xdm: { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name: "airlock064-page-2" } } }, renderDecisions: false }, { xdm: viewXdm("cart"), renderDecisions: false }];
       const { stock, ours } = await sequence(browser, PAYLOAD, steps, { placements, stockScopes: [SCOPE] });
       const o = sum(ours);
-      expect(o[0].scopes).toEqual(expect.arrayContaining([SCOPE]));
+      // Same first-event scopes as stock, sorted (stock was given [SCOPE]; the airlock side must not add or drop one).
+      expect([...(o[0].scopes || [])].sort()).toEqual([...(sum(stock)[0].scopes || [])].sort());
+      expect(o[0].scopes).toContain(SCOPE);
       expect(o.slice(1).map((x) => x.hasQuery)).toEqual([false, false]);
       expect(o.map((x) => x.hasQuery)).toEqual(sum(stock).map((x) => x.hasQuery));
       expect(o).toHaveLength(sum(stock).length);
+    }, T);
+
+    it("a ruleset item and a view proposition in the same event render and notify the view once, as stock", async () => {
+      const SURF = "web://main--aem-eds-airlock-poc--adobe-rnd.aem.page/";
+      const ruleset = { id: "rs1", scope: SURF, scopeDetails: { decisionProvider: "AJO", activity: { id: "act-rs" } }, items: [{ id: "ri", schema: `${NS}ruleset-item`, data: { version: 1, rules: [{ condition: { type: "group", definition: { logic: "and", conditions: [{ type: "matcher", definition: { key: "~type", matcher: "eq", values: ["com.adobe.eventType.edge"] } }] } }, consequences: [{ id: "cq-1", type: "schema", detail: { id: "on-event", schema: `${NS}json-content-item`, data: { content: { fired: "event" } } } }] }] } }] };
+      const first = { xdm: viewXdm("cart"), renderDecisions: true };
+      const { stock, ours } = await sequence(browser, [...PAYLOAD, ruleset], [first], { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }, { scope: SURF, selector: "#v", minHeight: 0 }] });
+      const cartDisplays = (r) => sum(r).flatMap((x) => (x.decisioning ? x.decisioning.propositions : [])).filter((p) => p.scope === "cart");
+      expect(cartDisplays(stock)).toHaveLength(1);
+      expect(cartDisplays(ours)).toHaveLength(1);
+    }, T);
+
+    it("a failed request on a cold cache sends no empty-view display, as stock", async () => {
+      const failing = (req) => (req.method() === "POST" ? { status: 400, headers: { "content-type": "application/json", ...cors(req) }, body: JSON.stringify({ errors: [{ status: 400, title: "bad" }] }) } : { status: 204, headers: cors(req), body: "" });
+      const post = (r) => r.network.filter((n) => n.method === "POST");
+      const stock = await replayFixture(browser, "s4-base", { event: null, bodyHtml: ZONE, respond: failing, run: (page) => runStock(page, { xdm: viewXdm("cart"), renderDecisions: true }).catch(() => "rejected") });
+      const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + ZONE, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] }, respond: failing, run: async (page) => {
+        await page.evaluate((x) => Promise.resolve(window.__handle.push({ event: "page_view", xdm: x, renderDecisions: true })).catch(() => {}), viewXdm("cart"));
+        await page.waitForTimeout(1500);
+      } });
+      expect(post(stock)).toHaveLength(1);
+      expect(post(ours)).toHaveLength(1);
     }, T);
   });
 
