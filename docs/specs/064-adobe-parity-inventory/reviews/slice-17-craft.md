@@ -121,6 +121,6 @@ default. If that changes the request sequence (for example a `set-consent` call)
 - The cache accepts a Domain *below* the host (`y.x.aem.page` on host `x.aem.page`), which a
   browser rejects (`sync-cookie-cache.js:58`). No Alloy path does this today.
 
-## Round 2 (author fix, 2026-11-21)
+## Round 2 (author fix, 2026-11-20)
 
 K1 fixed: `probeApexDomain` now takes the resolved grant and skips the probe (no cookie write, no `apex` in `init`) when a site's narrowed grant omits `com.adobe.alloy.getTld`. Test: `test/eds-boot-alloy.test.js` ("064-17: a narrowed cookie grant ..."). The unnarrowed probe before consent matches stock Alloy and is kept. Verdict after round 2: **pass** (K2 to K6 non-blocking, carried as listed in this file; K2's host-root fallback is the documented difference in the slice notes).

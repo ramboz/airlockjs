@@ -531,7 +531,7 @@ Review rounds are capped at three before owner review (owner decision). Findings
 - Alloy-source simplification pass, 2026-11-13 (owner-approved, one jig consistency check instead of new rounds): T1 dropped; field-rule table added (2.3); B1 to B12 regrouped into B1 to B8; exact expected OFAT differences added; 13 source-review errors fixed (row 18, `appendIdentityToUrl` class, Context class, handle list, unknown-handle rule, network and transport inventory, missing components, push build, RulesEngine globals, Assurance request side, edge domain kind factor, stale chamber comment and deprecation note); D8 recorded.
 - Slice 064-02 (T2) review: one Opus 5.5 pass, 2 rounds (reviews/slice-02-*.md; D10 to D12 were added after the rounds, by owner decision). Round 1: needs-changes, 2 blocking, fixed; round 2: pass on all three passes.
 - Anything still open after round 3 goes to the pilot as a listed check.
-- Pilot count of extra captures: **0** (B1, 064-17, 2026-11-21). S1 with its variants, S2 and S5 replay clean from the frozen corpus alone; the kill criterion (more than 3) is not triggered. See section 4.11.
+- Pilot count of extra captures: **0** (B1, 064-17, 2026-11-20). S1 with its variants, S2 and S5 replay clean from the frozen corpus alone; the kill criterion (more than 3) is not triggered. See section 4.11.
 
 ## 13. Clarifications
 

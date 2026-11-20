@@ -1,7 +1,7 @@
 ---
 status: DONE
 dependencies: [064-03, 064-04, 067-05, 067-07, 067-08, 067-10, 067-12]
-last_verified: 2026-11-21
+last_verified: 2026-11-20
 ---
 
 ## Slice 064-17 — B1: Environment snapshot and storage seeding (pilot)
@@ -31,7 +31,7 @@ last_verified: 2026-11-21
 > - From 067-08: `location.href` is cleared while `origin` and `hostname` stay, so check whether the pinned 2.31.1 web collector falls back to the `location` object when `url` is denylisted. High-entropy client hints are not collected. The default `location` placeholder is kept when the web group is unset (apex probe).
 > - From 067-03: a seeded stale Alloy consent cookie that says "in" while page consent is pending makes Alloy send, and the seam drops the event (not held).
 
-> 2026-11-21 implementation notes (pilot):
+> 2026-11-20 implementation notes (pilot):
 > - **Replay harness** (`rig/adobe-b1-replay.mjs`, `rig/b1-chamber-entry.js`, `test/adobe-b1-replay.test.js`): real Chromium via Playwright, the real `bootAlloy` and the unmodified chamber worker (a rig wrapper only tees what the chamber hands the seam and lets the rig call `getIdentity`/`appendIdentityToUrl`), the pinned Alloy 2.31.1 bundle (SHA-256 checked; downloaded and cached under `rig/out/b1`, or `AIRLOCK_ALLOY_BUNDLE`). Vendor hosts are answered from the fixture, so there is no live network. The before-state (cookies, localStorage, sessionStorage) is seeded before page scripts run (AC2); URL, referrer, viewport, screen, locale, timezone and UA come from the manifest. It imports `rig/field-rules.mjs` (`matchesFormat`) for the generated fields and does not copy any comparison code. Gated by `AIRLOCK_REAL_CHROMIUM=1`; the CI step is in `browser-oracle` only.
 > - **AC1.** The chamber no longer holds `airlock.example`, `en-US` or a 1280x800 screen/window. Location starts empty; `bootAlloy` always sends `origin/protocol/host/hostname` from the `web` channel (the cookie scope needs them), and when the site did not list `web` only those four cross, never URL, referrer or title. Fixes found by the replay: an empty referrer is a real value (`webReferrer.URL: ""`); Alloy reads viewport from `documentElement.clientWidth/Height`, so the shim now feeds those too (headed capture was 15 px narrower than the window setting; the replay subtracts it).
 > - **AC3.** S1 base, repeats and the viewport, referrer, locale, timezone and edge-domain variants, S2 (base, repeat) and S5 fresh/returning compare clean; each variant's recorded delta from the S1 base is asserted to be exactly its spec 064 section 4.3 set (viewport: viewport and screen size; referrer: `webReferrer.URL`; locale: `Accept-Language` only; timezone: `localTimezoneOffset`, with `localTime` compared by shape). `s5-returning` makes no request and its ECID comes from the seeded cookies (the same page without the seed asks the edge).

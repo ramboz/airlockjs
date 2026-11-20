@@ -43,7 +43,7 @@ says `IN_PROGRESS`. Update it with the jig transition helper, together with the 
 
 ### R2 — non-blocking: the notes are dated after the commit
 
-The slice note header (line 34) and spec section 12 (`spec.md:534`) say 2026-11-21. Commit
+The slice note header (line 34) and spec section 12 (`spec.md:534`) say 2026-11-20. Commit
 `37373e33` and this review are dated 2026-11-20. Correct the date.
 
 ### R3 — non-blocking: the two carried hand-offs have no owner
