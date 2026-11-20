@@ -116,3 +116,4 @@ Phase A passed the servo quality-gate (composite 1.0) before its push.
 - S12 `s12-owner` is a partial input state (owner HAR, demdex interact call only; no pin).
 - S9-03 restored Target only, because Audience Manager was never on the datastream.
 - S13 result: no response-field differences between the US default and CH VPN exits.
+- S13 caveat (owner): the egress comparison was recorded with the datastream at baseline (IP obfuscation None, Geo/Network/Device lookups off). If the IP-related datastream settings are re-added, the egress result might change; it is not verified for that configuration (S9-11 did not vary egress).
