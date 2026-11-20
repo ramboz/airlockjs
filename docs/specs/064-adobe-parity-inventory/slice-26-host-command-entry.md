@@ -1,7 +1,7 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: DONE
 dependencies: [064-19, 064-20]
-last_verified:
+last_verified: 2026-11-20
 ---
 
 ## Slice 064-26 — H1: Host command entry
