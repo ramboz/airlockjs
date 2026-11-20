@@ -17,6 +17,16 @@ self.postMessage = (message, ...rest) => {
 self.addEventListener("message", async (event) => {
   const m = event.data || {};
   if (m.type === "intercepted-fetch-response") post({ type: "rig-response", response: { id: m.id, status: m.status, statusText: m.statusText, headers: m.headers } });
+  // 064-26: count the commands that reach stock Alloy, so a test can show a refused name never does.
+  if (m.type === "rig-spy") {
+    const orig = self.alloy;
+    self.__alloyCalls = [];
+    self.alloy = (...a) => { self.__alloyCalls.push(a[0]); return orig(...a); };
+    // the stub queues onto self.alloy.q, whose push Alloy has swapped for its executor
+    self.alloy.q = orig.q;
+    return post({ type: "rig-command-result", id: m.id, result: true });
+  }
+  if (m.type === "rig-spy-calls") return post({ type: "rig-command-result", id: m.id, result: self.__alloyCalls || [] });
   if (m.type !== "rig-command") return;
   try {
     // Rig-only probes for the 064-18 transport: a beacon and an element load made inside the chamber.

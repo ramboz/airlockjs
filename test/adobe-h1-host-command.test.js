@@ -147,6 +147,20 @@ describe("064-26 the main-thread entry (hermetic)", () => {
     expect(e.message).toMatch(/lost/);
   });
 
+  it("a fatal load error after the call was posted rejects it in flight, with a plain Error", async () => {
+    const w = fakeWorker();
+    const { command } = createHostCommandEntry({ worker: w, renderer: rendererStub() });
+    configured(w);
+    const inFlight = command("getIdentity");
+    expect(w.sent).toHaveLength(1);
+    w.emit("message", { type: "fatal", phase: "load", message: "bundle" });
+    const e = await inFlight.then(() => null, (x) => x);
+    expect(e).toBeInstanceOf(Error);
+    expect(e).not.toBeInstanceOf(TypeError);
+    expect(e.message).toMatch(/lost/);
+    await expect(command("getIdentity")).rejects.toThrow(/lost/);
+  });
+
   it("a renderer failure rejects applyResponse with a plain Error", async () => {
     const w = fakeWorker();
     const { command } = createHostCommandEntry({ worker: w, renderer: { render: async () => { throw new TypeError("x"); } } });
@@ -301,11 +315,11 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
     expect(r.results.run).toMatch(/disposed/);
   }, T);
 
-  // The outcome of each command after `ms`, plus the settled value once the consent answer arrives.
-  const STATUS = `(async (run, ms) => {
+  // The outcome of each command after `ms`; applyResponse gets a recorded S3 body.
+  const STATUS = `(async (run, ms, body) => {
     const out = {};
-    const names = ["getIdentity", "appendIdentityToUrl", "getLibraryInfo", "createEventMergeId"];
-    const opts = { appendIdentityToUrl: { url: "https://destination.example/landing" } };
+    const names = ["getIdentity", "appendIdentityToUrl", "getLibraryInfo", "createEventMergeId", "applyResponse"];
+    const opts = { appendIdentityToUrl: { url: "https://destination.example/landing" }, applyResponse: { responseBody: body } };
     await Promise.all(names.map(async (n) => {
       const p = run(n, opts[n] || {}).then(() => "resolved", (e) => "rejected:" + e.name);
       out[n] = await Promise.race([p, new Promise((r) => setTimeout(() => r("pending"), ms))]);
@@ -313,24 +327,64 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
     return out;
   })`;
 
-  const stockStatus = (page, consent) => page.evaluate(async ({ consent, status }) => {
+  const stockStatus = (page, { defaultConsent, consent, body }) => page.evaluate(async ({ defaultConsent, consent, status, body }) => {
     window.__alloyNS = ["stockAlloy"];
     window.stockAlloy = function () { const a = arguments; return new Promise((res, rej) => window.stockAlloy.q.push([res, rej, a])); };
     window.stockAlloy.q = [];
     await new Promise((res, rej) => { const s = document.createElement("script"); s.src = "/rig/alloy.min.js"; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
-    window.stockAlloy("configure", { datastreamId: "12345678-1234-1234-1234-123456789012", orgId: "908936ED5D35CC220A495CD4@AdobeOrg", defaultConsent: "pending", debugEnabled: false });
+    window.stockAlloy("configure", { datastreamId: "12345678-1234-1234-1234-123456789012", orgId: "908936ED5D35CC220A495CD4@AdobeOrg", defaultConsent, debugEnabled: false });
     if (consent) window.stockAlloy("setConsent", { consent: [{ standard: "Adobe", version: "2.0", value: { general: consent } }] }).catch(() => {});
-    return (0, eval)(status)((n, o) => window.stockAlloy(n, o), 1500);
-  }, { consent, status: STATUS });
+    return (0, eval)(status)((n, o) => window.stockAlloy(n, o), 1500, body);
+  }, { defaultConsent, consent, status: STATUS, body });
 
-  const ourStatus = (page) => page.evaluate(({ status }) => (0, eval)(status)((n, o) => window.__handle.command(n, o), 1500), { status: STATUS });
+  const ourStatus = (page, body) => page.evaluate(({ status, body }) => (0, eval)(status)((n, o) => window.__handle.command(n, o), 1500, body), { status: STATUS, body });
 
-  it("pending consent: each command settles or stays pending as stock Alloy does (SYNTHETIC differential)", async () => {
-    const stock = await replayFixture(browser, "s3-base", { event: null, run: (page) => stockStatus(page, null) });
-    const ours = await replayFixture(browser, "s3-base", { event: null, bootOptions: { consentHold: null }, run: (page) => ourStatus(page) });
-    // the held command is named explicitly, so an all-resolved run cannot pass vacuously
-    expect(stock.results.run.getIdentity).toBe("pending");
+  // Edge answers replayed from the recordings, so a consent answer or an acquire resolves for stock and for the handle alike.
+  const droppedHeaders = /^(content-encoding|content-length|set-cookie|date|server|via|strict-transport-security)$/i;
+  const recordedAnswer = async (name, url) => {
+    const rec = posts(await loadFixture(name)).find((r) => url.test(r.url));
+    return { status: rec.status, headers: Object.fromEntries(Object.entries(rec.response_headers || {}).filter(([k]) => !droppedHeaders.test(k))), body: rec.response_body };
+  };
+  const edgeAnswers = async () => {
+    const consent = await recordedAnswer("s6-in", /set-consent/);
+    const acquire = await recordedAnswer("s5-fresh", /identity\/acquire/);
+    return (req) => (/set-consent/.test(req.url()) ? consent : /identity\/acquire/.test(req.url()) ? acquire : null);
+  };
+
+  const s3Body = async () => JSON.parse(posts(await loadFixture("s3-base"))[0].response_body);
+  const staleCookie = async () => ({ name: "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_consent", value: "general=in", domain: new URL((await loadFixture("s5-fresh")).manifest.input_state.url).hostname });
+
+  const SAME_AS_STOCK = [
+    { state: "pending", stock: { defaultConsent: "pending" }, boot: { consent: { analytics_storage: "pending", personalization: "pending" } }, parked: true, requests: 0 },
+    { state: "denied", stock: { defaultConsent: "pending", consent: "out" }, boot: { consent: { analytics_storage: "denied", personalization: "denied" } }, parked: false, requests: 1 },
+    { state: "granted", stock: { defaultConsent: "pending", consent: "in" }, boot: { consent: { analytics_storage: "granted", personalization: "granted" } }, parked: false, requests: 1 },
+    { state: "stale in cookie on a pending page", stock: { defaultConsent: "pending" }, boot: { consent: { analytics_storage: "pending", personalization: "pending" } }, cookie: true, parked: true, requests: 0 },
+  ];
+
+  it.each(SAME_AS_STOCK)("consent $state: each command settles or stays pending as stock Alloy does (SYNTHETIC differential)", async ({ stock: stockCfg, boot, cookie, parked, requests }) => {
+    const respond = await edgeAnswers();
+    const body = await s3Body();
+    const extraCookies = cookie ? [await staleCookie()] : [];
+    const stock = await replayFixture(browser, "s5-fresh", { skipSteps: true, event: null, respond, extraCookies, run: (page) => stockStatus(page, { ...stockCfg, body }) });
+    const ours = await replayFixture(browser, "s5-fresh", { skipSteps: true, event: null, respond, extraCookies, bootOptions: boot, run: (page) => ourStatus(page, body) });
+    // named explicitly, so an all-resolved run cannot pass vacuously
+    expect(stock.results.run.getIdentity).toBe(parked ? "pending" : "resolved");
     expect(ours.results.run).toEqual(stock.results.run);
+    expect(edgeCalls(ours)).toHaveLength(requests);
+    expect(edgeCalls(stock)).toHaveLength(requests);
+  }, T);
+
+  it("no consent input (hold on, no vector): the labelled ADR-0062 hold difference, with a warning and a later command still settling", async () => {
+    const respond = await edgeAnswers();
+    const body = await s3Body();
+    const stock = await replayFixture(browser, "s5-fresh", { skipSteps: true, event: null, respond, run: (page) => stockStatus(page, { defaultConsent: "in", body }) });
+    const ours = await replayFixture(browser, "s5-fresh", { skipSteps: true, event: null, respond, bootOptions: { consentHold: null }, run: (page) => ourStatus(page, body) });
+    // stock has no hold: its default consent lets every command through and the identity is fetched
+    expect(Object.values(stock.results.run).every((v) => v === "resolved")).toBe(true);
+    // the handle parks only getIdentity, as it would a push, and tells the site why
+    expect(ours.results.run).toEqual({ ...stock.results.run, getIdentity: "pending" });
+    expect(edgeCalls(ours)).toEqual([]);
+    expect(ours.diagnostics.filter((d) => d.kind === "consent" && d.disposition === "held")).toHaveLength(1);
   }, T);
 
   it("a command parked under pending consent stays pending, then resolves once consent is granted", async () => {
@@ -370,6 +424,98 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
     expect(rendered.error).toBeUndefined();
     expect(domB).toContain("done");
     expect(rendered.result.propositions[0].renderAttempted).toBe(true);
+  }, T);
+
+  // Reduces a value to its keys and types, so a stock result and ours compare without volatile ids and tokens.
+  const SHAPE = `(function shape(v) {
+    if (Array.isArray(v)) return v.map(shape);
+    if (v && typeof v === "object") return Object.fromEntries(Object.keys(v).sort().map((k) => [k, shape(v[k])]));
+    return v === null ? "null" : typeof v;
+  })`;
+
+  const stockApplyResponse = (page, options) => page.evaluate(async ({ options, shape }) => {
+    window.__alloyNS = ["stockAlloy"];
+    window.stockAlloy = function () { const a = arguments; return new Promise((res, rej) => window.stockAlloy.q.push([res, rej, a])); };
+    window.stockAlloy.q = [];
+    await new Promise((res, rej) => { const s = document.createElement("script"); s.src = "/rig/alloy.min.js"; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+    window.stockAlloy("configure", { datastreamId: "12345678-1234-1234-1234-123456789012", orgId: "908936ED5D35CC220A495CD4@AdobeOrg", defaultConsent: "in", debugEnabled: false });
+    const result = await window.stockAlloy("applyResponse", options);
+    await new Promise((r) => setTimeout(r, 800));
+    return { shape: (0, eval)(shape)(result), renderAttempted: result.propositions.map((p) => p.renderAttempted), dom: document.getElementById("z26")?.innerHTML ?? null };
+  }, { options, shape: SHAPE });
+
+  const ourApplyResponse = (page, options) => page.evaluate(async ({ options, shape }) => {
+    const result = await window.__handle.command("applyResponse", options);
+    return { shape: (0, eval)(shape)(result), renderAttempted: result.propositions.map((p) => p.renderAttempted), dom: document.getElementById("z26")?.innerHTML ?? null };
+  }, { options, shape: SHAPE });
+
+  it("SYNTHETIC differential vs stock 2.31.1: applyResponse on the recorded S3 body has stock's keys and types throughout", async () => {
+    const body = await s3Body();
+    const stock = await replayFixture(browser, "s3-base", { event: null, run: (page) => stockApplyResponse(page, { responseBody: body }) });
+    const ours = await replayFixture(browser, "s3-base", { event: null, run: (page) => ourApplyResponse(page, { responseBody: body }) });
+    expect(Object.keys(stock.results.run.shape)).toEqual(["decisions", "destinations", "propositions"]);
+    expect(ours.results.run.shape).toEqual(stock.results.run.shape);
+    expect(ours.results.run.renderAttempted).toEqual(stock.results.run.renderAttempted);
+    expect(edgeCalls(ours)).toEqual([]);
+    expect(edgeCalls(stock)).toEqual([]);
+  }, T);
+
+  const DOM_ACTION_BODY = { requestId: "00000000-0000-0000-0000-000000000026", handle: [{ type: "personalization:decisions", payload: [{ id: "p26", scope: "__view__", scopeDetails: { decisionProvider: "TGT", activity: { id: "act-26" }, characteristics: { scopeType: "view" } }, items: [{ id: "i26", schema: "https://ns.adobe.com/personalization/dom-action", data: { type: "setHtml", selector: "#z26", content: "<b>done</b>" } }] }] }] };
+
+  it("a boot-level renderDecisions:true does not change applyResponse: omitted renders nothing and sends nothing (SYNTHETIC body)", async () => {
+    const stock = await replayFixture(browser, "s3-base", { event: null, bodyHtml: '<div id="z26">orig</div>', run: (page) => stockApplyResponse(page, { responseBody: DOM_ACTION_BODY }) });
+    const ours = await replayFixture(browser, "s3-base", { event: null, bodyHtml: '<div id="z26">orig</div>', bootOptions: { renderDecisions: true }, run: (page) => ourApplyResponse(page, { responseBody: DOM_ACTION_BODY }) });
+    expect(stock.results.run.dom).toBe("orig");
+    expect(ours.results.run.dom).toBe("orig");
+    expect(ours.results.run.renderAttempted).toEqual([false]);
+    expect(ours.results.run.renderAttempted).toEqual(stock.results.run.renderAttempted);
+    expect(edgeCalls(ours)).toEqual([]);
+    expect(edgeCalls(stock)).toEqual([]);
+  }, T);
+
+  it("applyResponse with renderDecisions:true: two recorded gaps against stock: no display notification, and `decisions` keeps the rendered proposition", async () => {
+    const stock = await replayFixture(browser, "s3-base", { event: null, bodyHtml: '<div id="z26">orig</div>', run: (page) => stockApplyResponse(page, { responseBody: DOM_ACTION_BODY, renderDecisions: true }) });
+    const ours = await replayFixture(browser, "s3-base", { event: null, bodyHtml: '<div id="z26">orig</div>', run: (page) => ourApplyResponse(page, { responseBody: DOM_ACTION_BODY, renderDecisions: true }) });
+    expect(stock.results.run.dom).toContain("done");
+    expect(ours.results.run.dom).toContain("done");
+    expect(Object.keys(ours.results.run.shape)).toEqual(Object.keys(stock.results.run.shape));
+    expect(ours.results.run.shape.propositions).toEqual(stock.results.run.shape.propositions);
+    // a second gap: stock drops a rendered proposition from `decisions`, the handle keeps it
+    expect(stock.results.run.shape.decisions).toEqual([]);
+    expect(ours.results.run.shape.decisions).toHaveLength(1);
+    expect(edgeCalls(stock)).toHaveLength(1);
+    expect(edgeCalls(stock)[0].body).toMatch(/decisioning\.propositionDisplay/);
+    // the gap: the handle's renderer does not send the display notification stock sends
+    expect(edgeCalls(ours)).toEqual([]);
+  }, T);
+
+  it("the production worker refuses a raw command message for an unlisted name or evaluateRulesets and never calls Alloy", async () => {
+    const r = await replayFixture(browser, "s3-base", {
+      event: null,
+      run: async (page) => {
+        await page.evaluate(() => window.__rigMessage("rig-spy"));
+        const raw = (name) => page.evaluate((command) => new Promise((resolve) => {
+          const id = "raw-" + command;
+          const on = (e) => { if (e.data?.type === "command-result" && e.data.id === id) { window.__worker.removeEventListener("message", on); resolve(e.data); } };
+          window.__worker.addEventListener("message", on);
+          window.__worker.postMessage({ type: "command", id, command, options: {} });
+        }), name);
+        const answers = { sendEvent: await raw("sendEvent"), evaluateRulesets: await raw("evaluateRulesets"), bogus: await raw("bogus") };
+        const callsAfterRefused = (await page.evaluate(() => window.__rigMessage("rig-spy-calls"))).result;
+        const control = await raw("getLibraryInfo");
+        const callsAfterControl = (await page.evaluate(() => window.__rigMessage("rig-spy-calls"))).result;
+        return { answers, callsAfterRefused, control, callsAfterControl };
+      },
+    });
+    const { answers, callsAfterRefused, control, callsAfterControl } = r.results.run;
+    for (const a of Object.values(answers)) {
+      expect(a.error).toBeDefined();
+      expect(a.result).toBeUndefined();
+    }
+    expect(callsAfterRefused).toEqual([]);
+    // positive control: the raw path does reach Alloy for an allowlisted name
+    expect(control.error).toBeUndefined();
+    expect(callsAfterControl).toEqual(["getLibraryInfo"]);
   }, T);
 
   it("an Alloy validation error crosses as a plain Error with stock's name and message", async () => {

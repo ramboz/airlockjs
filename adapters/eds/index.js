@@ -1962,10 +1962,7 @@ export async function bootAlloy(opts = {}) {
   };
   // Stock Alloy remembers the last page name (`webPageDetails.name`) and reuses it as the link-click `activitymap.page`.
   let lastPageName;
-  const enqueue = (event) => {
-    const prm = event && event.params;
-    const nm = prm && ((prm.xdm && prm.xdm.web && prm.xdm.web.webPageDetails && prm.xdm.web.webPageDetails.name) || prm.page_title);
-    if (nm && !(prm.xdm && /^web\.webinteraction\./.test(prm.xdm.eventType || ""))) lastPageName = nm;
+  const warnNoConsentInput = () => {
     if (consentRef && !consentInputWired && !noInputWarned) {
       noInputWarned = true;
       warnDiagnostic({
@@ -1976,6 +1973,12 @@ export async function bootAlloy(opts = {}) {
         reason: "no consent input wired — events are held until consent is granted; pass `consent` or call setConsent (consentHold: false turns the hold off)",
       });
     }
+  };
+  const enqueue = (event) => {
+    const prm = event && event.params;
+    const nm = prm && ((prm.xdm && prm.xdm.web && prm.xdm.web.webPageDetails && prm.xdm.web.webPageDetails.name) || prm.page_title);
+    if (nm && !(prm.xdm && /^web\.webinteraction\./.test(prm.xdm.eventType || ""))) lastPageName = nm;
+    warnNoConsentInput();
     const run = new Promise((resolve, reject) => {
       waiting.push({ event, resolve, reject });
       if (consentRef && !consentOpen()) {
@@ -2038,7 +2041,11 @@ export async function bootAlloy(opts = {}) {
      * @param {object} [options]
      * @returns {Promise<unknown>}
      */
-    command: (name, options) => commands.command(name, options),
+    command: (name, options) => {
+      // getIdentity is the one command that can park under the hold: say why, once, as `push` does.
+      if (name === "getIdentity") warnNoConsentInput();
+      return commands.command(name, options);
+    },
     /** 064-20 M3: ruleset items arrive as data through `decisions`; returns the unsubscribe. */
     subscribeRulesetItems: ({ surfaces, schemas, callback } = {}) => {
       if (typeof callback !== "function") throw new Error("airlock bootAlloy: subscribeRulesetItems needs a callback function");

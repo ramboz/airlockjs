@@ -77,6 +77,10 @@ window.Worker = class extends NativeWorker {
     });
   }
 };
+window.__rigMessage = (type) => new Promise((resolve) => {
+  const id = ++window.__seq; window.__results.set(id, resolve);
+  window.__worker.postMessage({ type, id });
+});
 window.__command = (command, options) => new Promise((resolve) => {
   const id = ++window.__seq; window.__results.set(id, resolve);
   window.__worker.postMessage({ type: "rig-command", id, command, options });
