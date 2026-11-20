@@ -14,7 +14,7 @@ last_verified: 2026-11-20
 
 **Acceptance Criteria:**
 
-1. A request held because a governing purpose is pending keeps the chamber's fetch pending (no response) and is parked in the host. The `consentHeld` count and the redacted `held` diagnostic still fire once.
+1. With the host option `flushOnGrant` on (the Alloy adapter sets it), a request held because a governing purpose is pending keeps the chamber's fetch pending (no response) and is parked in the host. The `consentHeld` count and the redacted `held` diagnostic still fire once.
 2. On `host.setConsent`, parked requests are re-run through every gate in order. On a grant each is sent exactly once; a repeat grant sends nothing more. A still-pending update keeps them parked.
 3. A denial or revocation rejects each parked fetch with the existing held shape (`status:0`, `held at the seal: consent`) and sends nothing, including on a later grant.
 4. An explicit denial at the time of the request is rejected at once (not parked).
@@ -32,6 +32,8 @@ last_verified: 2026-11-20
 ## Notes
 
 **What shipped.** `createWrappedSdkHost` parks the original intercepted request when the verdict is pending (not denied) and posts no response; `setConsent` re-dispatches the parked batch through every gate (endpoint ceiling, config integrity, consent, denylist) against the live ref, so the grant path equals a fresh request and a denial rejects. `dispose()` rejects and clears. The in-flight timer is cleared when a request parks from the deferred continuation. The `bootAlloy` handle's `dispose` calls `host.dispose()` before terminating the worker. Tests: `test/wrapped-sdk-host.test.js` (park, order, deny, teardown, ring) and `test/alloy-consent-hold.test.js` (stale-cookie interact, deny, teardown through `bootAlloy`). The two older "pending holds" tests now assert the fetch stays pending instead of expecting a rejection.
+
+**Design call: opt-in.** The wrapped-SDK host is shared: Google's adapter uses it with its own contract (pending is rejected, "never replays on grant", pinned by its tests on `vendor-google-ads`). `flushOnGrant` defaults to false, so only Alloy changes; the default tests keep their old pending-rejects shape. Found while merging main into `vendor-google-ads` (5 failing Google tests), fixed before the merge landed.
 
 **Design call: re-run through the gates, not replay.** A replay would skip the checks that must see the new consent state (personalization strip on a partial grant). Re-running gives the same result as a fresh request.
 

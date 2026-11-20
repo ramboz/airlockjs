@@ -1750,6 +1750,7 @@ export async function bootAlloy(opts = {}) {
     // 020-02: the TRUSTED strict seam gate; 067-03: on unless the hold is explicitly off.
     egressPurposes: consentRef ? ALLOY_EGRESS_PURPOSES : [],
     consentHold,
+    flushOnGrant: true,
     consentOptOut: ALLOY_CONSENT_OPT_OUT,
     payloadDenylist,
     payloadDenylistOverride,

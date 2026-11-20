@@ -1153,14 +1153,15 @@ describe("createWrappedSdkHost — consent enforcement (spec 020-02 AC1, ADR-000
   // so this test proves the gate HOLDS on pending but does NOT distinguish strict from
   // the GA4 default — that distinction is pinned by the DENIED test above (a denied
   // purpose SENDS under non-strict, so its dispatched.length===0 fails without strict:true).
-  it("a PENDING governing purpose (no signal at all) HOLDS at the seal (fail-closed) and keeps the fetch pending", async () => {
+  it("a PENDING governing purpose (no signal at all) HOLDS at the seal (fail-closed)", async () => {
     const { chamber, dispatched, host } = makeSpyingHost({ egressPurposes: EGRESS_PURPOSES, consent: {} });
 
+    const posted = chamber.nextPost();
     chamber.emit({ type: "intercepted-fetch", id: 2, url: INTERACT, method: "POST", headers: {}, body: "{}" });
-    await new Promise((r) => setTimeout(r, 20));
+    const msg = await posted;
 
     expect(dispatched.length).toBe(0);
-    expect(chamber.posted).toEqual([]); // 068-01: no response yet, the decision is still to come
+    expect(msg.status).toBe(0);
     expect(host.getState().consentHeld).toBe(1);
   }, 2000);
 
@@ -1214,8 +1215,9 @@ describe("createWrappedSdkHost — consent enforcement (spec 020-02 AC1, ADR-000
   it("back-compat: egressPurposes wired but NO consent vector at all -> pending -> strict-held (unset consent fails closed, not open)", async () => {
     const { chamber, dispatched, host } = makeSpyingHost({ egressPurposes: EGRESS_PURPOSES }); // no consent key at all
 
+    const posted = chamber.nextPost();
     chamber.emit({ type: "intercepted-fetch", id: 5, url: INTERACT, method: "POST", headers: {}, body: "{}" });
-    await new Promise((r) => setTimeout(r, 20));
+    await posted;
 
     expect(dispatched.length).toBe(0);
     expect(host.getState().consentHeld).toBe(1);
@@ -1758,7 +1760,7 @@ describe("createWrappedSdkHost — pending hold flushes on grant (068-01)", () =
     const dispatched = [];
     const diags = [];
     const caps = { egress: { dispatch: async (req) => { dispatched.push(req); return { status: 200, statusText: "OK", headers: {}, body: "{}" }; } } };
-    const host = createWrappedSdkHost({ chamber, caps, consent, egressPurposes: PURPOSES, onDiagnostic: (d) => diags.push(d), ...extra });
+    const host = createWrappedSdkHost({ chamber, caps, consent, egressPurposes: PURPOSES, flushOnGrant: true, onDiagnostic: (d) => diags.push(d), ...extra });
     const fire = (id, body = "{}") => chamber.emit({ type: "intercepted-fetch", id, url: INTERACT, method: "POST", headers: {}, body });
     const responses = () => chamber.posted.filter((m) => m.type === "intercepted-fetch-response");
     return { chamber, dispatched, diags, host, fire, responses };
@@ -1783,6 +1785,19 @@ describe("createWrappedSdkHost — pending hold flushes on grant (068-01)", () =
     host.setConsent(consent);
     await wait();
     expect(dispatched).toHaveLength(1);
+  });
+
+  it("without the flushOnGrant opt-in a pending request is rejected at once and a later grant sends nothing", async () => {
+    const consent = { analytics_storage: "pending" };
+    const { dispatched, host, fire, responses } = make(consent, { flushOnGrant: false });
+    fire("p-1");
+    await wait();
+    expect(responses()).toEqual([expect.objectContaining({ id: "p-1", status: 0, statusText: "held at the seal: consent" })]);
+    consent.analytics_storage = "granted";
+    consent.personalization = "granted";
+    host.setConsent(consent);
+    await wait();
+    expect(dispatched).toHaveLength(0);
   });
 
   it("an update that leaves consent pending keeps the request held, in order", async () => {
@@ -1875,7 +1890,7 @@ describe("createWrappedSdkHost — opt-out forwarding after refusal (068-02)", (
     const diags = [];
     const caps = { egress: { dispatch: async (req) => { dispatched.push(req); return { status: 200, statusText: "OK", headers: {}, body: "{}" }; } } };
     const host = createWrappedSdkHost({
-      chamber, caps, consent, egressPurposes: ["analytics_storage", "personalization"], consentOptOut: OPT_OUT,
+      chamber, caps, consent, egressPurposes: ["analytics_storage", "personalization"], flushOnGrant: true, consentOptOut: OPT_OUT,
       endpointCeiling: [INTERACT, "https://adobedc.demdex.net/ee/v1/privacy/set-consent"], onDiagnostic: (d) => diags.push(d), ...extra,
     });
     const fire = (id, url, body) => chamber.emit({ type: "intercepted-fetch", id, url, method: "POST", headers: {}, body });

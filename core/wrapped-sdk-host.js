@@ -104,7 +104,8 @@
  * `statusText: "held at the seal: consent"`, `consentHeld` incremented, a
  * redacted `kind:"consent"` diagnostic) — the same fail-closed shape the
  * ceiling/config-integrity holds use above. An explicit denial rejects
- * at once; a pending verdict parks the request (the chamber fetch stays
+ * at once; a pending verdict rejects too unless the caller opts in with
+ * `flushOnGrant` (Alloy does; Google's own seam never replays), in which case it parks the request (the chamber fetch stays
  * pending) and `setConsent` re-runs it through every gate: sent once on
  * grant, dropped on denial or teardown (ADR-0062 point 4, spec 068-01).
  * This seam gate is independent of, and complements, alloy's OWN
@@ -170,6 +171,7 @@ function consoleDiagnostic(record) {
  *   consent?: (Record<string, string> | null),
  *   egressPurposes?: readonly string[],
  *   consentHold?: false,
+ *   flushOnGrant?: boolean,
  *   consentOptOut?: ({ path: string, match: { path: readonly (string | number)[], equals: string }, forward: readonly string[] } | null),
  *   payloadDenylist?: (readonly string[] | null),
  *   payloadDenylistOverride?: (false | readonly string[]),
@@ -217,6 +219,7 @@ export function createWrappedSdkHost({
   egressPurposes: declaredEgressPurposes = [],
   consentHold,
   consentOptOut = null,
+  flushOnGrant = false,
   payloadDenylist = null,
   payloadDenylistOverride,
   grantedCookieNames: stockCookieNames = null,
@@ -538,7 +541,7 @@ export function createWrappedSdkHost({
       return true;
     }
     if (!applyConsent((denied) => {
-      if (denied || disposed) rejectHeld(m, "held at the seal: consent");
+      if (denied || disposed || !flushOnGrant) rejectHeld(m, "held at the seal: consent");
       else park(original);
     })) return;
 
@@ -575,7 +578,7 @@ export function createWrappedSdkHost({
       .then(() => {
         // Consent can change between the initial gate and this continuation.
         if (!applyConsent((denied) => {
-          if (denied || disposed) {
+          if (denied || disposed || !flushOnGrant) {
             respond({ status: 0, statusText: "held at the seal: consent", body: "" });
           } else {
             settled = true;
