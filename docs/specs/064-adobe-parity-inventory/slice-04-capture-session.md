@@ -95,3 +95,6 @@ Phase A passed the servo quality-gate (composite 1.0) before its push.
 - S9-12 (00:20): Access Type "Authenticated only". Waited 10 min. The unauthenticated sendEvent failed as expected (`s9-12`).
 - Attempt count: 41 after S9-12. Earlier notes calling S12 the "31st attempt" are off by one; the running total after S12 was 32.
 - Datastream was NOT yet restored at this point; restore follows.
+- Restore (02:11 on 11-20): the owner restored every datastream setting to the baseline; the Target activity stays active to 2026-11-30 (owner choice). Waited 10 min, recorded `restore-s1` (attempt 42 of 60). Its response handles match `s1-base` (identity, personalization decisions, locationHint, state:store).
+- Phase B totals: 42 attempts of 60. Phase B stops here; day 2 (S11, S13) is next. The servo quality-gate ran for Phase A (composite 1.0) and for Phase B (see commit).
+- Unexpected, for the record: activities 3258675 and 3711334 could not be located from this login; the readiness activity needed its end date extended through the Admin API (OAuth server-to-server credential, owner-directed); S9-03 restored only Target because Audience Manager was never on the datastream.
