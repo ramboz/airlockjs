@@ -1,9 +1,9 @@
 /**
  * Main-thread link-click collection — spec 064-20 (B4). The chamber sets `clickCollectionEnabled:false`
  * (no DOM there, ADR-0014), so the click side of stock Alloy's ActivityCollector runs HERE: one capture-phase
- * `document` click listener that reads the clicked link and hands a `web.webinteraction.linkClicks` event (and,
- * when personalization rendered a click-tracked item, a `decisioning.propositionInteract` one) to the mediated
- * queue. Nothing leaves the page from here; the event goes through the same seam gate as every other push.
+ * `document` click listener that reads the clicked link and hands ONE event to the mediated queue: the
+ * `web.webinteraction.linkClicks` details with, when personalization rendered a click-tracked or decorated item, the
+ * `decisioning.propositionInteract` data merged in (064-25; a click on a non-link sends the interact alone). Nothing leaves the page from here; the event goes through the same seam gate as every other push.
  * Mirrors stock Alloy 2.31.1 (`web.webInteraction`, `__adobe.analytics.contextData.a.activitymap`).
  */
 import { interactNotificationXdm } from "./personalization-render.js";
@@ -78,10 +78,10 @@ function linkType(win, qualifier, url, el) {
 
 /**
  * Install the collector.
- * @param {{ document: Document, window?: Window, enqueue: (evt: object) => void, config?: object, collectInteraction?: (target: Element) => { metas: object[], label?: string, token?: string, viewName?: string }, getPageName?: () => string | undefined }} deps
+ * @param {{ document: Document, window?: Window, enqueue: (evt: object) => void, config?: object, linkClicksEnabled?: boolean, collectInteraction?: (target: Element) => { metas: object[], label?: string, token?: string, viewName?: string }, getPageName?: () => string | undefined }} deps
  * @returns {() => void} uninstall
  */
-export function installLinkClickCollection({ document: doc, window: win = globalThis.window, enqueue, config = {}, collectInteraction, getPageName }) {
+export function installLinkClickCollection({ document: doc, window: win = globalThis.window, enqueue, config = {}, collectInteraction, getPageName, linkClicksEnabled = true }) {
   if (!doc || typeof doc.addEventListener !== "function") return () => {};
   const cc = { internalLinkEnabled: true, externalLinkEnabled: true, downloadLinkEnabled: true, ...(config.clickCollection || {}) };
   const qualifier = typeof config.downloadLinkQualifier === "string" ? config.downloadLinkQualifier : DEFAULT_DOWNLOAD_QUALIFIER;
@@ -91,10 +91,10 @@ export function installLinkClickCollection({ document: doc, window: win = global
       const target = typeof event.composedPath === "function" && event.composedPath().length > 0 ? event.composedPath()[0] : event.target;
       if (!target) return;
       if (doc.getElementById && doc.getElementById("cppXYctnr")) return;
-      // Stock builds ONE event per click: the link click and the proposition interact are merged into it.
+            // Stock builds ONE event per click: the link click and the proposition interact are merged into it.
       const interaction = collectInteraction ? collectInteraction(target) : null;
       const interact = interaction && interaction.metas.length ? interactNotificationXdm(interaction) : null;
-      const link = linkClick(target);
+      const link = linkClicksEnabled ? linkClick(target) : null;
       if (link && interact) {
         const { web: interactWeb, ...rest } = interact;
         enqueue({ event: "page_view", xdm: { ...link.xdm, ...rest, web: { ...link.xdm.web, ...(interactWeb || {}) } }, data: link.data });
@@ -103,19 +103,19 @@ export function installLinkClickCollection({ document: doc, window: win = global
     } catch (e) { /* click collection must never break the page */ }
   };
   const linkClick = (target) => {
-      const el = findClickable(target);
-      if (!el) return null;
-      const url = (() => { try { return new URL(el.href || "", win.location.href).href; } catch (e) { return win.location.href; } })();
-      const type = linkType(win, qualifier, url, el);
-      const name = linkName(el);
-      const region = linkRegion(el);
-      if (!url || !type || !name || !region) return null;
-      if ((type === "download" && !cc.downloadLinkEnabled) || (type === "exit" && !cc.externalLinkEnabled) || (type === "other" && !cc.internalLinkEnabled)) return null;
-      const remembered = getPageName && getPageName();
-      return {
-        xdm: { eventType: "web.webinteraction.linkClicks", web: { webInteraction: { name, region, type, URL: url, linkClicks: { value: 1 } } } },
-        data: { __adobe: { analytics: { contextData: { a: { activitymap: { page: remembered || win.location.href, link: name, region, pageIDType: remembered ? 1 : 0 } } } } } },
-      };
+    const el = findClickable(target);
+    if (!el) return null;
+    const url = (() => { try { return new URL(el.href || "", win.location.href).href; } catch (e) { return win.location.href; } })();
+    const type = linkType(win, qualifier, url, el);
+    const name = linkName(el);
+    const region = linkRegion(el);
+    if (!url || !type || !name || !region) return null;
+    if ((type === "download" && !cc.downloadLinkEnabled) || (type === "exit" && !cc.externalLinkEnabled) || (type === "other" && !cc.internalLinkEnabled)) return null;
+    const remembered = getPageName && getPageName();
+    return {
+      xdm: { eventType: "web.webinteraction.linkClicks", web: { webInteraction: { name, region, type, URL: url, linkClicks: { value: 1 } } } },
+      data: { __adobe: { analytics: { contextData: { a: { activitymap: { page: remembered || win.location.href, link: name, region, pageIDType: remembered ? 1 : 0 } } } } } },
+    };
   };
   doc.addEventListener("click", listener, true);
   return () => doc.removeEventListener("click", listener, true);

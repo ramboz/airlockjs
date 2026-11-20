@@ -2085,6 +2085,7 @@ export async function bootAlloy(opts = {}) {
     pump();
     return run;
   };
+  // A merged click event is classed with the notifications (its eventType is the interact's), as it renders nothing of its own.
   const isNotificationDescriptor = (d) => !!(d && d.params && d.params.xdm && typeof d.params.xdm.eventType === "string" && d.params.xdm.eventType.startsWith("decisioning.proposition"));
   // Map a composite site event `{ event: name, ...fields }` to the chamber descriptor
   // `{ type: name, params: fields }`: routeBatch requires a string `type`, and the
@@ -2112,10 +2113,12 @@ export async function bootAlloy(opts = {}) {
     enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed), documentUnloading: true } }).catch((e) => resolve({ sent: false, reason: String((e && e.message) || e) }));
   });
   notifyDisplayed = (displayed, viewName) => { enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed, viewName) } }); };
-  const uninstallClicks = typeof document !== "undefined" && opts.clickCollectionEnabled !== false
+  // Stock attaches its click listener whatever `clickCollectionEnabled` says; the flag only drops the link details, not the proposition interact.
+  const uninstallClicks = typeof document !== "undefined"
     ? installLinkClickCollection({
       document,
       enqueue: (evt) => { enqueue(toDescriptor(evt)); },
+      linkClicksEnabled: opts.clickCollectionEnabled !== false,
       config: { clickCollection: opts.clickCollection, downloadLinkQualifier: opts.downloadLinkQualifier },
       collectInteraction: renderer.collectInteraction,
       getPageName: () => lastPageName,

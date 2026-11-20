@@ -464,7 +464,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     }, T);
 
     // 064-25: one SYNTHETIC answer drives stock Alloy and the airlock path; every POST after the setup compares with the meta stripped.
-    const CLICK_HTML = (extra = "") => `<a id="cta" href="https://destination.example/x" onclick="return false" ${extra}>CTA</a>`;
+    const CLICK_HTML = (extra = "") => `<a id="cta" href="https://destination.example/x" ${extra}>CTA</a>`;
     const noMeta = (t) => { const b = JSON.parse(t); delete b.meta; return JSON.stringify(b); };
     const viewXdm = (name) => ({ eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name, viewName: name } } });
     const prop = (id, scope, provider, scopeType, items) => ({ id, scope, scopeDetails: { decisionProvider: provider, activity: { id: `act-${id}` }, characteristics: scopeType ? { scopeType } : {} }, items });
@@ -499,6 +499,23 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
 
     it("a click that is not a link still sends the propositionInteract event alone, as stock (AC1, AC4)", async () => {
       const payload = [prop("pc", "cart", "TGT", "view", [domAction("c0", "setHtml", "#box", '<button id="cta" type="button">CTA</button>'), clickItem("c1", "#cta", "btn-label")])];
+      const j = await journey(browser, payload, { xdm: viewXdm("cart") });
+      expect(j.stock.filter((b) => /propositionInteract/.test(b))).toHaveLength(1);
+      expectSameBodies(j);
+    }, T);
+
+    it("with clickCollectionEnabled:false a click on a click item still sends the interact, without link details, as stock (AC1, AC4)", async () => {
+      const payload = [prop("pc", "cart", "TGT", "view", [domAction("c0", "setHtml", "#box", CLICK_HTML()), clickItem("c1", "#cta", "cta-label")])];
+      const off = { clickCollectionEnabled: false };
+      const j = await journey(browser, payload, { xdm: viewXdm("cart"), stockConfig: off, bootExtra: off });
+      const clicks = j.stock.filter((b) => /propositionInteract/.test(b));
+      expect(clicks).toHaveLength(1);
+      expect(JSON.parse(clicks[0]).events[0].xdm.web.webInteraction).toBeUndefined();
+      expectSameBodies(j);
+    }, T);
+
+    it("a click item whose selector uses :eq(n) reports its interact, as stock (AC1, AC4)", async () => {
+      const payload = [prop("pc", "cart", "TGT", "view", [domAction("c0", "setHtml", "#box", `${CLICK_HTML()}`), clickItem("c1", "#box a:eq(0)", "eq-label")])];
       const j = await journey(browser, payload, { xdm: viewXdm("cart") });
       expect(j.stock.filter((b) => /propositionInteract/.test(b))).toHaveLength(1);
       expectSameBodies(j);

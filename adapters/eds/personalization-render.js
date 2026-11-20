@@ -230,7 +230,10 @@ export function createPropositionRenderer(deps = {}) {
     if (!interactId) { interactCounter += 1; interactId = String(interactCounter); target.setAttribute("data-aep-interact-id", interactId); }
     const scopeType = proposition.scopeDetails && proposition.scopeDetails.characteristics && proposition.scopeDetails.characteristics.scopeType;
     const metas = interactions.get(interactId) || [];
-    metas.push({ id: proposition.id, scope: proposition.scope, scopeDetails: proposition.scopeDetails, scopeType, provider, items: [{ id: item.id }] });
+    // Stock keeps one meta per proposition per element, with a set of item ids.
+    const have = metas.find((m) => m.id === proposition.id);
+    if (!have) metas.push({ id: proposition.id, scope: proposition.scope, scopeDetails: proposition.scopeDetails, scopeType, provider, items: [{ id: item.id }] });
+    else if (!have.items.some((i) => i.id === item.id)) have.items.push({ id: item.id });
     interactions.set(interactId, metas);
     const label = item.characteristics && item.characteristics.trackingLabel;
     if (label && !target.getAttribute("data-aep-click-label")) target.setAttribute("data-aep-click-label", label);
@@ -400,7 +403,7 @@ export function createPropositionRenderer(deps = {}) {
     for (const [selector, byProposition] of clickMetas) {
       let depth = 0; let node = target;
       for (; node; node = node.parentNode, depth += 1) {
-        try { if (typeof node.matches === "function" && node.matches(selector)) break; } catch (e) { node = null; break; }
+        try { if (node.nodeType === 1 && selectAll(doc, selector).includes(node)) break; } catch (e) { node = null; break; }
       }
       if (!node) continue;
       const metas = Object.entries(byProposition).map(([id, m]) => ({ id, ...m }));
@@ -429,7 +432,8 @@ export function createPropositionRenderer(deps = {}) {
     const merged = new Map();
     for (const id of ids) for (const m of interactions.get(id) || []) {
       const have = merged.get(m.id);
-      if (have) have.items.push(...m.items); else merged.set(m.id, { ...m, items: [...m.items] });
+      if (!have) merged.set(m.id, { ...m, items: [...m.items] });
+      else for (const i of m.items) if (!have.items.some((x) => x.id === i.id)) have.items.push(i);
     }
     const kept = [...merged.values()].filter((m) => autoCollect[m.provider] === "always" || (autoCollect[m.provider] === "decoratedElementsOnly" && (label || token)));
     if (!kept.length) return out;
@@ -450,7 +454,7 @@ export function createPropositionRenderer(deps = {}) {
     return out;
   }
 
-  return { render, collectInteraction, hasClickSelectors: () => clickMetas.size > 0, hasInteractions: () => interactions.size > 0, hasRedirect: (p) => hasRedirect(p), isRedirecting: () => redirecting };
+  return { render, collectInteraction, hasRedirect: (p) => hasRedirect(p), isRedirecting: () => redirecting };
 }
 
 /** The display notification XDM Alloy sends after rendering (recorded, S4); `viewName` is the view the event names. */
