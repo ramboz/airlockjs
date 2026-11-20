@@ -391,7 +391,8 @@ export function createAlloyConnector(config = {}) {
     const eventData = event && event.params && event.params.data;
     if (eventData && typeof eventData === "object" && !Array.isArray(eventData)) options.data = eventData;
     // 064-24: stock `sendEvent({ documentUnloading: true })`: the request goes out as a keepalive beacon so it
-    // survives the navigation that follows (a redirect proposition's display notification).
+    // survives the navigation that follows (a redirect proposition's display notification). Like stock, it is a
+    // beacon only when the identity cookie exists; otherwise a plain fetch.
     if (event && event.params && event.params.documentUnloading === true) options.documentUnloading = true;
     const notification = isPropositionNotification(options.xdm);
     let sendsScopes = false;

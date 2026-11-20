@@ -6,7 +6,7 @@
  *   - `default-content-item`: nothing to draw, counted as rendered (the recorded `__view__` display notification);
  *   - `dom-action` items (and `html-content-item` with `metadata[scope] = { selector, actionType }`): the stock
  *     action set; HTML goes through the 018 sanitizer, never raw;
- *   - `redirect-item`: prehide BODY, send the display notification as a keepalive beacon (`deps.redirectDisplay`),
+ *   - `redirect-item`: prehide BODY, send the display notification (`deps.redirectDisplay`; keepalive once the identity cookie exists, as stock),
  *     then `location.replace` to an http(s) URL (064-24). A display that is held, failed or slow is diagnosed and
  *     the redirect proceeds after `redirectTimeoutMs`, so a held seal never strands the visitor on the page;
  *   - JSON, rule set, in-app and content-card items: returned to the caller as data, not rendered.
