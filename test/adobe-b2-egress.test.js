@@ -98,13 +98,13 @@ describe.runIf(real)("064-18 egress bridge (real Chromium)", () => {
 
   describe("a seal hold does not trigger Alloy's other-host fallback", () => {
     it("a consent-held request (stale 'in' cookie, page consent pending) is held once, with no second try", async () => {
-      // A returning profile with a stale consent cookie: Alloy sends, the seam holds it.
+      // A returning profile with a stale consent cookie: Alloy sends, the seam parks it (068-01: pending until a consent decision, so no rejection reaches Alloy and no fallback fires).
       const r = await replayFixture(browser, "s2-base", {
         bootOptions: { consentHold: null },
         extraCookies: [{ name: "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_consent", value: "general=in", domain: new URL(r0Origin).hostname }],
       });
       expect(r.observed).toHaveLength(1);
-      expect(r.responses.map((x) => x.status)).toEqual([0]);
+      expect(r.responses).toEqual([]);
       expect(kinds(r, "consent").filter((d) => d.disposition === "held" && d.beaconId)).toHaveLength(1);
       expect(r.network.filter((n) => /adobedc|edge\./.test(n.url))).toEqual([]);
     }, T);
