@@ -189,10 +189,12 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
   beforeAll(async () => { browser = await chromium.launch(); }, T);
   afterAll(async () => { await browser?.close(); });
 
-  const call = (page, name, options) => page.evaluate(({ name, options }) => window.__handle.command(name, options).then((result) => ({ result }), (e) => ({ error: { name: e.name, message: e.message, isTypeError: e instanceof TypeError } })), { name, options });
+  const call = (page, name, options) => page.evaluate(({ name, options }) => window.__handle.command(name, options).then((result) => ({ result }), (e) => ({ error: { name: e.name, message: e.message, code: e.code, isTypeError: e instanceof TypeError } })), { name, options });
 
   it("S5 fresh: getIdentity and appendIdentityToUrl match the recording, with the one acquire", async () => {
-    const recId = (await loadFixture("s5-fresh")).capture.steps.find((s) => s.step === "getIdentity").result;
+    const steps5 = (await loadFixture("s5-fresh")).capture.steps;
+    const recId = steps5.find((s) => s.step === "getIdentity").result;
+    const recUrl = steps5.find((s) => s.step === "appendIdentityToUrl").result;
     const r = await replayFixture(browser, "s5-fresh", {
       skipSteps: true,
       run: async (page) => ({ id: await call(page, "getIdentity", {}), url: await call(page, "appendIdentityToUrl", { url: "https://destination.example/landing" }) }),
@@ -204,6 +206,8 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
     expect(Object.keys(id.result)).toEqual(Object.keys(recId));
     const u = new URL(url.result.url);
     expect(u.origin + u.pathname).toBe("https://destination.example/landing");
+    expect(Object.keys(url.result)).toEqual(Object.keys(recUrl));
+    expect(u.searchParams.get("adobe_mc")).toMatch(/^TS=\d+\|MCMID/);
     expect(u.searchParams.get("adobe_mc")).toContain(`MCMID=${id.result.identity.ECID}`);
     expect(edgeCalls(r).map((n) => new URL(n.url).pathname)).toEqual(["/ee/v1/identity/acquire"]);
   }, T);
@@ -222,7 +226,9 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
     const event = { event: "page_view", xdm: { ...PV, eventMergeId: "airlock064-merge-1" } };
     const r = await replayFixture(browser, "s3-base", { event, run: (page) => call(page, "applyResponse", { renderDecisions: false, responseBody: body }) });
     expect(r.results.run.error).toBeUndefined();
-    expect(r.results.run.result).toBeTypeOf("object");
+    const recKeys = Object.keys(fixture.capture.steps.find((st) => st.step === "sendEvent").result);
+    expect(Array.isArray(r.results.run.result.propositions)).toBe(true);
+    for (const k of Object.keys(r.results.run.result)) expect(recKeys).toContain(k);
     expect(edgeCalls(r)).toHaveLength(1);
   }, T);
 
@@ -254,7 +260,7 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
   it("a name off the allowlist rejects with a plain Error and sends nothing", async () => {
     const r = await replayFixture(browser, "s5-returning", {
       skipSteps: true,
-      run: async (page) => ({ a: await call(page, "sendEvent", { xdm: PV }), b: await call(page, "evaluateRulesets", {}), c: await page.evaluate(() => window.__handle.command("getIdentity", { cb() {}, el: document.body }).then(() => ({}), (e) => ({ error: { message: e.message, isTypeError: e instanceof TypeError } }))) }),
+      run: async (page) => ({ a: await call(page, "sendEvent", { xdm: PV }), b: await call(page, "evaluateRulesets", {}), c: await page.evaluate(() => window.__handle.command("getIdentity", { cb() {} }).then(() => ({}), (e) => ({ error: { message: e.message, isTypeError: e instanceof TypeError } }))), d: await page.evaluate(() => window.__handle.command("getIdentity", { el: document.body }).then(() => ({}), (e) => ({ error: { message: e.message, isTypeError: e instanceof TypeError } }))) }),
     });
     for (const k of ["a", "b"]) {
       expect(r.results.run[k].error, k).toBeDefined();
@@ -263,19 +269,25 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
     expect(r.results.run.a.error.message).toMatch(/sendEvent/);
     expect(r.results.run.c.error.isTypeError).toBe(false);
     expect(r.results.run.c.error.message).toMatch(/cannot cross/);
+    expect(r.results.run.d.error.isTypeError).toBe(false);
+    expect(r.results.run.d.error.message).toMatch(/options\.el/);
     expect(edgeCalls(r)).toEqual([]);
   }, T);
 
-  it("concurrent calls settle independently", async () => {
-    const r = await replayFixture(browser, "s5-returning", {
+  it("concurrent calls settle independently and share one Alloy instance", async () => {
+    const r = await replayFixture(browser, "s5-fresh", {
       skipSteps: true,
       run: (page) => page.evaluate(async () => {
         const h = window.__handle;
-        const out = await Promise.allSettled([h.command("getIdentity"), h.command("createEventMergeId"), h.command("getLibraryInfo"), h.command("sendEvent")]);
-        return out.map((x) => x.status);
+        const out = await Promise.allSettled([h.command("getIdentity"), h.command("getIdentity"), h.command("createEventMergeId"), h.command("getLibraryInfo"), h.command("sendEvent")]);
+        return { statuses: out.map((x) => x.status), ecids: [out[0].value?.identity?.ECID, out[1].value?.identity?.ECID] };
       }),
     });
-    expect(r.results.run).toEqual(["fulfilled", "fulfilled", "fulfilled", "rejected"]);
+    expect(r.results.run.statuses).toEqual(["fulfilled", "fulfilled", "fulfilled", "fulfilled", "rejected"]);
+    expect(r.results.run.ecids[0]).toMatch(/^\d{38}$/);
+    expect(r.results.run.ecids[1]).toBe(r.results.run.ecids[0]);
+    // the second request is Alloy's regional-endpoint retry, not a second instance; both are acquires
+    expect(edgeCalls(r).every((n) => /\/identity\/acquire$/.test(new URL(n.url).pathname))).toBe(true);
   }, T);
 
   it("a command on a disposed handle rejects", async () => {
@@ -374,6 +386,7 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
     });
     const ours = await replayFixture(browser, "s3-base", { event: null, run: (page) => call(page, "appendIdentityToUrl", { url: 5 }) });
     expect(stock.results.run).not.toBeNull();
+    expect(ours.results.run.error.code ?? null).toBe(stock.results.run.code ?? null);
     expect(ours.results.run.error.isTypeError).toBe(false);
     expect(ours.results.run.error.name).toBe(stock.results.run.name === "TypeError" ? "Error" : stock.results.run.name);
     // only the instance name in the prefix differs (`stockAlloy` here, `alloy` in the chamber)

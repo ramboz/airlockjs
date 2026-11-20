@@ -1,7 +1,7 @@
 ---
 status: Accepted
 dependencies: [ADR-0060, ADR-0061, ADR-0062, 064-19, 064-20]
-last_verified:
+last_verified: 2026-11-20
 frame_review: true
 ---
 
@@ -101,7 +101,7 @@ Question: does `evaluateRulesets` join the allowlist? Recommended: no. Owner: "Y
 - A `fatal{phase:"post-load"}` from the worker (a boot failure after the bundle loaded) is treated as chamber loss, like `load`: no command can run in that chamber.
 - Results cross as JSON-normalised data (`undefined` keys dropped, Dates become strings). Alloy's results are plain JSON, so stock results are unchanged.
 - An error is rebuilt as a plain `Error` with the envelope's `message`, `code` (string or number only) and, for an Alloy `TypeError`, `name` kept as `"Error"` with the original name on `error.alloyName`. Other names (for example `"Error"` or a custom Alloy name) are kept as `name`.
-- Option validation accepts everything structured clone carries (including `undefined` values and non-finite numbers) except functions, symbols, bigints, DOM nodes, class instances and circular references.
+- Option validation accepts plain data (including `undefined` values and non-finite numbers) and is stricter than structured clone: it also refuses bigints, class instances and circular references, besides functions, symbols and DOM nodes.
 - `applyResponse` with `renderDecisions:true` passes no `metadata` to the renderer; the display notification gap is the one `applyPropositions` already has (064-24/25).
 - A render failure rejects the call with a plain `Error` that names rendering; after `dispose` the render step is skipped.
 - The ADR-0060 open question "which host observations must complete before an SDK operation settles" is answered here for `applyResponse` only; ADR-0060 stays Proposed.
