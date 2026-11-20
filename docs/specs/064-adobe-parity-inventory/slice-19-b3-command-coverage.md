@@ -16,7 +16,7 @@ last_verified: 2026-11-20
 1. Each row of spec 064 section 2.1 owned by B3 (rows 3 to 9) points to a fixture and compares clean. Rows owned by B4 (10 to 12) and B6 (13 to 17) are checked by those slices. B3 only confirms the 17-row matrix has an owner for every row.
 2. Disposition of the 6 function-valued options (`onBeforeEventSend`, `clickCollection.filterClickProperties`, `onBeforeLinkClickSend`, `subscribeRulesetItems.callback`, `createMediaSession.getPlayerDetails`, `sendConversationEvent.onStreamResponse`) is decided and recorded.
 3. `appendIdentityToUrl` runs worker-native.
-4. Fixtures S3 to S7 compare clean. S6 supplies a consent state matching the recording (ADR-0062 exception: the consent hold stays; it depends on the shared empty-`egressPurposes` and pending hold-and-flush slices on main; 067-03, spec 067 s8 check 11).
+4. Fixtures S3 to S7 compare clean. S6 supplies a consent state matching the recording (ADR-0062 exception: the consent hold stays; it depends on the shared empty-`egressPurposes` and pending hold-and-flush slices on main; 067-03, spec 067 s8 check 2, Alloy pending today).
 
 **DoD:**
 - `npm test && npm run lint` and servo gate pass.
@@ -55,16 +55,16 @@ Tests: `test/adobe-b3-commands.test.js` (hermetic matrix-owner and callback-diag
 | 8 | `setConsent` | worker-native + seam hold | S6 | see below |
 | 9 | `createEventMergeId` | worker-native | `s3-base` replay (no own fixture) | UUID, no send |
 
-Rows 1 and 2 (`configure`, `setDebug`) are B1/B2's; rows 10 to 12 are B4's, 13 to 17 are B6's. A hermetic test asserts the matrix has 17 rows, each with an owner, and that B3 owns exactly rows 3 to 9.
+Rows 1 and 2 (`configure`, `setDebug`) are B1's (spec 2.1); rows 10 to 12 are B4's, 13 to 17 are B6's. A hermetic test asserts the matrix has 17 rows, each with an owner, and that B3 owns exactly rows 3 to 9.
 
 - **S4** (request side): the first interact carries `decisionScopes` `[scope, "__view__"]` and compares clean for all four fixtures. Rendering and the `propositionDisplay` second POST are B4's. The chamber's `sendEvent` hardcodes `renderDecisions:false`; the replay sends `renderDecisions:true` through the rig command (stock option), and the request body is identical, so no connector change is needed for the request side.
 - **S7**: page, link and SPA view compare clean. One expected difference on the first two interacts (page, link): the capture sent them from its own run URL (with `run=` id) before `pushState`; the replay page starts at the manifest URL. The link event is a manual `sendEvent` (the capture ran `clickCollectionEnabled:false`), so no `documentUnloading` path is exercised and **F3 stays carried** (hint-less `/ee/v1/collect` not on the allowlist; not in the corpus).
-- **S6** (hold on, page consent `pending`, two queued page views): nothing leaves while pending. `s6-in` and `s6-pending-in` (3 s wait): the grant sends the set-consent then both interacts, same paths and order as recorded, bodies clean (cookie-jar order of `meta.state.entries` compared as a set; it is incidental). **One documented delta, `s6-out`:** the recording shows the opt-out `set-consent` (`collect:n`) reaching demdex. Here the strict consent gate holds it (visible `kind:"consent"` diagnostic), so the refusal is not forwarded to Adobe; the queued events are dropped either way. This is the ADR-0062 consent-hold exception working as designed, but the opt-out signal not reaching the vendor is a product question: carried for the owner (forwarding it would need a shared seam exemption for `privacy/set-consent` without `query.identity.fetch`, which main would have to adopt).
+- **S6** (hold on, page consent `pending`, two queued page views): nothing leaves while pending. `s6-in` and `s6-pending-in` (3 s wait): the grant sends the set-consent then both interacts, same paths and order as recorded, bodies clean (cookie-jar order of `meta.state.entries` compared as a set; it is incidental). **One documented delta, `s6-out`:** the recording shows the opt-out `set-consent` (`collect:n`) reaching demdex. Here the strict consent gate holds it (visible `kind:"consent"` diagnostic), so the refusal is not forwarded to Adobe; the queued events are dropped either way. This is a parity gap, not working as designed: ADR-0062 point 5 covers the hold before consent, not a refusal signal. Carried for the owner: carried for the owner (forwarding it would need a shared seam exemption for `privacy/set-consent` without `query.identity.fetch`, which main would have to adopt).
 - **Lifecycle, Identity, Consent rows of s2.2**: covered above; ID-sync pixels stay with 064-22.
 
 ### 067-03 residual: carried (behavior pinned)
 
-Stale Alloy consent cookie "in" with page consent pending: the seam holds the interact once, visibly, no other-host retry (064-18). On a later grant the held request is **dropped, not flushed**: only Alloy's own `set-consent` goes out. The behavior is pinned by test, but ADR-0062 point 4 says "hold means hold and flush on grant", so the drop is **not accepted as final: carried for the owner** (`docs/refinement-todo.md`). With the 067-03 default Alloy's own pending queue holds events, so the seam drop is a backstop for a narrow case; a seam hold-and-flush for Alloy needs a replay decouple that does not exist for the wrapped-SDK path (`docs/refinement-todo.md`, updated). Test: `067-03 residual` in the B3 test file.
+Stale Alloy consent cookie "in" with page consent pending: the seam holds the interact once, visibly, no other-host retry (064-18). On a later grant the held request is **dropped, not flushed**: only Alloy's own `set-consent` goes out. The behavior is pinned by test, but ADR-0062 point 4 says "hold means hold and flush on grant", so the drop is **not accepted as final: carried for the owner** (`docs/refinement-todo.md`). With the 067-03 default Alloy's own pending queue holds events, so the seam drop is a backstop for a narrow case; a seam hold-and-flush for Alloy needs a replay decouple that does not exist for the wrapped-SDK path: the held-request path in `core/wrapped-sdk-host.js` (strict consent gate) drops instead of queueing (`docs/refinement-todo.md`, updated). Test: `067-03 residual` in the B3 test file.
 
 ### AC2 code
 
@@ -84,9 +84,9 @@ None to `core/*`. Adapter/harness only: `adapters/eds/index.js` (`unsupported-ca
 
 0 new (the CNAME edge domain from 064-18 stays the one known gap).
 
-### Review round 1 (Opus 5.5, `reviews/slice-19-*.md`): findings and disposition
+### Review round 1 (Opus 5.5 general-purpose sub-agent, `reviews/slice-19-*.md`): findings and disposition
 
-Fixed: L2 (`applyResponse` network assertion), L3 (`s6-pending-in` compares bodies), C1 reason now names `payloadDenylist`, L1 (rows 7 and 9 name `s3-base`), R1 (067-03 now carried, not resolved).
+Fixed: R5 (spec 067 check reference), R6 (rows 1 and 2 are B1's), R7 (blocking code named), L2 (`applyResponse` network assertion), L3 (`s6-pending-in` compares bodies), C1 reason now names `payloadDenylist`, L1 (rows 7 and 9 name `s3-base`), R1 (067-03 now carried, not resolved).
 
 Carried explicitly (each needs an owner or another slice, not this one):
 - **H1 / R4, host command surface.** Rows 4 to 7 and 9 are proven worker-native through the rig-only `rig-command` path. `bootAlloy`'s handle exposes only `push`, `pushCritical`, `setConsent`, `getState`, `stats`, `dispose`, so a site cannot call `getIdentity`, `appendIdentityToUrl`, `applyResponse`, `getLibraryInfo` or `createEventMergeId` today. The classes in the table are chamber facts, not adopter-visible parity. A mediated command entry point (an allowlisted command set on the handle) is a new shared capability contract: owner decision; 064-21 (aem-martech adoption) and the B8 report must not cite rows 4 to 7 and 9 as site-callable.
