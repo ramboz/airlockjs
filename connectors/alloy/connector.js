@@ -23,12 +23,12 @@ export const ALLOY_INTERACT_ENDPOINT = "https://adobedc.demdex.net/ee/v1/interac
 
 /**
  * 064-18 (spec 064 s2.2 Network, ADR-0062): every destination stock Alloy 2.31.1 posts to
- * in the frozen capture, as a seam endpoint ceiling. The Adobe domain serves the first page
+ * in the frozen capture (plus the hint-less `collect`, derived from the source: 064-24), as a seam endpoint ceiling. The Adobe domain serves the first page
  * view and `identity/acquire`; the edge domain serves everything after the location hint is
  * known, as `/ee/<hint>/v1/...` (`{hint}` is one path segment, see core/endpoint-ceiling.js),
  * plus the hint-less `privacy/set-consent` and, for a documentUnloading event sent before any hint is
- * known (064-24), the hint-less `collect`. A first-party edge domain adds the same three
- * paths on the site's own host (`allowlistForEdgeDomain`), host-owned, never chamber-supplied.
+ * known (064-24), the hint-less `collect`. A first-party edge domain adds the same paths on the
+ * site's own host (`allowlistForEdgeDomain`), host-owned, never chamber-supplied.
  */
 export const ALLOY_STOCK_ENDPOINTS = Object.freeze([
   ALLOY_INTERACT_ENDPOINT,

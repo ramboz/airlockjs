@@ -257,25 +257,40 @@ export function createPropositionRenderer(deps = {}) {
    * not awaited by the caller: it is queued behind the event that delivered this proposition, so waiting here would
    * deadlock. Navigation follows the send, or the bounded wait when the display is held, failed or never settles.
    */
+  const redirectUrl = (item) => {
+    const url = item && item.schema === SCHEMA.REDIRECT && item.data ? item.data.content : undefined;
+    return typeof url === "string" && /^https?:\/\//i.test(url) && !isDangerousUrl(url) ? url : null;
+  };
+  /** True when this proposition carries a redirect item the renderer will follow (stock's `onlyRenderThis`). */
+  const hasRedirect = (proposition) => !!proposition && Array.isArray(proposition.items) && proposition.items.some((i) => redirectUrl(i));
+  let redirecting = false;
   function redirect(url, proposition) {
-    if (typeof url !== "string" || !/^https?:\/\//i.test(url) || isDangerousUrl(url)) {
+    if (!redirectUrl({ schema: SCHEMA.REDIRECT, data: { content: url } })) {
       warn("redirect refused: only http(s) URLs are followed", { scope: proposition.scope });
       return false;
     }
+    // A throwing diagnostic sink must never keep the visitor on a hidden page.
+    const problem = (disposition, reason) => {
+      try { diagnose({ level: "warn", kind: "decisions", disposition, reason, scope: proposition.scope }); } catch (e) { /* the sink failed; navigation still proceeds */ }
+    };
     let navigated = false;
     const navigate = () => {
       if (navigated) return;
       navigated = true;
-      if (win.location && typeof win.location.replace === "function") win.location.replace(url);
+      try {
+        if (win.location && typeof win.location.replace === "function") win.location.replace(url);
+      } catch (e) {
+        problem("redirect-display-failed", `the redirect could not navigate (${(e && e.message) || e})`);
+        reveal("BODY");
+      }
     };
     if (typeof deps.redirectDisplay !== "function") { navigate(); return true; }
     prehide("BODY");
-    const problem = (disposition, reason) => diagnose({ level: "warn", kind: "decisions", disposition, reason, scope: proposition.scope });
     const timer = setTimeout(() => {
-      problem("redirect-display-held", `the redirect display notification was not sent within ${redirectWaitMs}ms (held at the seal or still queued); redirecting without it`);
       navigate();
+      problem("redirect-display-held", `the redirect display notification was not sent within ${redirectWaitMs}ms (held at the seal or still queued); redirecting without it`);
     }, redirectWaitMs);
-    const settle = (fn) => (arg) => { clearTimeout(timer); fn(arg); navigate(); };
+    const settle = (fn) => (arg) => { clearTimeout(timer); navigate(); fn(arg); };
     let pending;
     try {
       pending = Promise.resolve(deps.redirectDisplay([{ id: proposition.id, scope: proposition.scope, scopeDetails: proposition.scopeDetails }]));
@@ -299,14 +314,19 @@ export function createPropositionRenderer(deps = {}) {
     const out = [];
     const displayed = [];
     let redirected = false;
-    for (const proposition of Array.isArray(propositions) ? propositions : []) {
+    // Stock marks a redirect `onlyRenderThis`: nothing else in the response renders. Only the first redirect proposition does.
+    const list = Array.isArray(propositions) ? propositions : [];
+    const only = redirecting ? null : list.find((p) => isObject(p) && hasRedirect(p));
+    for (const proposition of list) {
       if (!isObject(proposition)) continue;
+      if (redirecting || (only && proposition !== only)) { out.push({ ...proposition, renderAttempted: false }); continue; }
       // Stock skips a `__view__` proposition that was already rendered (applyPropositions re-run).
       if (proposition.scope === VIEW_SCOPE && proposition.renderAttempted) { out.push(proposition); continue; }
       const items = Array.isArray(proposition.items) ? proposition.items : [];
       const renderedItems = [];
       for (const item of items) {
         const schema = item && item.schema;
+        if (proposition === only && !redirectUrl(item)) continue;
         let ok = false;
         try {
           if (schema === SCHEMA.DEFAULT) ok = true;
@@ -314,7 +334,7 @@ export function createPropositionRenderer(deps = {}) {
           else if (schema === SCHEMA.HTML) {
             const action = asDomAction(item, metadata[proposition.scope]);
             if (action) ok = await renderDomAction(action, proposition);
-          } else if (schema === SCHEMA.REDIRECT) { ok = redirect(item.data && item.data.content, proposition); redirected = redirected || ok; }
+          } else if (schema === SCHEMA.REDIRECT) { ok = redirect(item.data && item.data.content, proposition); redirected = redirected || ok; if (ok) redirecting = true; }
         } catch (e) {
           warn(`item ${item && item.id} failed to render: ${e && e.message}`, { scope: proposition.scope });
         }
@@ -322,7 +342,7 @@ export function createPropositionRenderer(deps = {}) {
       }
       const attempted = renderedItems.length > 0;
       out.push({ ...proposition, renderAttempted: attempted });
-      if (attempted && !items.some((i) => i && i.schema === SCHEMA.REDIRECT)) {
+      if (attempted && !(redirected && proposition === only)) {
         displayed.push({ id: proposition.id, scope: proposition.scope, scopeDetails: proposition.scopeDetails });
       }
     }
@@ -341,7 +361,7 @@ export function createPropositionRenderer(deps = {}) {
     return metas;
   }
 
-  return { render, clickMetasFor, hasClickSelectors: () => clickMetas.size > 0 };
+  return { render, clickMetasFor, hasClickSelectors: () => clickMetas.size > 0, hasRedirect: (p) => hasRedirect(p), isRedirecting: () => redirecting };
 }
 
 /** The display notification XDM Alloy sends after rendering (recorded, S4). */

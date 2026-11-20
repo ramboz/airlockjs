@@ -1532,11 +1532,14 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer,
     // which view it names; outside an event the boot default applies.
     const ctx = getContext();
     const render = ctx ? ctx.render : renderDecisions !== false;
+    // Stock renders only the redirect when the answer has one (`onlyRenderThis`); a redirect already under way blocks the rest too.
+    const redirectDecision = render ? (decisions || []).find((d) => d && d.content && renderer.hasRedirect(d.content)) : undefined;
     for (const decision of decisions || []) {
       const scope = decision && decision.scope;
       // 064-20 M3: ruleset items arrive as data and fan out to the site's main-thread subscribers.
       if (decision && decision.channel === "ruleset-items") { personalization.rulesetItems(decision.content); continue; }
       if (decision && decision.content) sink.push(decision.content);
+      if (render && (redirectDecision ? decision !== redirectDecision : renderer.isRedirecting())) continue;
       const handlePromise = scope != null ? reserved[scope] : undefined;
       // 064-23: a view-scoped proposition goes to the view cache; only the view the event names is rendered (below).
       if (!handlePromise && decision && isViewProposition(decision.content)) continue; // cached from the response; rendered only for the named view
@@ -1780,8 +1783,10 @@ export async function bootAlloy(opts = {}) {
         let res;
         try {
           const sent = fetch(req.url, { method: req.method || "POST", headers: req.headers || {}, body: req.body, ...(req.init || {}) });
-          if (watch) watch.issued();
+          // Only a keepalive request survives the navigation; any other waits for its answer (bounded by the renderer's timer).
+          if (watch && req.init && req.init.keepalive === true) watch.issued();
           res = await sent;
+          if (watch) watch.issued();
         } catch (e) {
           if (watch) watch.failed(e);
           throw e;
@@ -2098,10 +2103,12 @@ export async function bootAlloy(opts = {}) {
       // A failure after the request left (the page is already navigating) is diagnosed, never retried.
       failed: (e) => {
         if (!issued) resolve({ sent: false, reason: String((e && e.message) || e) });
-        else diagnose({ level: "warn", kind: "decisions", disposition: "redirect-display-failed", reason: `the redirect display notification failed after it was sent (${(e && e.message) || e})` });
+        else diagnose({ level: "warn", kind: "decisions", disposition: "redirect-display-failed", reason: `the redirect display notification failed after it was sent (${(e && e.message) || e})`, scope: displayed[0] && displayed[0].scope });
       },
     };
     redirectWatches.add(watch);
+    // A display that never leaves (held at the seal, dropped) must not leave its watch behind.
+    setTimeout(() => redirectWatches.delete(watch), 60000);
     enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed), documentUnloading: true } }).catch((e) => resolve({ sent: false, reason: String((e && e.message) || e) }));
   });
   notifyDisplayed = (displayed) => { enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed) } }); };

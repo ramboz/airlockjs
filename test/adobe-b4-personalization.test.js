@@ -120,6 +120,28 @@ describe("064-24 redirect ordering (hermetic)", () => {
       expect(seen).toEqual(["redirect-display-failed"]);
     }
   });
+
+  it("a throwing diagnostic sink still navigates", async () => {
+    const log = [];
+    const doc = { querySelectorAll: () => [], documentElement: { appendChild: () => {} }, createElement: () => ({ remove() {} }) };
+    const win = { location: { replace: (u) => log.push(u) } };
+    const r = createPropositionRenderer({ document: doc, window: win, diagnose: () => { throw new Error("sink"); }, redirectDisplay: async () => ({ sent: false }), redirectTimeoutMs: 20 });
+    await r.render([redirectProp]);
+    await settled();
+    expect(log).toEqual(["https://redirect.example/x"]);
+  });
+
+  it("renders only the first redirect (stock onlyRenderThis): other propositions and later redirects are not rendered", async () => {
+    const { r, log } = setup(async () => ({ sent: true }));
+    const other = { id: "o", scope: "s", items: [{ id: "d", schema: "https://ns.adobe.com/personalization/default-content-item" }] };
+    const second = { ...redirectProp, id: "rp2", items: [{ ...redirectProp.items[0], data: { content: "https://second.example/" } }] };
+    const out = await r.render([other, redirectProp, second]);
+    await settled();
+    expect(out.displayed).toEqual([]);
+    expect(out.propositions.map((p) => p.renderAttempted)).toEqual([false, true, false]);
+    expect(log.filter((l) => l.startsWith("replace:"))).toEqual(["replace:https://redirect.example/x"]);
+    expect(log.filter((l) => l === "display")).toHaveLength(1);
+  });
 });
 
 describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () => {

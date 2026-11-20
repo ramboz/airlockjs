@@ -40,7 +40,7 @@ last_verified: 2026-11-20
 - C4: SCRIPT/IFRAME are tagged on `src` assignment, not on insertion, so they can over-report. IMG is exact.
 - C5: the `{hint}` segment pattern also matches `v1` (`/ee/v1/v1/interact`). Harmless on Adobe hosts.
 - F2: `x-adobe-edge` is proven delivered to the chamber, not that Alloy acts on it (cluster cookie or next-request hint).
-- F3 (for 064-19): a hint-less `/ee/v1/collect` is not on the allowlist (only the hinted `collect`); it would be held visibly. Not in the corpus.
+- F3 (for 064-19): a hint-less `/ee/v1/collect` is not on the allowlist (only the hinted `collect`); it would be held visibly. Not in the corpus. Closed in 064-24 (source-derived allowlist entry).
 - C7: a throwing host diagnostic sink would be flagged as a network failure (Alloy would retry on the other host).
 - C8: the keepalive quota is counted per host instance, not across airlock instances on one page.
 - Test nit: `r0Origin` in `test/adobe-b2-egress.test.js` hardcodes the capture origin; derive it from the manifest later.
