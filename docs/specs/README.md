@@ -204,7 +204,7 @@ do not grant live authority.
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-19 — B3: Command coverage and callbacks | DONE |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-20 — B4: Personalization and host DOM | READY_FOR_IMPLEMENTATION |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-21 — B5: aem-martech, ACDL and Launch | READY_FOR_IMPLEMENTATION |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-22 — B6: Out-of-default-surface disposition | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-22 — B6: Out-of-default-surface disposition | DONE |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01: ADR status lines and docs rewording | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-02: Consent hold on every track, with a no-consent-input warning | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-03: Alloy holds and flushes, and an empty `egressPurposes` holds and warns | **DONE** |  |

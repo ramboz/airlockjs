@@ -95,7 +95,7 @@ const interactResponses = (fixture) => fixture.requests.filter((r) => r.method =
 /**
  * Replay one fixture.
  * @param {import("playwright").Browser} browser
- * @param {string} name fixture file stem
+ * @param {string|object} name fixture file stem, or a synthetic fixture object of the same shape (064-22)
  * @param {{ bootOptions?: object, title?: string, commands?: {command: string, options?: object}[], extraHosts?: string[], respond?: Function, extraCookies?: object[], run?: (page: import("playwright").Page) => Promise<unknown> }} [opts]
  *   `event: null` skips the default page-view push; `run(page)` drives a scenario of its own (064-19) and its value lands in `results.run`.
  *   `bootOptions` is merged into the bootAlloy options (a site opt-in such as a reduced `context`).
@@ -103,7 +103,8 @@ const interactResponses = (fixture) => fixture.requests.filter((r) => r.method =
  *   `respond(request, index)` may return `{ status, headers, body }` to override the recorded answer.
  */
 export async function replayFixture(browser, name, { bootOptions = {}, title = "airlock064-page", seed = true, event = PAGE_VIEW, commands = [], extraHosts = [], respond = null, extraCookies = [], run = null } = {}) {
-  const fixture = await loadFixture(name);
+  // 064-22: a caller may pass a synthetic fixture object instead of a recorded file stem.
+  const fixture = typeof name === "object" ? name : await loadFixture(name);
   const { manifest, capture } = fixture;
   const input = manifest.input_state;
   const pageUrl = new URL(input.url);

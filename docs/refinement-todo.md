@@ -646,7 +646,7 @@ geometry unchanged, exposure captured by GA4 / ignored by alloy) + `test/eds-boo
 - **endpoint-ceiling BREADTH grounding (creds-gated live-Alloy).** Since 064-18 `bootAlloy`'s ceiling is the stock Edge and
   demdex endpoint list (`ALLOY_STOCK_ENDPOINTS`, incl. the location-hint path; interact, collect, identity/acquire,
   set-consent). The server-directed ID-sync pixels the Edge *response* returns are element loads, not fetches: the
-  chamber tags them (`unbridged-load`, not silent); bridging them is 064-22. Trigger: a real-Alloy adopter needs the server-directed syncs, or the alloy real-site residual (an Adobe-stack site — the reference intuit-class site runs no Adobe Web SDK, so the MVP9 rewire never exercises alloy; ADR-0018).
+  chamber tags them (`unbridged-load`, not silent); 064-22 decided they stay tagged, not bridged (live-only, effect is server-side). Trigger: a real-Alloy adopter needs the server-directed syncs, or the alloy real-site residual (an Adobe-stack site — the reference intuit-class site runs no Adobe Web SDK, so the MVP9 rewire never exercises alloy; ADR-0018).
 - **`pushCritical` unload fast-path for the wrapped-SDK interact.** alloy's interact is a synchronous vendor round-trip
   (not a sync `sendBeacon`), so `bootAlloy`'s `pushCritical` currently rides the SAME queued `driveEvent` — best-effort
   on unload, no true fast path. A closing `page_view` may not complete before teardown. Trigger: an adopter needs a
@@ -1415,3 +1415,5 @@ After an explicit refusal, Alloy's opt-out `privacy/set-consent` (`collect:n`) i
 ## Host command surface for Alloy (064-19, 2026-11-20)
 
 `bootAlloy`'s handle has no entry point for `getIdentity`, `appendIdentityToUrl`, `applyResponse`, `getLibraryInfo`, `createEventMergeId`; they work in the chamber but only the test rig can call them. A mediated, allowlisted command entry is a new capability contract. Owner decision before 064-21 claims parity.
+
+- **Alloy chamber storage persistence (open, from 064-22).** `ALLOY_STORAGE_NAMES` is `null`, so chamber storage is in-memory: the Assurance `validation.clientId` (and other stock localStorage keys) is regenerated every page load instead of reused. Trigger: Assurance or any stock localStorage key is needed across page loads; needs a storage-grant decision (B4-adjacent) before changing the allowlist.
