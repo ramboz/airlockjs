@@ -6,10 +6,10 @@
 import { COMMAND_MESSAGE, COMMAND_RESULT_MESSAGE, errorFromEnvelope, isAllowedCommand, plainDataProblem, refusalMessage } from "../../connectors/alloy/host-commands.js";
 
 /**
- * @param {{ worker: { postMessage: Function, addEventListener: Function }, renderer: { render: Function } }} deps
+ * @param {{ worker: { postMessage: Function, addEventListener: Function }, renderer: { render: Function }, onApplyResponse?: (responseBody: unknown) => void }} deps
  * @returns {{ command: (name: string, options?: object) => Promise<unknown>, dispose: () => void }}
  */
-export function createHostCommandEntry({ worker, renderer }) {
+export function createHostCommandEntry({ worker, renderer, onApplyResponse }) {
   let state = "booting"; // booting -> ready | failed (a terminal reason sits in `failure`)
   let failure = null;
   let seq = 0;
@@ -76,7 +76,13 @@ export function createHostCommandEntry({ worker, renderer }) {
       return new Promise((resolve, reject) => {
         const call = { id: ++seq, name, options: options || {}, resolve, reject };
         if (state === "ready") post(call); else waiting.push(call);
-      }).then((result) => finish(name, wantsRender, result));
+      }).then((result) => {
+        // 064-28: stock stores an applied response's view propositions in its view cache, rendering or not.
+        if (name === "applyResponse" && typeof onApplyResponse === "function") {
+          try { onApplyResponse(options && options.responseBody); } catch (e) { /* a cache failure never fails the command */ }
+        }
+        return finish(name, wantsRender, result);
+      });
     },
     dispose() {
       if (state === "failed") return;

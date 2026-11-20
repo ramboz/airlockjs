@@ -9,7 +9,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { chromium } from "playwright";
 import { diffBodies, replayFixture, splitRequestUrl } from "../rig/adobe-b1-replay.mjs";
-import { createPropositionRenderer, displayNotificationXdm, interactNotificationXdm } from "../adapters/eds/personalization-render.js";
+import { createDeliveryTracker, createPropositionRenderer, displayNotificationXdm, interactNotificationXdm } from "../adapters/eds/personalization-render.js";
 
 const real = process.env.AIRLOCK_REAL_CHROMIUM === "1";
 const T = 60000;
@@ -182,6 +182,31 @@ describe("064-24 redirect ordering (hermetic)", () => {
     expect(out.propositions.map((p) => p.renderAttempted)).toEqual([false, true, false]);
     expect(log.filter((l) => l.startsWith("replace:"))).toEqual(["replace:https://redirect.example/x"]);
     expect(log.filter((l) => l === "display")).toHaveLength(1);
+  });
+});
+
+describe("064-28 delivery tracking (hermetic)", () => {
+  const later = (ms, fn) => new Promise((resolve) => setTimeout(() => resolve(fn && fn()), ms));
+  it("settled waits for every tracked delivery, not only the last one", async () => {
+    const tracker = createDeliveryTracker();
+    const done = [];
+    tracker.track(later(60, () => done.push("slow")));
+    tracker.track(later(5, () => done.push("fast")));
+    await tracker.settled();
+    expect(done.sort()).toEqual(["fast", "slow"]);
+  });
+
+  it("settled also waits for a delivery tracked while it waits, and a rejected delivery never rejects it", async () => {
+    const tracker = createDeliveryTracker();
+    const done = [];
+    tracker.track(later(20, () => { tracker.track(later(40, () => done.push("late"))); }));
+    tracker.track(Promise.reject(new Error("boom")));
+    await tracker.settled();
+    expect(done).toEqual(["late"]);
+  });
+
+  it("settled resolves at once when nothing is in flight", async () => {
+    await createDeliveryTracker().settled();
   });
 });
 
@@ -673,6 +698,145 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       expect(kinds(ours)).toEqual(["request", "navigate"]);
       expect(dispositions(ours)).toContain("redirect-display-held");
       expect(dispositions(ours)).toContain("held");
+    }, T);
+  });
+
+  describe("064-28 applyResponse warms the host view cache vs pinned stock Alloy 2.31.1 (SYNTHETIC responses, no capture)", () => {
+    const view = (id, scope, items) => ({ id, scope, scopeDetails: { decisionProvider: "TGT", activity: { id: `act-${id}` }, characteristics: { scopeType: "view" } }, items });
+    const viewXdm = (name) => ({ eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name, viewName: name } } });
+    const body = (payload) => ({ requestId: "00000000-0000-0000-0000-000000000028", handle: [{ type: "personalization:decisions", payload }] });
+    const empty = (req) => (req.method() === "POST" ? { status: 200, headers: { "content-type": "application/json", ...cors(req) }, body: edgeBody([]) } : { status: 204, headers: cors(req), body: "" });
+    /** Stock queue stub plus the library, configured; `applyResponse` first, then each push. Records what each step did. */
+    const stockArm = (page, options, steps) => page.evaluate(async ({ options, steps, datastreamId }) => {
+      window.__alloyNS = ["stockAlloy"];
+      window.stockAlloy = function () { const a = arguments; return new Promise((res, rej) => window.stockAlloy.q.push([res, rej, a])); };
+      window.stockAlloy.q = [];
+      await new Promise((res, rej) => { const s = document.createElement("script"); s.src = "/rig/alloy.min.js"; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+      window.stockAlloy("configure", { datastreamId, orgId: "908936ED5D35CC220A495CD4@AdobeOrg", defaultConsent: "in", debugEnabled: false });
+      const dom = [];
+      const returned = [];
+      await window.stockAlloy("applyResponse", options);
+      for (const s of steps) {
+        const r = await window.stockAlloy("sendEvent", s);
+        returned.push(JSON.parse(JSON.stringify(r.propositions)).map((p) => [p.scope, p.renderAttempted]));
+        await new Promise((res) => setTimeout(res, 700));
+        dom.push(document.getElementById("z").outerHTML);
+      }
+      return { dom, returned };
+    }, { options, steps, datastreamId: DATASTREAM });
+    const ourArm = (page, options, steps) => page.evaluate(async ({ options, steps }) => {
+      await window.__handle.command("applyResponse", options);
+      const dom = [];
+      for (const s of steps) {
+        await window.__handle.push({ event: "page_view", ...s });
+        await new Promise((res) => setTimeout(res, 900));
+        dom.push(document.getElementById("z").outerHTML);
+      }
+      return { dom, decided: window.__decided };
+    }, { options, steps });
+    const posts = (r) => r.network.filter((n) => n.method === "POST").map((n) => {
+      const e = JSON.parse(n.body).events[0];
+      return { type: e.xdm.eventType, query: !!(e.query && e.query.personalization), propositions: ((e.xdm._experience && e.xdm._experience.decisioning && e.xdm._experience.decisioning.propositions) || []).map((p) => p.scope) };
+    });
+    const both = async (payload, steps, { bootExtra = {}, applyOptions = {}, stockExtra = {} } = {}) => {
+      const options = { responseBody: body(payload), ...applyOptions };
+      const stock = await replayFixture(browser, "s4-base", { event: null, bodyHtml: ZONE, respond: empty, run: (page) => stockArm(page, { ...options, ...stockExtra }, steps.map((s, i) => ({ xdm: s.xdm, renderDecisions: s.renderDecisions, ...(i === 0 ? { decisionScopes: ["__view__"] } : {}) }))) });
+      const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + ZONE + SINK, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }], ...bootExtra }, respond: empty, run: (page) => ourArm(page, options, steps) });
+      return { stock, ours };
+    };
+    // A function cannot ride the JSON boot options, so the page wraps `bootAlloy` to add the `onDecisions` sink.
+    const SINK = '<script>window.__decided = []; (() => { const real = AirlockEds; const b = real.bootAlloy; window.AirlockEds = { ...real, bootAlloy: (o) => b({ ...o, onDecisions: (p) => window.__decided.push(JSON.parse(JSON.stringify(p)).map((x) => [x.scope, x.renderAttempted])) }) }; })();</script>';
+    const CART = view("vc", "cart", [domAction("vc1", "setHtml", "#b", "<b>cart</b>")]);
+    // The first push is the page's own (it carries the declared scopes, so it fetches); the applied views must survive its merge.
+    const FIRST = { xdm: PV_XDM, renderDecisions: false };
+    const HOME = view("vh", "home", [domAction("vh1", "setHtml", "#a", "<b>home</b>")]);
+
+    it("AC1: a push naming a view applied by applyResponse renders it and sends its display once, folded into that one event, as stock", async () => {
+      const { stock, ours } = await both([HOME, CART], [FIRST, { xdm: viewXdm("cart"), renderDecisions: true }]);
+      expect(posts(stock)).toEqual([{ type: "web.webpagedetails.pageViews", query: true, propositions: [] }, { type: "web.webpagedetails.pageViews", query: false, propositions: ["cart"] }]);
+      expect(posts(ours)).toEqual(posts(stock));
+      expect(ours.results.run.dom).toEqual(stock.results.run.dom);
+      expect(ours.results.run.dom[1]).toContain("<b>cart</b>");
+      expect(ours.results.run.dom[1]).not.toContain("<b>home</b>");
+    }, T);
+
+    it("AC1: an applied response with no view propositions still initializes the cache (a push is answered by the empty view display), as stock", async () => {
+      const { stock, ours } = await both([], [FIRST, { xdm: viewXdm("cart"), renderDecisions: true }]);
+      expect(posts(stock)).toHaveLength(2);
+      expect(posts(stock)[1].query).toBe(false);
+      expect(posts(ours)).toEqual(posts(stock));
+    }, T);
+
+    /** One redirect arm: ordered edge POSTs (event type) and the navigation, after a warmed view-scoped redirect and a push naming it. */
+    const redirectArm = async (who, { steps, urlTo }) => {
+      const trace = [];
+      const run = async (page) => {
+        page.on("request", (rq) => {
+          if (rq.isNavigationRequest() && rq.url() === urlTo) trace.push("navigate");
+          else if (/interact|adobedc/.test(rq.url()) && rq.method() === "POST") { try { trace.push(JSON.parse(rq.postData()).events[0].xdm.eventType); } catch (e) { trace.push("post"); } }
+        });
+        const options = { responseBody: body([view("vr", "cart", [{ id: "rd", schema: `${NS}redirect-item`, data: { content: urlTo } }])]) };
+        if (who === "stock") await stockArm(page, options, steps.map((s, i) => ({ xdm: s.xdm, renderDecisions: s.renderDecisions, ...(i === 0 ? { decisionScopes: ["__view__"] } : {}) }))).catch(() => {});
+        else await ourArm(page, options, steps).catch(() => {});
+        await page.waitForTimeout(2500);
+      };
+      const r = await replayFixture(browser, "s4-base", who === "stock" ? { event: null, bodyHtml: ZONE, respond: empty, run } : { event: null, bodyHtml: '<div id="v"></div>' + ZONE, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] }, respond: empty, run });
+      return { trace, diagnostics: r.diagnostics };
+    };
+    const URL_TO = "https://redirect.example/landing";
+
+    it("AC3: a warmed view-scoped redirect displays with keepalive and navigates when its view is pushed, as stock", async () => {
+      const steps = [FIRST, { xdm: viewXdm("cart"), renderDecisions: true }];
+      const stock = await redirectArm("stock", { steps, urlTo: URL_TO });
+      const ours = await redirectArm("ours", { steps, urlTo: URL_TO });
+      if (process.env.DBG) console.log("DBG", JSON.stringify({ s: stock.trace, o: ours.trace }));
+      expect(ours.trace).toEqual(stock.trace);
+    }, T);
+
+    it("AC2: view propositions reaching onDecisions carry renderAttempted as stock's result propositions do", async () => {
+      for (const renderDecisions of [true, false]) {
+        const steps = [FIRST, { xdm: viewXdm("cart"), renderDecisions }];
+        const { stock, ours } = await both([HOME, CART], steps);
+        // Stock's last result lists the named view with `renderAttempted`; so does the sink's copy of it.
+        const named = stock.results.run.returned[1];
+        expect(named).toEqual([["cart", renderDecisions]]);
+        expect(ours.results.run.decided).toEqual([named]);
+      }
+    }, T);
+
+    it("AC1: a view applied twice keeps the earlier views and replaces the one it names, as stock", async () => {
+      const second = view("vc2", "cart", [domAction("vc2a", "setHtml", "#b", "<b>cart2</b>")]);
+      const stockOpts = { responseBody: body([HOME, CART]) };
+      const run = async (who) => {
+        const steps = [{ ...FIRST, ...(who === "stock" ? { decisionScopes: ["__view__"] } : {}) }, { xdm: viewXdm("home"), renderDecisions: true }, { xdm: viewXdm("cart"), renderDecisions: true }];
+        if (who === "stock") {
+          return replayFixture(browser, "s4-base", { event: null, bodyHtml: ZONE, respond: empty, run: async (page) => {
+            await page.evaluate(() => { window.__alloyNS = ["stockAlloy"]; window.stockAlloy = function () { const a = arguments; return new Promise((res, rej) => window.stockAlloy.q.push([res, rej, a])); }; window.stockAlloy.q = []; });
+            await page.evaluate(() => new Promise((res, rej) => { const s = document.createElement("script"); s.src = "/rig/alloy.min.js"; s.onload = res; s.onerror = rej; document.head.appendChild(s); }));
+            return page.evaluate(async ({ first, next, steps, datastreamId }) => {
+              window.stockAlloy("configure", { datastreamId, orgId: "908936ED5D35CC220A495CD4@AdobeOrg", defaultConsent: "in", debugEnabled: false });
+              await window.stockAlloy("applyResponse", first);
+              await window.stockAlloy("applyResponse", next);
+              const dom = [];
+              for (const s of steps) { await window.stockAlloy("sendEvent", s); await new Promise((r) => setTimeout(r, 700)); dom.push(document.getElementById("z").outerHTML); }
+              return { dom };
+            }, { first: stockOpts, next: { responseBody: body([second]) }, steps, datastreamId: DATASTREAM });
+          } });
+        }
+        return replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + ZONE, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] }, respond: empty, run: (page) => page.evaluate(async ({ first, next, steps }) => {
+          await window.__handle.command("applyResponse", first);
+          await window.__handle.command("applyResponse", next);
+          const dom = [];
+          for (const s of steps) { await window.__handle.push({ event: "page_view", ...s }); await new Promise((r) => setTimeout(r, 900)); dom.push(document.getElementById("z").outerHTML); }
+          return { dom };
+        }, { first: stockOpts, next: { responseBody: body([second]) }, steps }) });
+      };
+      const stock = await run("stock");
+      const ours = await run("ours");
+      expect(posts(ours)).toEqual(posts(stock));
+      expect(ours.results.run.dom).toEqual(stock.results.run.dom);
+      expect(ours.results.run.dom[1]).toContain("<b>home</b>");
+      expect(ours.results.run.dom[2]).toContain("<b>cart2</b>");
     }, T);
   });
 

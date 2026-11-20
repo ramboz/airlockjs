@@ -73,6 +73,26 @@ export function createViewCache() {
   };
 }
 
+/**
+ * The deliveries still in flight (064-28). More than one can overlap (the ruleset-item callback, a fetch answer, an
+ * applied response), so `settled` waits for all of them, including any tracked while it waits. A rejected run never
+ * rejects `settled`.
+ */
+export function createDeliveryTracker() {
+  const pending = new Set();
+  return {
+    track(run) {
+      const p = Promise.resolve(run).catch(() => {});
+      pending.add(p);
+      p.then(() => pending.delete(p));
+      return p;
+    },
+    async settled() {
+      while (pending.size) await Promise.all([...pending]);
+    },
+  };
+}
+
 /** `a:eq(2) b` style selectors (stock extension): split on `:eq(n)` and walk the matches. */
 function selectAll(doc, selector, root) {
   const parts = String(selector).split(/:eq\((\d+)\)/);
