@@ -136,6 +136,28 @@ describe("064-26 the main-thread entry (hermetic)", () => {
     await expect(q).rejects.toThrow(/lost/);
   });
 
+  it("a fatal load error rejects calls waiting for boot and in flight, with a plain Error", async () => {
+    const w = fakeWorker();
+    const { command } = createHostCommandEntry({ worker: w, renderer: rendererStub() });
+    const waiting = command("getIdentity");
+    w.emit("message", { type: "fatal", phase: "load", message: "bundle" });
+    const e = await waiting.then(() => null, (x) => x);
+    expect(e).toBeInstanceOf(Error);
+    expect(e).not.toBeInstanceOf(TypeError);
+    expect(e.message).toMatch(/lost/);
+  });
+
+  it("a renderer failure rejects applyResponse with a plain Error", async () => {
+    const w = fakeWorker();
+    const { command } = createHostCommandEntry({ worker: w, renderer: { render: async () => { throw new TypeError("x"); } } });
+    configured(w);
+    const p = command("applyResponse", { renderDecisions: true });
+    w.emit("message", { type: "command-result", id: w.sent[0].id, result: { propositions: [{ id: "p" }] } });
+    const e = await p.then(() => null, (x) => x);
+    expect(e).not.toBeInstanceOf(TypeError);
+    expect(e.message).toMatch(/rendering/);
+  });
+
   it("dispose rejects pending calls and later calls", async () => {
     const w = fakeWorker();
     const entry = createHostCommandEntry({ worker: w, renderer: rendererStub() });
@@ -232,13 +254,15 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
   it("a name off the allowlist rejects with a plain Error and sends nothing", async () => {
     const r = await replayFixture(browser, "s5-returning", {
       skipSteps: true,
-      run: async (page) => ({ a: await call(page, "sendEvent", { xdm: PV }), b: await call(page, "evaluateRulesets", {}), c: await call(page, "getIdentity", { cb: undefined, f: "x" }) }),
+      run: async (page) => ({ a: await call(page, "sendEvent", { xdm: PV }), b: await call(page, "evaluateRulesets", {}), c: await page.evaluate(() => window.__handle.command("getIdentity", { cb() {}, el: document.body }).then(() => ({}), (e) => ({ error: { message: e.message, isTypeError: e instanceof TypeError } }))) }),
     });
     for (const k of ["a", "b"]) {
       expect(r.results.run[k].error, k).toBeDefined();
       expect(r.results.run[k].error.isTypeError, k).toBe(false);
     }
     expect(r.results.run.a.error.message).toMatch(/sendEvent/);
+    expect(r.results.run.c.error.isTypeError).toBe(false);
+    expect(r.results.run.c.error.message).toMatch(/cannot cross/);
     expect(edgeCalls(r)).toEqual([]);
   }, T);
 
@@ -284,31 +308,56 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
     await new Promise((res, rej) => { const s = document.createElement("script"); s.src = "/rig/alloy.min.js"; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
     window.stockAlloy("configure", { datastreamId: "12345678-1234-1234-1234-123456789012", orgId: "908936ED5D35CC220A495CD4@AdobeOrg", defaultConsent: "pending", debugEnabled: false });
     if (consent) window.stockAlloy("setConsent", { consent: [{ standard: "Adobe", version: "2.0", value: { general: consent } }] }).catch(() => {});
-    return (0, eval)(status)((n, o) => window.stockAlloy(n, o), 800);
+    return (0, eval)(status)((n, o) => window.stockAlloy(n, o), 1500);
   }, { consent, status: STATUS });
 
-  const ourStatus = (page) => page.evaluate(({ status }) => (0, eval)(status)((n, o) => window.__handle.command(n, o), 800), { status: STATUS });
+  const ourStatus = (page) => page.evaluate(({ status }) => (0, eval)(status)((n, o) => window.__handle.command(n, o), 1500), { status: STATUS });
 
   it("pending consent: each command settles or stays pending as stock Alloy does (SYNTHETIC differential)", async () => {
     const stock = await replayFixture(browser, "s3-base", { event: null, run: (page) => stockStatus(page, null) });
     const ours = await replayFixture(browser, "s3-base", { event: null, bootOptions: { consentHold: null }, run: (page) => ourStatus(page) });
+    // the held command is named explicitly, so an all-resolved run cannot pass vacuously
+    expect(stock.results.run.getIdentity).toBe("pending");
     expect(ours.results.run).toEqual(stock.results.run);
   }, T);
 
-  it("a parked command resolves once consent is granted", async () => {
+  it("a command parked under pending consent stays pending, then resolves once consent is granted", async () => {
     const r = await replayFixture(browser, "s6-in", {
       event: null,
       bootOptions: { consentHold: null },
       skipSteps: true,
       run: async (page) => {
-        const first = await ourStatus(page);
+        await page.evaluate(() => { window.__held = window.__handle.command("getIdentity").then((x) => ({ ok: !!x.identity }), (e) => ({ err: e.message })); });
+        const before = await page.evaluate(() => Promise.race([window.__held, new Promise((res) => setTimeout(() => res("pending"), 1000))]));
         await page.evaluate(() => window.__handle.setConsent({ analytics_storage: "granted", personalization: "granted" }));
-        const after = await page.evaluate(() => window.__handle.command("getLibraryInfo").then(() => "resolved", (e) => e.name));
-        return { first, after };
+        const after = await page.evaluate(() => window.__held);
+        return { before, after };
       },
     });
-    expect(r.results.run.first.getLibraryInfo).toBe("resolved");
-    expect(r.results.run.after).toBe("resolved");
+    expect(r.results.run.before).toBe("pending");
+    expect(r.results.run.after).toEqual({ ok: true });
+  }, T);
+
+  it("applyResponse with renderDecisions:true renders through the 064-20 renderer; without it nothing renders (SYNTHETIC body)", async () => {
+    const body = { requestId: "00000000-0000-0000-0000-000000000026", handle: [{ type: "personalization:decisions", payload: [{ id: "p26", scope: "__view__", scopeDetails: { decisionProvider: "TGT", activity: { id: "act-26" }, characteristics: { scopeType: "view" } }, items: [{ id: "i26", schema: "https://ns.adobe.com/personalization/dom-action", data: { type: "setHtml", selector: "#z26", content: "<b>done</b>" } }] }] }] };
+    const r = await replayFixture(browser, "s3-base", {
+      event: null,
+      bodyHtml: '<div id="z26">orig</div>',
+      run: async (page) => {
+        const headless = await call(page, "applyResponse", { responseBody: body });
+        const domA = await page.evaluate(() => document.getElementById("z26").innerHTML);
+        const rendered = await call(page, "applyResponse", { responseBody: body, renderDecisions: true });
+        const domB = await page.evaluate(() => document.getElementById("z26").innerHTML);
+        return { headless, domA, rendered, domB };
+      },
+    });
+    const { headless, domA, rendered, domB } = r.results.run;
+    expect(headless.error).toBeUndefined();
+    expect(Array.isArray(headless.result.propositions)).toBe(true);
+    expect(domA).toBe("orig");
+    expect(rendered.error).toBeUndefined();
+    expect(domB).toContain("done");
+    expect(rendered.result.propositions[0].renderAttempted).toBe(true);
   }, T);
 
   it("an Alloy validation error crosses as a plain Error with stock's name and message", async () => {
@@ -320,12 +369,13 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
         window.stockAlloy.q = [];
         await new Promise((res, rej) => { const s = document.createElement("script"); s.src = "/rig/alloy.min.js"; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
         window.stockAlloy("configure", { datastreamId: "12345678-1234-1234-1234-123456789012", orgId: "908936ED5D35CC220A495CD4@AdobeOrg", defaultConsent: "in", debugEnabled: false });
-        return window.stockAlloy("appendIdentityToUrl", { url: 5 }).then(() => null, (e) => ({ name: e.name, message: e.message }));
+        return window.stockAlloy("appendIdentityToUrl", { url: 5 }).then(() => null, (e) => ({ name: e.name, message: e.message, code: e.code }));
       }),
     });
     const ours = await replayFixture(browser, "s3-base", { event: null, run: (page) => call(page, "appendIdentityToUrl", { url: 5 }) });
     expect(stock.results.run).not.toBeNull();
     expect(ours.results.run.error.isTypeError).toBe(false);
+    expect(ours.results.run.error.name).toBe(stock.results.run.name === "TypeError" ? "Error" : stock.results.run.name);
     // only the instance name in the prefix differs (`stockAlloy` here, `alloy` in the chamber)
     expect(ours.results.run.error.message.replace(/^\[alloy\]/, "")).toBe(stock.results.run.message.replace(/^\[stockAlloy\]/, ""));
   }, T);

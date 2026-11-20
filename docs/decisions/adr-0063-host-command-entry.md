@@ -15,11 +15,11 @@ The owner had approved writing this ADR and slice 064-26 before 064-21 starts ("
 
 ## Summary
 
-Today a site cannot call `getIdentity`, `appendIdentityToUrl`, `applyResponse`, `getLibraryInfo` or `createEventMergeId`. They run inside the Alloy chamber, but only the test rig can reach them. This ADR adds one method to the `bootAlloy` handle: `handle.command(name, options)`. It returns a promise and accepts only a fixed list of five commands. Options and results are plain data. Nothing else changes: `sendEvent` still goes through `push`, consent still goes through `setConsent`, and the consent hold and seal apply as they do today. The main tradeoff: this is a new, permanent public surface, so the list is kept small and each entry needs stock-vs-airlock evidence. The owner's one question is whether `evaluateRulesets` joins the list. The recommendation is no.
+Before this change a site could not call `getIdentity`, `appendIdentityToUrl`, `applyResponse`, `getLibraryInfo` or `createEventMergeId`. They run inside the Alloy chamber, but only the test rig can reach them. This ADR adds one method to the `bootAlloy` handle: `handle.command(name, options)`. It returns a promise and accepts only a fixed list of five commands. Options and results are plain data. Nothing else changes: `sendEvent` still goes through `push`, consent still goes through `setConsent`, and the consent hold and seal apply as they do today. The main tradeoff: this is a new, permanent public surface, so the list is kept small and each entry needs stock-vs-airlock evidence. The owner answered the one question: `evaluateRulesets` stays out (see Status).
 
 ## Context
 
-- The handle returned by `bootAlloy` (adapters/eds/index.js) exposes `push`, `pushCritical`, `setConsent`, `getState`, `stats`, `dispose`, plus the 064-20 `applyPropositions` and `subscribeRulesetItems`. The production chamber worker accepts only `init`, `event`, `stock-context`, `setConsent`, `intercepted-fetch-response` and `probe-egress` messages (connectors/alloy/alloy-chamber.worker.js). It has no way to run a named Alloy command. The rig adds one (`rig-command`, rig/b1-chamber-entry.js) and exists only in tests.
+- Before this ADR, the handle returned by `bootAlloy` (adapters/eds/index.js) exposes `push`, `pushCritical`, `setConsent`, `getState`, `stats`, `dispose`, plus the 064-20 `applyPropositions` and `subscribeRulesetItems`. The production chamber worker accepts only `init`, `event`, `stock-context`, `setConsent`, `intercepted-fetch-response` and `probe-egress` messages (connectors/alloy/alloy-chamber.worker.js). It has no way to run a named Alloy command. The rig adds one (`rig-command`, rig/b1-chamber-entry.js) and exists only in tests.
 - 064-19 proved rows 4 to 7 and 9 of the command matrix in the chamber and carried the gap as H1: those rows are chamber facts, not site-callable parity. 064-21 (`aem-martech`, ACDL, Launch) cannot claim a drop-in or wrapper decision without a site-callable path. The 064-20 notes add that `evaluateRulesets` stays rig-reachable only.
 - ADR-0060 (Proposed) asks for a governed command and result bridge and recommends declared commands with host-side adapters (its Option A), and rejects a generic proxy (its Option B). It deliberately did not pick an envelope. ADR-0061 and ADR-0062 make stock behaviour the default with Airlock controls on top.
 - Stock `alloy("cmd", options)` returns a promise. Stock Alloy validates options and rejects with its own errors.
@@ -95,3 +95,13 @@ Adopt Option A with the single-method entry. The mechanics:
 ## Owner answer (2026-11-20)
 
 Question: does `evaluateRulesets` join the allowlist? Recommended: no. Owner: "Yes, accept with the five commands, leave evaluateRulesets out (Recommended)". Adding it later is one allowlist entry plus one criterion, with its own comparison.
+
+## Implementation notes (064-26, 2026-11-20)
+
+- A `fatal{phase:"post-load"}` from the worker (a boot failure after the bundle loaded) is treated as chamber loss, like `load`: no command can run in that chamber.
+- Results cross as JSON-normalised data (`undefined` keys dropped, Dates become strings). Alloy's results are plain JSON, so stock results are unchanged.
+- An error is rebuilt as a plain `Error` with the envelope's `message`, `code` (string or number only) and, for an Alloy `TypeError`, `name` kept as `"Error"` with the original name on `error.alloyName`. Other names (for example `"Error"` or a custom Alloy name) are kept as `name`.
+- Option validation accepts everything structured clone carries (including `undefined` values and non-finite numbers) except functions, symbols, bigints, DOM nodes, class instances and circular references.
+- `applyResponse` with `renderDecisions:true` passes no `metadata` to the renderer; the display notification gap is the one `applyPropositions` already has (064-24/25).
+- A render failure rejects the call with a plain `Error` that names rendering; after `dispose` the render step is skipped.
+- The ADR-0060 open question "which host observations must complete before an SDK operation settles" is answered here for `applyResponse` only; ADR-0060 stays Proposed.

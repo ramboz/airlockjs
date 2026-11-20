@@ -27,8 +27,7 @@ export function refusalMessage(name) {
 
 /** Plain structured-clone-safe data: primitives, arrays, plain objects. No function, symbol, bigint, DOM node or class instance. */
 export function plainDataProblem(value, path = "options", seen = new Set()) {
-  if (value === null || ["string", "boolean"].includes(typeof value)) return null;
-  if (typeof value === "number") return Number.isFinite(value) ? null : `${path} is not a finite number`;
+  if (value === null || value === undefined || ["string", "boolean", "number"].includes(typeof value)) return null;
   if (typeof value !== "object") return `${path} is a ${typeof value}, which cannot cross the airlock`;
   if (seen.has(value)) return `${path} is a circular reference`;
   seen.add(value);
@@ -55,7 +54,7 @@ export function plainDataProblem(value, path = "options", seen = new Set()) {
 /** Error envelope: structured clone drops custom properties, so name, message and code are copied explicitly. */
 export function errorEnvelope(error) {
   const e = error || {};
-  return { name: String(e.name || "Error"), message: String(e.message === undefined ? error : e.message), ...(e.code !== undefined ? { code: e.code } : {}) };
+  return { name: String(e.name || "Error"), message: String(e.message === undefined ? error : e.message), ...(typeof e.code === "string" || typeof e.code === "number" ? { code: e.code } : {}) };
 }
 
 /** A caller never receives a TypeError (064-18 contract): the original name stays on the plain Error. */

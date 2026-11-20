@@ -10,6 +10,7 @@ last_verified:
 
 **DoR:**
 - ✅ B3 and B4 done.
+- ✅ 064-26 done: rows 4 to 7 and 9 are site-callable through `handle.command`.
 
 **Acceptance Criteria:**
 

@@ -42,14 +42,14 @@ Read from the Alloy 2.31.1 source and checked against the pinned bundle: **17 co
 | 1 | `configure` | core | mediated | B1 | Unknown option keys throw (`core/buildAndValidateConfig.js:17`). Options subset recorded |
 | 2 | `setDebug` | core | worker-native | B1 | Debug flag in sessionStorage (`com.adobe.alloy.instance.<name>.debug`) |
 | 3 | `sendEvent` | DataCollector | mediated | B3 | XDM, data, `renderDecisions`, `decisionScopes`, `mergeId`, `edge.hostname` override |
-| 4 | `applyResponse` | DataCollector | worker-native | B3 | Consumes a stored response |
-| 5 | `getIdentity` | Identity | mediated | B3 | ECID rule in 4.6 |
-| 6 | `appendIdentityToUrl` | Identity | worker-native | B3 | Pure function of ECID, URL, org ID and time (`Identity/appendIdentityToUrl/injectAppendIdentityToUrl.js:32`). Not host-side |
-| 7 | `getLibraryInfo` | LibraryInfo | worker-native | B3 | Version string equals 2.31.1. S1 calls it as the self-enumeration check |
+| 4 | `applyResponse` | DataCollector | worker-native | B3 | Consumes a stored response. Site-callable via `handle.command` (064-26) |
+| 5 | `getIdentity` | Identity | mediated | B3 | ECID rule in 4.6. Site-callable via `handle.command` (064-26) |
+| 6 | `appendIdentityToUrl` | Identity | worker-native | B3 | Pure function of ECID, URL, org ID and time (`Identity/appendIdentityToUrl/injectAppendIdentityToUrl.js:32`). Not host-side. Site-callable via `handle.command` (064-26) |
+| 7 | `getLibraryInfo` | LibraryInfo | worker-native | B3 | Version string equals 2.31.1. S1 calls it as the self-enumeration check. Site-callable via `handle.command` (064-26) |
 | 8 | `setConsent` | Consent | mediated | B3 | Endpoint `privacy/set-consent` (`Consent/createConsentRequest.js:20`) |
-| 9 | `createEventMergeId` | EventMerge | worker-native | B3 | uuid (`EventMerge/createEventMergeId.js:17`) |
+| 9 | `createEventMergeId` | EventMerge | worker-native | B3 | uuid (`EventMerge/createEventMergeId.js:17`). Site-callable via `handle.command` (064-26) |
 | 10 | `applyPropositions` | Personalization | host-side | B4 | DOM rendering. Built in 064-20 (differential vs stock); not full parity, gaps 064-23/24/25 |
-| 11 | `evaluateRulesets` | RulesEngine | worker-native | B4 | Reads non-standard window props (see 2.2). 064-20: runs in the chamber, rig-reachable only (H1, reserved 064-26) |
+| 11 | `evaluateRulesets` | RulesEngine | worker-native | B4 | Reads non-standard window props (see 2.2). 064-20: runs in the chamber, rig-reachable only: the owner kept it out of the `handle.command` allowlist (ADR-0063) |
 | 12 | `subscribeRulesetItems` | RulesEngine | worker-native | B4 | Function-valued `callback` (B3 decides). 064-20: mediated as data, built |
 | 13 | `createMediaSession` | StreamingMedia | incompatible until proven | B6 | Function-valued `getPlayerDetails` |
 | 14 | `sendMediaEvent` | StreamingMedia | incompatible until proven | B6 | |
@@ -63,7 +63,7 @@ The 6 function-valued options (`onBeforeEventSend`, `clickCollection.filterClick
 
 **Amendment (064-20, 2026-11-20):** B4 built rendering, prehiding, link-click collection and ruleset data delivery, proven by differentials against stock Alloy 2.31.1, but the s2.2 Personalization and SPA-view Lifecycle rows are **not parity**: SPA view cache and first-event-only `decisionScopes` -> 064-23, redirect display notification -> 064-24, interact notification shape -> 064-25. 064-15 must not report these rows as parity until those slices are DONE.
 
-**Amendment (064-19, 2026-11-20):** rows 3, 5 and 8 run in the chamber (worker-native) with egress still mediated by the seal; row 12 `subscribeRulesetItems` is `mediated as data` (callback). Rows 4 to 7 and 9 are reachable only through the rig today: the `bootAlloy` handle has no command entry point (owner decision, see the slice notes).
+**Amendment (064-19, 2026-11-20):** rows 3, 5 and 8 run in the chamber (worker-native) with egress still mediated by the seal; row 12 `subscribeRulesetItems` is `mediated as data` (callback). Rows 4 to 7 and 9 are site-callable through `handle.command` since 064-26 (ADR-0063); `evaluateRulesets` stays rig-only.
 
 ### 2.2 Other rows
 

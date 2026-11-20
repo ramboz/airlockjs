@@ -1681,7 +1681,7 @@ function probeApexDomain(granted) {
  * @param {(propositions: object[]) => void} [opts.onDecisions] 064-20: sink called with the propositions
  *                                         the chamber delivered through the `decisions` capability, before
  *                                         any rendering (`renderDecisions:false` skips only the renderer). Data only; a throw is diagnosed (`sink-threw`).
- * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function, command: Function }>}
+ * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function, applyPropositions: Function, subscribeRulesetItems: Function, command: Function }>}
  */
 export async function bootAlloy(opts = {}) {
   const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, consent, consentHold, minimalXdm, payloadDenylist, payloadDenylistOverride, cookieGrantNarrowing, storageGrantNarrowing, workerUrl, reservedPlacements, compositeEmit, edgeDomain } = opts;
@@ -2032,7 +2032,7 @@ export async function bootAlloy(opts = {}) {
     /**
      * 064-26 (ADR-0063): the host command entry. Runs one of `getIdentity`, `appendIdentityToUrl`, `applyResponse`,
      * `getLibraryInfo`, `createEventMergeId` in the Alloy chamber and resolves with the stock result (plain data).
-     * Options must be plain data (no functions). Any other name rejects with a plain Error. `applyResponse` renders
+     * Options must be plain data (no functions). Any other name rejects with a plain Error. A caller sees an Alloy `TypeError` as a plain Error with the original name on `alloyName`. `applyResponse` renders
      * its propositions on the main thread only when called with `renderDecisions: true`, as stock.
      * @param {string} name
      * @param {object} [options]

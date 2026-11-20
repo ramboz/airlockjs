@@ -36,3 +36,20 @@ last_verified:
 
 - Decision context: H1 carry from 064-19; `evaluateRulesets` rig-only note from 064-20.
 - 064-21 depends on this slice: it must not cite rows 4 to 7 and 9 as site-callable until this is DONE.
+
+## Results and deviations (2026-11-20)
+
+Tests: `test/adobe-h1-host-command.test.js` (hermetic entry and envelope tests, plus real-Chromium tests gated on `AIRLOCK_REAL_CHROMIUM=1` and a GATING `browser-oracle` step). Harness change: `replayFixture` gets `skipSteps`, so a test can drive the recorded identity steps through `window.__handle.command` instead of the rig `window.__command`. The rig `rig-command` path stays for non-allowlisted probes.
+
+| Command | Proof | Label |
+|---|---|---|
+| `getIdentity` | S5 fresh and returning: shape, `edge`, ECID and the one acquire as recorded | recorded |
+| `appendIdentityToUrl` | S5: `adobe_mc` carries the ECID; Alloy validation error (`url: 5`) has stock's message, a plain `Error` | recorded + stock differential |
+| `applyResponse` | S3 recorded body: headless result; SYNTHETIC dom-action body: `renderDecisions:true` renders through the 064-20 renderer and sets `renderAttempted`, omitted or false leaves the DOM untouched | recorded + SYNTHETIC |
+| `getLibraryInfo`, `createEventMergeId` | key-for-key shape against pinned stock 2.31.1 on the same page | SYNTHETIC differential |
+
+- **Consent (AC5):** the real-browser differential covers the pending state: `getLibraryInfo`, `createEventMergeId` and `appendIdentityToUrl` settle and `getIdentity` stays pending, identically on stock and on the handle. A parked `getIdentity` resolves after `setConsent` grants. **Carried:** the denied, granted, no-consent-input and stale-cookie states are not each re-recorded per command here; the seal behaviour for them is proven by the 064-19 S6 and 067/068 tests, and the command entry adds no consent logic of its own (ADR-0063 point 3). Reason: no new risk surface; revisit if the entry gains consent code.
+- **Worker allowlist (AC3):** the worker's second allowlist check is not hit by a raw-message test, because the production worker cannot be imported in vitest. The main-thread check is tested. Carried; reason: the worker check is defence in depth behind a tested gate.
+- **Chamber loss (AC8):** tested hermetically with a fake worker for `error`, `fatal` `load` (waiting and in flight), a `sendEvent` fatal that does not reject, configure failure and dispose. Not caused in the real chamber; carried, reason: the fake-worker protocol is the same message set the real worker posts.
+- **Deliberate differences from stock:** no `window.alloy` global; `getLibraryInfo().libraryInfo.commands` lists commands the entry refuses; the ADR-0062 consent hold; `post-load` fatals count as chamber loss; results are JSON-normalised; an Alloy `TypeError` arrives as a plain `Error` with `alloyName`.
+- **Review fixes:** option validation now accepts `undefined` values and non-finite numbers (structured clone carries them); a render failure rejects with a plain `Error`; envelope `code` is only copied when a string or number.

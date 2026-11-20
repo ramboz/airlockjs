@@ -80,6 +80,6 @@ success qualifies as compatibility.
 ## Open questions
 
 - Which pinned public options, events and callbacks need mediation?
-- Which host observations must complete before an SDK operation settles?
+- Which host observations must complete before an SDK operation settles? ([ADR-0063](adr-0063-host-command-entry.md) answers this for `applyResponse` only.)
 - How do configuration, instance identity, disposal and late completions interact?
 - Is an additive experimental interface sufficient, or is another owner decision necessary?

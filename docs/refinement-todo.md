@@ -1412,11 +1412,11 @@ default-granted state on the live arena; re-run the deny→accept flow on a real
 
 Owner decision 2026-11-20 ("Forward the opt-out only, via a narrow seam exemption"; ADR-0062 amendment): after an explicit refusal the seam forwards Alloy's `privacy/set-consent` with `collect:n` and without `query.identity.fetch`. The `s6-out` test compares the chamber request clean against the fixture and asserts the forwarded body.
 
-## Host command surface for Alloy (064-19, 2026-11-20)
+## Host command surface for Alloy (064-19, 2026-11-20) — RESOLVED by 064-26 (2026-11-20)
 
 `bootAlloy`'s handle has no entry point for `getIdentity`, `appendIdentityToUrl`, `applyResponse`, `getLibraryInfo`, `createEventMergeId`; they work in the chamber but only the test rig can call them. A mediated, allowlisted command entry is a new capability contract. Owner decision before 064-21 claims parity.
 
-Owner approved the command entry 2026-11-20. Proposed in [ADR-0063](decisions/adr-0063-host-command-entry.md), built in slice 064-26. Open question: whether `evaluateRulesets` joins the allowlist.
+Resolved. [ADR-0063](decisions/adr-0063-host-command-entry.md) (Accepted 2026-11-20) and slice 064-26: `handle.command(name, options)` runs the five commands, `evaluateRulesets` stays rig-only by owner decision.
 
 - **Alloy chamber storage persistence (RESOLVED by 064-27, 2026-11-20).** The default grant now equals the stock set (`alloyStorageGrant(orgId)` in `connectors/alloy/connector.js`), so the Assurance `validation.clientId` and the consent hashes persist and are reused across page loads. See `docs/specs/064-adobe-parity-inventory/slice-27-alloy-storage-grant.md`.
 

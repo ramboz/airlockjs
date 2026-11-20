@@ -57,7 +57,7 @@ Not needed for S4 and S7, which compare clean without it. The storage grant was 
 
 ### Cutline (2026-11-20, coordinator)
 
-The three ACs were reworded to what is built and fully met; each ends `except <gap> -> 064-NN`. Spec 064 s2.1/s2.2 rows 10 to 12, Personalization and Lifecycle carry a B4 pointer so 064-15 cannot read them as parity. Follow-ups: **064-23** (SPA view cache, first-event-only `decisionScopes`), **064-24** (redirect display notification), **064-25** (interact notification parity). Numbers 064-26 (H1 command entry) and 064-27 (storage grant) are reserved by the coordinator; no slice files exist yet.
+The three ACs were reworded to what is built and fully met; each ends `except <gap> -> 064-NN`. Spec 064 s2.1/s2.2 rows 10 to 12, Personalization and Lifecycle carry a B4 pointer so 064-15 cannot read them as parity. Follow-ups: **064-23** (SPA view cache, first-event-only `decisionScopes`), **064-24** (redirect display notification), **064-25** (interact notification parity). 064-26 (H1 command entry, `slice-26-host-command-entry.md`) and 064-27 (storage grant) have their own slices.
 
 **Keepalive correction:** the earlier "needs a keepalive path through the seam" was wrong. 064-18 already routes `sendBeacon` and `init.keepalive` requests through the seal and the shared `createKeepaliveTracker` (`core/egress.js`). What is missing is the `documentUnloading` hint on the display event that `connectors/alloy/connector.js` pushes (no such option today) and the ordering before `location.replace`. That is 064-24.
 

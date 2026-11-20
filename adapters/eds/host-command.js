@@ -54,7 +54,10 @@ export function createHostCommandEntry({ worker, renderer }) {
   // `applyResponse` runs headless in the chamber; a caller who asked to render gets the 064-20 renderer on the result.
   const finish = async (name, wantsRender, result) => {
     if (name !== "applyResponse" || !wantsRender || !result || !Array.isArray(result.propositions)) return result;
-    const out = await renderer.render(result.propositions);
+    if (state === "failed") throw failure;
+    let out;
+    try { out = await renderer.render(result.propositions); } catch (error) { throw new Error(`airlock command: rendering the applyResponse propositions failed (${error && error.message})`, { cause: error }); }
+    if (state === "failed") throw failure;
     return { ...result, propositions: out.propositions };
   };
 
@@ -67,7 +70,7 @@ export function createHostCommandEntry({ worker, renderer }) {
         if (problem) throw new Error(`airlock command: ${problem}`);
         if (options !== undefined && options !== null && (typeof options !== "object" || Array.isArray(options))) throw new Error("airlock command: options must be a plain object");
       } catch (error) {
-        return Promise.reject(error instanceof Error && error.name !== "TypeError" ? error : new Error(error.message));
+        return Promise.reject(error instanceof Error && error.name !== "TypeError" ? error : new Error(String((error && error.message) || error)));
       }
       const wantsRender = Boolean(options && options.renderDecisions === true);
       return new Promise((resolve, reject) => {
