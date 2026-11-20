@@ -1,9 +1,8 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [064-02, 064-03]
-last_verified:
+last_verified: 2026-11-20
 kind: spike
-claimed_by: adobe-cap-capture-064-04
 ---
 
 ## Slice 064-04 — CAP: the capture session
@@ -28,7 +27,7 @@ claimed_by: adobe-cap-capture-064-04
 
 ## Implementation notes: Phase A (agent-only states)
 
-Status stays IN_PROGRESS. Phase A is done: 28 of 28 planned recordings stored under `test/fixtures/adobe-capture/` (one JSON per recording: `manifest` + `capture` + full `requests` fan-out). Session total so far 29 attempts against the kill-criterion-4 limit of 60 (one re-record, below). The owner settings window, restore step, S11, S13, S12, freeze and review are not started.
+Status is DONE (corpus frozen 2026-11-20, 46 fixtures, 48 attempts). Phase A was: 28 of 28 planned recordings stored under `test/fixtures/adobe-capture/` (one JSON per recording: `manifest` + `capture` + full `requests` fan-out). Session total so far 29 attempts against the kill-criterion-4 limit of 60 (one re-record, below). The owner settings window, restore step, S11, S13, S12, freeze and review are not started.
 
 **Tooling (step 0).** The 051-08 recorder and its test were restored from `b61e42a9^` unchanged apart from the Node 22 sync-loader seam fix B0 used. Its rules (Edge-only, 8 requests, JSON-only) contradict full fan-out, so it is kept as history and the capture uses three new modules instead:
 - `probes/adobe-compatibility/capture-recorder.mjs`: passive context-level recorder of every non-page-origin request plus the Alloy script (headers, body, status, response body, failure; bounds 200 requests and 1 MB per body). It SHA-256-hashes the Alloy bundle actually loaded and throws `AlloyPinError` on mismatch or absence; the driver exits 3 on it. Every recording matched the pin `7dd09409…32e8`.
@@ -48,7 +47,7 @@ Status stays IN_PROGRESS. Phase A is done: 28 of 28 planned recordings stored un
 **Run decisions.**
 - S1 base plus two same-day repeats, then viewport (800x600), locale (de-DE), timezone (Europe/Berlin), referrer (`https://referrer.example/start`). Edge domain kind: there is no first-party CNAME, so `s1-edge-domain` is a plain repeat on the default Adobe edge domain and records that (it is the same setup as base). Base viewport 1280x800, en-US, America/New_York.
 - S2 is returning, reusing the S1 base profile (S2 base) and the S1 repeat-1 profile (S2 repeat). S5 returning reuses the S5 fresh profile.
-- S4 is the no-decision shape. The airlock scope returns an empty `personalization:decisions` payload in the second request.
+- S4 is the no-decision shape. The airlock scope has no airlock decision in the first response; the second request is a `decisioning.propositionDisplay` notification.
 - S6: `out` and `in` and `pending-in` all start from `defaultConsent: pending` with two queued `sendEvent`s; `out` then `setConsent` n, `in` then `setConsent` y immediately, `pending-in` holds 3 s before `setConsent` y.
 - S3 uses `xdm.eventMergeId` for the mergeId case.
 - S8: `s8-blocked` aborts requests to the adobedc.net and demdex.net hosts, `s8-non200` uses a random placeholder datastream ID (Edge returns 400 `Invalid datastream ID`).
@@ -77,39 +76,39 @@ Phase A passed the servo quality-gate (composite 1.0) before its push.
 
 **Target.** Readiness activity "Airlock - Readiness Check - 20261008 - Verified" (ID 3864223, A/B Manual, workspace "Airlock - Test", property "Airlock - Adobe Compatibility (Test)", location `airlock.readiness.2e2319c8`) was Inactive and its schedule had ended 2026-10-28T03:15Z. The owner reactivated it in the UI, which Target ended at once. On the owner's instruction the agent set `endsAt` to 2026-11-30T23:59:00Z through the Target Admin API with the owner-provided OAuth server-to-server credential (kept outside the repo; no other field changed). Activities 3258675 and 3711334 could not be located from this login (all workspaces searched, ID URLs return "Something went wrong"); they are the `__view__` activities seen in every S0-S9 response. Report only; untouched.
 
-**D3 / S4 active.** About 3 minutes after the date change the scope returned an `html-content-item` decision. `s4-active-base` and `s4-active-repeat` record that shape (30 attempts used; earlier `s4-base` and `s4-repeat` stay as the no-decision shape). The repeat reuses the base profile; its first Edge response carries the same airlock decision, and the later notification response has an empty decisions payload.
+**D3 / S4 active.** About 3 minutes after the date change the scope returned an `html-content-item` decision. `s4-active-base` and `s4-active-repeat` record that shape (31 attempts used after both; earlier `s4-base` and `s4-repeat` stay as the no-decision shape). The repeat reuses the base profile; its first Edge response carries the same airlock decision, and the later notification response has an empty decisions payload.
 
-**S12 (owner normal browser, 2026-11-19).** `s12-owner` is the owner's normal Chrome: they loaded the capture page, ran `configure` and `sendEvent` from the DevTools console, and saved the Network HAR (31st attempt). Compared field by field with the agent S1 base request: the only differences are screen and viewport size, local time and offset (UTC-8), timestamp, the run ID in the URL and `queueTimeMillis`, all capture setup. Headers differ only by the HTTP/2 pseudo-headers and `pragma`; both responses are 200. The HAR has no cookies or storage, so the manifest input state is partial (see its `capture.owner_capture` note). No `getLibraryInfo` call and no page-load request in this recording. Nothing goes to the owner as a difference.
+**S12 (owner normal browser, 2026-11-19).** `s12-owner` is the owner's normal Chrome: they loaded the capture page, ran `configure` and `sendEvent` from the DevTools console, and saved the Network HAR (attempt 32). Compared field by field with the agent S1 base request: the only differences are screen and viewport size, local time and offset (UTC-8), timestamp, the run ID in the URL and `queueTimeMillis`, all capture setup. Headers also differ in `accept-language` (owner sends a multi-locale list), `cache-control` (owner `no-cache`, agent `max-age=0`; this touches the fixed Fetch-init `cache: no-cache` rule of spec 2.3), `user-agent` and `sec-ch-ua` (owner Chrome 156, agent Chromium 151), `content-length`, plus the HTTP/2 pseudo-headers and `pragma`; both responses are 200 and the HAR response has no `set-cookie`. The HAR has no cookies or storage, so the manifest input state is partial (see its `capture.owner_capture` note). No `getLibraryInfo` call and no page-load request in this recording. The `cache-control` difference and the browser-version gap are fixed or generated differences that AC4 sends to the owner before freeze; they are raised in the coordinator report.
 
 **S9 log (UTC times; each fixture's `capture.owner_change` holds the change, time and wait).** The driver gained `--owner-change/--change-at/--waited` and the `fpid` and `combined` scenarios. Propagation was polled with a direct Edge probe outside the corpus (not counted as attempts). Window went past 3 h (owner kept going; not a kill).
 - S9-01 (19:23): Target environment ID switched to another existing one. No response change in 12 min of polling; recorded anyway (`s9-01`). The airlock decision stays.
 - S9-02 (19:51): Target property token cleared. The airlock decision disappeared after about 61 s; the two `__view__` decisions stayed (`s9-02`).
 - S9-03 (20:27): property token and environment ID restored. The owner had not added Audience Manager (it was not on the datastream), so this recording covers the Target restore only; the airlock decision returned after about 61 s.
 - S9-04 (20:33): Audience Manager service on plus cookie and URL destinations on, in one save (DS-10, DS-11, DS-12 share this recording). No response change in 10 min; recorded (`s9-04`).
-- S9-05 (22:28): Third Party ID Sync on, container ID 0. An `identity:exchange` handle appeared after about 61 s (`s9-05`).
-- S9-06 (23:34): First Party ID cookie on, name `airlock064_fpid`. Fixed 10 min wait; response looked like S9-05 (`s9-06`, scenario `fpid`).
+- S9-05 (22:28): Third Party ID Sync on, container ID 0. An `identity:exchange` handle appeared after about 61 s, followed by ID-sync requests to `cm.everesttech.net` and `dpm.demdex.net` that the chamber egress list must cover (`s9-05`).
+- S9-06 (23:34): First Party ID cookie on, name `airlock064_fpid`. Fixed 10 min wait (`s9-06`, scenario `fpid`). The cookie is host-only on the page origin and the interact call goes to `adobedc.demdex.net`, so the FPID never reached the Edge: DS-29 was not exercised (no first-party CNAME). The response was not compared like for like with S9-05 (different scenario).
 - S9-07, S9-08: skipped. The owner has no second Target environment, report suite, namespace, AEP dataset/schema or Event Forwarding property, and the OAuth credential cannot create them. Rows stay unverified.
-- S9-11 (about 23:52, combined): Analytics and Target third-party namespaces set to `airlock064ns`; all Geo, Network and Device boxes on; IP obfuscation strongest; bot rule `referer` contains `referrer.example` (the UI offers no custom header). Overrides lists, Data Prep and Event Forwarding were not flipped. Waited 12 min; recorded with `--variant referrer` (`s9-11`).
+- S9-11 (about 23:52, combined): Analytics and Target third-party namespaces set to `airlock064ns`; all Geo, Network and Device boxes on; IP obfuscation strongest; bot rule `referer` contains `referrer.example` (the UI offers no custom header). The Edge request's `referer` header is the page URL; `referrer.example` is only in `xdm.web.webReferrer`, so the bot rule probably never fired. Overrides lists, Data Prep and Event Forwarding were not flipped. Waited 12 min; recorded with `--variant referrer` (`s9-11`).
 - S9-10 (00:07, 11-20): Target service off. The decisions handle vanished after about 61 s (`s9-10`).
 - S9-09 (00:09): Analytics service off. Fixed 10 min wait (`s9-09`).
 - S9-12 (00:20): Access Type "Authenticated only". Waited 10 min. The unauthenticated sendEvent failed as expected (`s9-12`).
 - Attempt count: 42 after S9-12 (corrected after the Phase B check). Earlier notes calling S12 the "31st attempt" are off by one; the running total after S12 was 32.
 - Datastream was NOT yet restored at this point; restore follows.
 - Restore (02:11 on 11-20): the owner restored every datastream setting to the baseline; the Target activity stays active to 2026-11-30 (owner choice). Waited 10 min, recorded `restore-s1` (attempt 43 of 60: 42 fixtures plus one Phase A re-record). Its response handles match `s1-base` (identity, personalization decisions, locationHint, state:store).
-- Phase B totals: 43 attempts of 60 (the earlier 42 undercounted by one). Phase B stops here; day 2 (S11, S13) is next. The servo quality-gate ran for Phase A (composite 1.0) and for Phase B (see commit).
+- Phase B totals: 43 attempts of 60 (42 after S9-12 plus the restore). Phase B stops here; day 2 (S11, S13) is next. The servo quality-gate ran for Phase A (composite 1.0) and for Phase B (see commit).
 - Unexpected, for the record: activities 3258675 and 3711334 could not be located from this login; the readiness activity needed its end date extended through the Admin API (OAuth server-to-server credential, owner-directed); S9-03 restored only Target because Audience Manager was never on the datastream.
 
 ## Phase C notes: day 2 (2026-11-20) and freeze
 
-- **S11** (owner chose to run day 2 now; UTC 2026-11-20, about 10 h after the Phase A S1/S3): `s11-s1` and `s11-s3`, each with a `capture.note` saying so. Compared with `s1-base` and `s3-base` (request, response body, response headers): only per-run values differ (page URL run id, timestamps and local time, request id, `x-request-id`, `date`, generated ECID and `demdex` cookie, the identity cookie payload). No drift in status, handle types, cluster (OR2) or location hint.
+- **S11** (owner chose to run day 2 now; UTC 2026-11-20, about 22 h after the Phase A S1/S3 at about 16:25Z on 11-19): `s11-s1` and `s11-s3`, each with a `capture.note` saying so. Compared with `s1-base` and `s3-base` (request, response body, response headers): only per-run values differ (page URL run id, timestamps and local time, request id, `x-request-id`, `date`, generated ECID and `demdex` cookie, the identity cookie payload). No drift in status, handle types, cluster (OR2) or location hint.
 - **S13** (egress): the owner's VPN was already on (Basel, CH) when I first recorded, which I caught from a neutral IP check (CH, Basel-City). That run is kept as `s13-vpn-ch` (egress `non-eea`, exit `vpn-ch-basel`; CH is not in the EEA; the manifest region field only allows `eea|non-eea`). With the VPN off a neutral check showed US, California; `s13-default` (exit `default-us-ca`) was recorded then. The first default attempt reused the profile directory of the earlier run, so it carried state (7 requests); it was discarded and re-recorded with a fresh profile (the driver does not detect a reused profile dir as returning; finding for tooling). Neutral probe, both egresses: Edge `locationHint` `or2:1800`, `x-adobe-edge: OR2;9`. Response fields compared: no differences except per-run values. Nothing for the chamber to handle; no stop. The owner turned the VPN off afterwards. No VPN credentials were seen or stored.
 - **Counts**: 46 fixtures against AC5's 48 (48 minus S9-07 and S9-08, which were skipped per spec). Attempts: 48 of the kill-criterion-4 limit of 60 (43 after Phase B, S11 x2, S13 x3 including the mislabelled and the stale-profile runs).
-- **Finding for 064-17 and 064-18:** the first Edge call goes to `adobedc.demdex.net/ee/v1/interact` and later calls (with state) go to `edge.adobedc.net/ee/<cluster>/v1/...`. A returning profile used `edge.adobedc.net` only. The chamber must handle both hosts; the Analytics receipt is not wire-visible.
+- **Finding for 064-17 and 064-18:** in the library-direct scenarios the first Edge call goes to `adobedc.demdex.net/ee/v1/interact` and later calls (with state) go to `edge.adobedc.net/ee/<cluster>/v1/...`. A returning profile used `edge.adobedc.net` only. The aem-martech scenario (`s10-base`) uses `edge.adobedc.net` from its first call. The chamber must handle both hosts; the Analytics receipt is not wire-visible.
 
 ### Freeze note: live-only rows and gaps
 
 - S9-07 and S9-08 unverified: no owner test values (second Target environment, report suite, namespace, AEP dataset and schema, Event Forwarding property). Rows stay "no effect (C)" unverified.
-- S9-11 partial: no overrides lists, Data Prep or Event Forwarding flips; the bot rule used `referer` because the UI has no custom header.
+- S9-11 partial: no overrides lists, Data Prep or Event Forwarding flips; the bot rule used `referer` because the UI has no custom header and probably never fired.
 - DS-34 and Data Prep not read.
 - The Analytics receipt is not wire-visible; only Edge responses are recorded.
 - Target activities 3258675 and 3711334 are not visible from the owner's login (their `__view__` decisions appear while the property is on).
@@ -117,3 +116,7 @@ Phase A passed the servo quality-gate (composite 1.0) before its push.
 - S9-03 restored Target only, because Audience Manager was never on the datastream.
 - S13 result: no response-field differences between the US default and CH VPN exits.
 - S13 caveat (owner): the egress comparison was recorded with the datastream at baseline (IP obfuscation None, Geo/Network/Device lookups off). If the IP-related datastream settings are re-added, the egress result might change; it is not verified for that configuration (S9-11 did not vary egress).
+- S9-06 / DS-29: first-party ID never reached the Edge; row stays unverified (needs a first-party CNAME edge domain).
+- Browser scope out-list (Firefox, Safari, mobile) and the other live-only rows stay as in spec 4.9 and 4.10.
+- S7 manifests (`s7-base`, `s7-repeat`) record the post-`pushState` URL (`/?spa-view=2`), not the load URL; the load URL is the capture URL with state S7.
+- Review (reviews/slice-04-*.md): fixed K1 (the withheld-ID scrub now fails closed and has a test), K2 (a fresh profile dir must be empty), the S12 header claim, S9-06/S9-11 claims, counts, S11 interval. Left non-blocking: K3-K8 (driver defaults, step handling, storage snapshot scope, S10 URL prefix, S12 converter script not committed, no driver test).

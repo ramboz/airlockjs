@@ -73,7 +73,7 @@
     "poc_commit": "27054432f4f3248ddb6d24cf44b0bab54bf08023",
     "source_fixture": null,
     "rerecord": null,
-    "note": "S11 day 2: UTC 2026-11-20, owner-chosen, about 10 h after the Phase A S1/S3 recordings (2026-11-19T16:2x Z); repeat of S1",
+    "note": "S11 day 2: UTC 2026-11-20, owner-chosen, about 22 h after the Phase A S1/S3 recordings (2026-11-19T16:2x Z); repeat of S1",
     "owner_change": null,
     "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
     "alloy_loads": [

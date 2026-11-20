@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { chromium } from "playwright";
 import { randomBytes } from "node:crypto";
-import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
+import { readFileSync, mkdirSync, writeFileSync, existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { attachCaptureRecorder, AlloyPinError } from "./capture-recorder.mjs";
 import { buildManifest, finishFixture } from "./capture-fixture.mjs";
@@ -137,7 +137,7 @@ const args = (() => {
 })();
 
 function withheld() {
-  try { return JSON.parse(readFileSync(process.env.AIRLOCK_PRIVATE_IDS, "utf8")); } catch { return {}; }
+  return JSON.parse(readFileSync(process.env.AIRLOCK_PRIVATE_IDS ?? "", "utf8"));
 }
 
 async function main() {
@@ -148,7 +148,9 @@ async function main() {
   const settings = { ...BASE, referrer: null, ...(args.variant ? VARIANTS[args.variant] : {}) };
   const returning = Boolean(args.source);
   const dir = join(PROFILES, returning ? args.source : id);
+  if (!returning && existsSync(dir) && readdirSync(dir).length) throw new Error(`fresh profile dir is not empty: ${dir}`);
   mkdirSync(dir, { recursive: true });
+  withheld();
   const run = randomBytes(16).toString("hex");
   const url = stock
     ? `${ORIGIN}/?airlock-stock=v1&case=no-offer&run=airlock05102-${run}&consent=decline&google-ads=off&meta-pixel=off`

@@ -87,6 +87,7 @@ describe("capture fixture", () => {
     expect(done.text).not.toContain("SECRETSUITE-1");
     expect(() => finishFixture({ manifest, capture: {}, requests: [{ h: { authorization: "Bearer abcdefghijkl" } }], withheld }))
       .toThrow(/credential_findings/);
+    expect(() => finishFixture({ manifest, capture: {}, requests: [], withheld: {} })).toThrow(/withheld_ids_missing/);
     const bad = structuredClone(manifest);
     delete bad.input_state.mode;
     expect(() => finishFixture({ manifest: bad, capture: {}, requests: [], withheld })).toThrow(/manifest_invalid/);

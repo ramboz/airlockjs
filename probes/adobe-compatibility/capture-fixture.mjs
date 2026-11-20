@@ -57,6 +57,9 @@ export function buildManifest({ capturedAt, input, alloySha256, before, after })
 
 // Returns { text } or throws with stable codes only, never a secret value.
 export function finishFixture({ manifest, capture, requests, withheld }) {
+  for (const key of Object.keys(LABELS)) {
+    if (typeof withheld?.[key] !== "string" || !withheld[key]) throw new Error(`withheld_ids_missing: ${key}`);
+  }
   const fixture = { schema: SCHEMA, manifest, capture, requests };
   const { text, counts } = scrubText(`${JSON.stringify(fixture, null, 2)}\n`, withheld);
   const parsed = JSON.parse(text);
