@@ -1,16 +1,16 @@
 ---
-status: DRAFT
+status: READY_FOR_IMPLEMENTATION
 dependencies: [064-19, 064-20]
 last_verified:
 ---
 
 ## Slice 064-26 — H1: Host command entry
 
-**Goal:** A site can call `getIdentity`, `appendIdentityToUrl`, `applyResponse`, `getLibraryInfo` and `createEventMergeId` from the `bootAlloy` handle through one allowlisted, promise-returning method, and each result matches pinned stock Alloy 2.31.1. Contract: [ADR-0063](../../decisions/adr-0063-host-command-entry.md). This slice stays DRAFT until that ADR is accepted.
+**Goal:** A site can call `getIdentity`, `appendIdentityToUrl`, `applyResponse`, `getLibraryInfo` and `createEventMergeId` from the `bootAlloy` handle through one allowlisted, promise-returning method, and each result matches pinned stock Alloy 2.31.1. Contract: [ADR-0063](../../decisions/adr-0063-host-command-entry.md). The ADR is Accepted (2026-11-20) with the five commands; `evaluateRulesets` stays out.
 
 **DoR:**
 - ✅ B3 (064-19) and B4 (064-20) done.
-- ADR-0063 Accepted, with the owner's answer on `evaluateRulesets` recorded. If it joins the allowlist, add it to AC1 and AC8 before building.
+- ✅ ADR-0063 Accepted; the owner left `evaluateRulesets` out.
 
 **Acceptance Criteria:**
 

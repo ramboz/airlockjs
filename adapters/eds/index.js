@@ -49,6 +49,7 @@ import { getCookieValue } from "../../core/cookie-parse.js";
 import { htmlOfDecision } from "../../connectors/alloy/decisions.js";
 import { createPropositionExposureReporter, PROPOSITION_EXPOSURE_EVENT } from "./decisions-exposure.js";
 import { VIEW_SCOPE, firstDuplicateScope } from "./placements.js";
+import { createHostCommandEntry } from "./host-command.js";
 import { createPropositionRenderer, displayNotificationXdm, interactNotificationXdm, applyPrehidingStyle } from "./personalization-render.js";
 import { installLinkClickCollection } from "./link-click.js";
 import { sourceGa4Ctx, writeGa4SessionState } from "../../connectors/ga4/cookies.js";
@@ -1680,7 +1681,7 @@ function probeApexDomain(granted) {
  * @param {(propositions: object[]) => void} [opts.onDecisions] 064-20: sink called with the propositions
  *                                         the chamber delivered through the `decisions` capability, before
  *                                         any rendering (`renderDecisions:false` skips only the renderer). Data only; a throw is diagnosed (`sink-threw`).
- * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function }>}
+ * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function, command: Function }>}
  */
 export async function bootAlloy(opts = {}) {
   const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, consent, consentHold, minimalXdm, payloadDenylist, payloadDenylistOverride, cookieGrantNarrowing, storageGrantNarrowing, workerUrl, reservedPlacements, compositeEmit, edgeDomain } = opts;
@@ -1805,6 +1806,7 @@ export async function bootAlloy(opts = {}) {
   // 064-20 (B4): the host-side personalization surface. Rendering, prehiding and click collection run on
   // the main thread (ADR-0014); every notification they produce goes through the same mediated `enqueue`.
   const renderer = createPropositionRenderer({ diagnose });
+  const commands = createHostCommandEntry({ worker, renderer });
   const rulesetSubscribers = new Set();
   let pendingDelivery = Promise.resolve();
   let notifyDisplayed = () => {};
@@ -2027,6 +2029,16 @@ export async function bootAlloy(opts = {}) {
       const out = await renderer.render(propositions, { metadata });
       return { propositions: out.propositions };
     },
+    /**
+     * 064-26 (ADR-0063): the host command entry. Runs one of `getIdentity`, `appendIdentityToUrl`, `applyResponse`,
+     * `getLibraryInfo`, `createEventMergeId` in the Alloy chamber and resolves with the stock result (plain data).
+     * Options must be plain data (no functions). Any other name rejects with a plain Error. `applyResponse` renders
+     * its propositions on the main thread only when called with `renderDecisions: true`, as stock.
+     * @param {string} name
+     * @param {object} [options]
+     * @returns {Promise<unknown>}
+     */
+    command: (name, options) => commands.command(name, options),
     /** 064-20 M3: ruleset items arrive as data through `decisions`; returns the unsubscribe. */
     subscribeRulesetItems: ({ surfaces, schemas, callback } = {}) => {
       if (typeof callback !== "function") throw new Error("airlock bootAlloy: subscribeRulesetItems needs a callback function");
@@ -2060,6 +2072,7 @@ export async function bootAlloy(opts = {}) {
     dispose: () => {
       if (disposed) return; // idempotent (021-01 AC1)
       disposed = true;
+      commands.dispose();
       host.dispose(); // parked consent holds have no later decision to flush to (068-01)
       uninstallClicks();
       endPrehiding();

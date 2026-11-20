@@ -112,6 +112,11 @@ jobs:
         env:
           AIRLOCK_REAL_CHROMIUM: "1"
 
+      - name: GATING — 064-26 H1 host command entry (real Chromium, pinned Alloy 2.31.1)
+        run: npx vitest run test/adobe-h1-host-command.test.js
+        env:
+          AIRLOCK_REAL_CHROMIUM: "1"
+
       - name: GATING — 064-20 B4 personalization, prehiding, redirects, click collection (real Chromium, pinned Alloy 2.31.1)
         # S4/S7 through the production path plus stock-vs-airlock differentials for rendering and click collection.
         run: npx vitest run test/adobe-b4-personalization.test.js

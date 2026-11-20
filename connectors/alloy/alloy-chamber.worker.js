@@ -77,6 +77,7 @@ import { createSyncCookieCache } from "./sync-cookie-cache.js";
 import { applyEgressConfinement } from "../../core/egress-confinement.js";
 import { shapeAlloyBoot } from "./consent.js";
 import { createSyncStorage } from "./sync-storage.js";
+import { COMMAND_MESSAGE, COMMAND_RESULT_MESSAGE, errorEnvelope, isAllowedCommand, plainDataProblem, refusalMessage } from "./host-commands.js";
 
 const summary = {
   booted: false,
@@ -729,10 +730,30 @@ async function runEgressProbe(remoteLoaderUrl) {
   }
 }
 
+/* ---- 064-26 (ADR-0063): the host command entry. The main thread forwards one of the five
+ *      allowlisted Alloy commands; the worker re-checks the name and the data, runs it on the
+ *      stock queue function and answers with plain data or an error envelope. `applyResponse`
+ *      always runs headless: rendering is the main thread's (064-20), never this worker's. ---- */
+async function runHostCommand(m) {
+  const reply = (payload) => self.postMessage({ type: COMMAND_RESULT_MESSAGE, id: m.id, ...payload });
+  try {
+    if (!isAllowedCommand(m.command)) throw new Error(refusalMessage(m.command));
+    const problem = plainDataProblem(m.options);
+    if (problem) throw new Error("airlock command: " + problem);
+    if (typeof self.alloy !== "function") throw new Error("airlock command: the chamber is not ready");
+    const options = m.command === "applyResponse" ? { ...(m.options || {}), renderDecisions: false } : (m.options || {});
+    const result = await self.alloy(m.command, options);
+    reply({ result: result === undefined ? undefined : JSON.parse(JSON.stringify(result)) });
+  } catch (error) {
+    reply({ error: errorEnvelope(error) });
+  }
+}
+
 self.onmessage = (e) => {
   const m = e.data || {};
   if (m.type === "init") return void boot(m);
   if (m.type === "event") return void drive(m.event);
+  if (m.type === COMMAND_MESSAGE) return void runHostCommand(m);
   // 067-08: the main thread's stock-context channel (067-07) -> the page shim.
   if (m.type === "stock-context") return void (stockStore.accept(m) && applyStockContext());
   // 045-02 (ADR-0023): a mid-session consent update — drive alloy's OWN setConsent

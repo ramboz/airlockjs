@@ -1,5 +1,5 @@
 ---
-status: Proposed
+status: Accepted
 dependencies: [ADR-0060, ADR-0061, ADR-0062, 064-19, 064-20]
 last_verified:
 frame_review: true
@@ -9,9 +9,9 @@ frame_review: true
 
 ## Status
 
-Proposed (2026-11-20). Not accepted until the owner answers the allowlist question under "Owner question".
+Accepted (2026-11-20). The owner answered the allowlist question: "Yes, accept with the five commands, leave evaluateRulesets out (Recommended)". `evaluateRulesets` stays out and rig-reachable only.
 
-The owner approved writing this ADR and slice 064-26 before 064-21 starts ("Yes, add a command entry (ADR + slice) before 064-21 (Recommended)", 2026-11-20). That is a go-ahead to propose, not acceptance of the contract below.
+The owner had approved writing this ADR and slice 064-26 before 064-21 starts ("Yes, add a command entry (ADR + slice) before 064-21 (Recommended)", 2026-11-20).
 
 ## Summary
 
@@ -92,10 +92,6 @@ Adopt Option A with the single-method entry. The mechanics:
 - A seal rejection cannot be carried back as a plain `Error` without turning into a `TypeError` somewhere on the path.
 - The comparison shows a default site gets a different result than stock for a reason other than the ADR-0062 hold and the differences listed in point 3.
 
-## Owner question
+## Owner answer (2026-11-20)
 
-Two things need the owner. This ADR adds a new, permanent public method on the handle (the ADR-0060 open question about a new public API), so accepting it accepts that. The single choice is below.
-
-Does `evaluateRulesets` join the allowlist?
-- **Recommended: no.** Keep the five. Reason: it triggers delivery and rendering of results, there is no cited site flow that needs it, and adding it later costs one list entry plus one criterion.
-- If yes: the slice adds it as a sixth command with its own comparison, and 064-20's rig-only note for it is closed by the same slice.
+Question: does `evaluateRulesets` join the allowlist? Recommended: no. Owner: "Yes, accept with the five commands, leave evaluateRulesets out (Recommended)". Adding it later is one allowlist entry plus one criterion, with its own comparison.
