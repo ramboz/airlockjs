@@ -48,9 +48,9 @@ Read from the Alloy 2.31.1 source and checked against the pinned bundle: **17 co
 | 7 | `getLibraryInfo` | LibraryInfo | worker-native | B3 | Version string equals 2.31.1. S1 calls it as the self-enumeration check |
 | 8 | `setConsent` | Consent | mediated | B3 | Endpoint `privacy/set-consent` (`Consent/createConsentRequest.js:20`) |
 | 9 | `createEventMergeId` | EventMerge | worker-native | B3 | uuid (`EventMerge/createEventMergeId.js:17`) |
-| 10 | `applyPropositions` | Personalization | host-side | B4 | DOM rendering |
-| 11 | `evaluateRulesets` | RulesEngine | worker-native | B4 | Reads non-standard window props (see 2.2) |
-| 12 | `subscribeRulesetItems` | RulesEngine | worker-native | B4 | Function-valued `callback` (B3 decides) |
+| 10 | `applyPropositions` | Personalization | host-side | B4 | DOM rendering. Built in 064-20 (differential vs stock); not full parity, gaps 064-23/24/25 |
+| 11 | `evaluateRulesets` | RulesEngine | worker-native | B4 | Reads non-standard window props (see 2.2). 064-20: runs in the chamber, rig-reachable only (H1, 064-26) |
+| 12 | `subscribeRulesetItems` | RulesEngine | worker-native | B4 | Function-valued `callback` (B3 decides). 064-20: mediated as data, built |
 | 13 | `createMediaSession` | StreamingMedia | incompatible until proven | B6 | Function-valued `getPlayerDetails` |
 | 14 | `sendMediaEvent` | StreamingMedia | incompatible until proven | B6 | |
 | 15 | `getMediaAnalyticsTracker` | MediaAnalyticsBridge | incompatible until proven | B6 | |
@@ -60,6 +60,8 @@ Read from the Alloy 2.31.1 source and checked against the pinned bundle: **17 co
 The 6 function-valued options (`onBeforeEventSend`, `clickCollection.filterClickProperties`, `onBeforeLinkClickSend`, `subscribeRulesetItems.callback`, `createMediaSession.getPlayerDetails`, `sendConversationEvent.onStreamResponse`) are decided inside B3, not here. Note: the `onBeforeLinkClickSend` deprecation message names `filterClickDetails`, but the validator key is `filterClickProperties`. We use the validator key.
 
 **Decided in 064-19 (2026-11-20):** `onBeforeEventSend`, `filterClickProperties`, `onBeforeLinkClickSend`, `createMediaSession.getPlayerDetails` and `sendConversationEvent.onStreamResponse` are **incompatible as functions** (they cannot cross the airlock and the chamber has no site code or DOM); each has a data-form equivalent on the main thread, see the slice 064-19 notes. `subscribeRulesetItems.callback` is **mediated as data** (results delivered through the `decisions` capability, no function). 064-20 and 064-22 cite that table.
+
+**Amendment (064-20, 2026-11-20):** B4 built rendering, prehiding, link-click collection and ruleset data delivery, proven by differentials against stock Alloy 2.31.1, but the s2.2 Personalization and SPA-view Lifecycle rows are **not parity**: SPA view cache and first-event-only `decisionScopes` -> 064-23, redirect display notification -> 064-24, interact notification shape -> 064-25. 064-15 must not report these rows as parity until those slices are DONE.
 
 **Amendment (064-19, 2026-11-20):** rows 3, 5 and 8 run in the chamber (worker-native) with egress still mediated by the seal; row 12 `subscribeRulesetItems` is `mediated as data` (callback). Rows 4 to 7 and 9 are reachable only through the rig today: the `bootAlloy` handle has no command entry point (owner decision, see the slice notes).
 
@@ -74,8 +76,8 @@ The 6 function-valued options (`onBeforeEventSend`, `clickCollection.filterClick
 | Identity | ECID mint, `identityMap`, CORE namespace, `idMigrationEnabled`, third-party ID sync, `?adobe_mc` | mixed | B3 |
 | Consent | `defaultConsent`, `in`/`out`/`pending`, IAB TCF 2.0 and `adobe`/`gpc` standards. Airlock's hold is a deliberate exception (D8); fixtures supply the recorded consent state | mediated | B3 |
 | Context | `context` option. Default is stock `[web, device, environment, placeContext]` (D8), fed by real host values. The shim values (`airlock.example`, 1280x800, `en-US`) go away. A reduced `context` is a site opt-in. Mediated, shim-fed today, not worker-native. RulesEngine reads `window.title/url/referrer/height/width`, which are undefined on a real Window, so the shim must not define them | mediated | B1 |
-| Personalization | Proposition types: HTML content, JSON content, DOM action set, redirect, rule set, Target activity. Rendering, `renderDecisions`, `prehidingStyle`, click and display notifications | host-side | B4 |
-| Lifecycle | Page view, SPA view change (`viewStart`), link-click collection (capture-phase document listener) | mixed | B3, B4 |
+| Personalization | Proposition types: HTML content, JSON content, DOM action set, redirect, rule set, Target activity. Rendering, `renderDecisions`, `prehidingStyle`, click and display notifications | host-side | B4 (built in 064-20 with gaps: SPA view cache 064-23, redirect display 064-24, interact shape 064-25; not parity until those land) |
+| Lifecycle | Page view, SPA view change (`viewStart`), link-click collection (capture-phase document listener) | mixed | B3, B4 (link-click built in 064-20; SPA view cache 064-23) |
 | Errors | Failed network, non-200, malformed response, consent pending queue | worker-native | B2, B3 |
 | Launch and `aem-martech` | `aem-martech` plugin API, ACDL 3.0.1 data-layer events, Launch extension bridge | host-side | B5 |
 | Components outside the default surface | Audiences (activation pixels), Advertising (iframe, `message` listener, ID5 script), ActivityCollector config, BrandConcierge (streaming fetch, `bc_session_id` cookie), Media, Push | live-only or incompatible, decided in B6 | B6 |
@@ -438,7 +440,7 @@ History is kept. Each spec gets a dated rescope note and its slices get new stat
 
 Counting rule: T2 and B0 are pre-capture preparation tasks with their own completion checks (no fixture comparison, because the corpus does not exist yet, per ADR-0061 point 7). CAP is the capture session. B1 to B8 are slices, ordered by bridge surface. T2 is read-only (public docs, source, owned datastream export) and may start before D1. B0 writes tooling only. CAP and anything after it wait for D1 (approved). T1 was dropped on 2026-11-13: the command list is closed from source, and its docs reconcile moved to T2. Each slice is sized for one fresh session and ends with a recorded-fixture comparison through real chamber dispatch (ADR-0061 point 1).
 
-Slice files in this directory: T2 = 064-02, B0 = 064-03, CAP = 064-04, B1 to B6 = 064-17 to 064-22, B7 = 064-15, B8 = 064-16. Abandoned on 2026-11-13: 064-01 (T1) and 064-05 to 064-14 (the old B1 to B10), each with a note naming its replacement. Spec numbers 067+ were not used.
+Slice files in this directory: T2 = 064-02, B0 = 064-03, CAP = 064-04, B1 to B6 = 064-17 to 064-22, B7 = 064-15, B8 = 064-16, B4 follow-ups = 064-23 (SPA view cache), 064-24 (redirect display), 064-25 (interact parity). 064-26 and 064-27 are reserved for the host command entry and the storage grant. Abandoned on 2026-11-13: 064-01 (T1) and 064-05 to 064-14 (the old B1 to B10), each with a note naming its replacement. Spec numbers 067+ were not used.
 
 | Slice | Goal | Depends on |
 |---|---|---|
@@ -537,7 +539,7 @@ Review rounds are capped at three before owner review (owner decision). Findings
 - Anything still open after round 3 goes to the pilot as a listed check.
 - Slice 064-18 (B2) review: one Opus 5.5 pass, 2 rounds (reviews/slice-18-*.md). Round 1: pass, 0 blocking, 3 to 6 non-blocking per pass; the medium findings (keepalive in-flight quota, seal holds throwing `TypeError`, S6 `s6-out` coverage) fixed in round 2. B2 changed three "today" facts in the frozen s2.2 Transport row (the fetch init is no longer dropped, `sendBeacon` is bridged through the seal, element loads are tagged, not inert); the table is left as frozen. The first-party CNAME edge domain stays the existing CAP freeze gap (DS-29, S9-06, an unverified row): B2 tests it synthetically (`edgeDomain` option, pinned host), and it is not re-captured without the owner. It is not a new open question.
 - Slice 064-19 (B3) review: one Opus 5.5 pass, 1 round (reviews/slice-19-*.md). Round 1: compliance and reconciliation changes-requested, craft pass. Fixed the low findings; the host command surface (H1), `s6-out` opt-out, 067-03 flush, `subscribeRulesetItems`, S4 production-path replay are carried in the slice notes and `docs/refinement-todo.md`.
-- Slice 064-20 (B4): personalization rendering, prehiding, redirects, click collection and `subscribeRulesetItems` (M3, mediated as data, built) on the main thread; S4 compares clean on the production path, S7 with documented deltas; synthetic stock-vs-airlock differentials cover what the corpus lacks; 0 extra captures; storage grant not needed. Opus 5.5 review: round 1 changes-requested, round 2 pass (reviews/slice-20-*; mediums fixed or carried, see slice notes).
+- Slice 064-20 (B4): personalization rendering, prehiding, redirects, click collection and `subscribeRulesetItems` (M3, mediated as data, built) on the main thread; S4 compares clean on the production path, S7 only with filters carried to 064-23; ACs reworded on 2026-11-20 to what is met, each with an `except -> 064-NN` (064-23/24/25 added); synthetic stock-vs-airlock differentials cover what the corpus lacks; 0 extra captures; storage grant not needed. Opus 5.5 review: round 1 changes-requested, round 2 pass (reviews/slice-20-*; mediums fixed or carried, see slice notes).
 - Pilot count of extra captures: **0** (B1, 064-17, 2026-11-20). S1 with its variants, S2 and S5 replay clean from the frozen corpus alone; the kill criterion (more than 3) is not triggered. See section 4.11.
 
 ## 13. Clarifications

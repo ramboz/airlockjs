@@ -1494,10 +1494,6 @@ function deriveDecisionScopes(placements, reserved) {
  *   it, not the mutable `window.airlock` global (fixing the reachable re-boot misroute). Absent
  *   on a standalone bootAlloy (never wired into a composite) -> the exposure is dropped+diagnosed.
  */
-/**
- * `bootAlloy` options used here: `renderDecisions` (default true; `false` sends propositions only to
- * `onDecisions`, nothing is rendered or displayed) and `onDecisions(propositions)` (sink for delivered propositions).
- */
 function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer, personalization, renderDecisions = true }) {
   const exposureReporter = createPropositionExposureReporter(
     {
@@ -1670,6 +1666,18 @@ function probeApexDomain(granted) {
  * @param {(record: object) => void} [opts.onDiagnostic] spec 033-03: intercept the DECISIONS
  *                                         diagnostics (dropped decision / exposure); default a
  *                                         console-backed sink.
+ * @param {boolean}  [opts.renderDecisions] 064-20: render delivered propositions on the main thread and
+ *                                         send their display notification. Default `true`, which matches the
+ *                                         recorded corpus (the stock rig that replays S4/S7 sends `renderDecisions:true`)
+ *                                         and a site that declares `placements`/`reservedPlacements` and expects
+ *                                         Airlock to fill them. It differs from Alloy's per-call default of
+ *                                         `false`: a stock-style headless site sets `false`, receives the
+ *                                         propositions through `onDecisions` and renders with `applyPropositions`,
+ *                                         so nothing renders or is displayed twice. The connector itself always
+ *                                         sends `renderDecisions:false` to the chamber; rendering is host-side.
+ * @param {(propositions: object[]) => void} [opts.onDecisions] 064-20: sink called with the propositions
+ *                                         the chamber delivered through the `decisions` capability, before
+ *                                         any rendering. Data only; a throw is diagnosed (`sink-threw`).
  * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function }>}
  */
 export async function bootAlloy(opts = {}) {

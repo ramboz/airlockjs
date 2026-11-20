@@ -13,9 +13,9 @@ last_verified: 2026-11-20
 
 **Acceptance Criteria:**
 
-1. `applyPropositions`, `renderDecisions`, prehiding and redirect proposition items behave as recorded.
-2. Click collection and display or click notifications compare clean.
-3. Fixtures S4 and S7 compare clean.
+1. `applyPropositions`, `renderDecisions`, prehiding and the HTML content, JSON content, DOM action and rule set proposition items behave as stock Alloy 2.31.1 (differential tests); redirect items navigate with `location.replace`, except the redirect display notification -> 064-24.
+2. Link-click collection and the display notification of rendered propositions compare clean against stock, except the click interact notification shape (merged interact, `viewName`, `trackingLabel` tokens, AJO auto-collect) -> 064-25 and the redirect display notification -> 064-24.
+3. Fixture S4 compares clean on the production path. S7 compares with the documented filters, except the SPA view cache and first-event-only `decisionScopes` (one extra POST and three filters) -> 064-23.
 
 **DoD:**
 - `npm test && npm run lint` and servo gate pass.
@@ -39,13 +39,13 @@ last_verified: 2026-11-20
 - **Row 10 `applyPropositions`** (host-side): proven against pinned stock Alloy 2.31.1 in a real browser (same DOM result, no notification of its own). Class stays host-side.
 - **Row 11 `evaluateRulesets`** (worker-native): runs in the chamber through the rig command path; a rule set evaluated against a host-supplied `decisionContext`. Stock reads non-standard window props only for context; the chamber has no window, so context is the data the host passes. No host command entry (separate item).
 - **Row 12 `subscribeRulesetItems`** (M3 resolved): **mediated as data, built**. Items arrive at a main-thread callback via the `decisions` capability; no function crosses. The 064-19 AC2 note stands, no reclassification.
-- **s2.2 Personalization**: HTML content, JSON content, DOM action set, redirect, rule set, rendering, `renderDecisions`, `prehidingStyle`, display and click notifications each have a stock-vs-airlock differential. **Target activity** and `__view__` propositions are covered by S4/S7 as recorded.
-- **s2.2 Lifecycle (B4 half)**: link-click collection (external, download, internal), `clickCollectionEnabled:false`; request bodies equal stock's (meta stripped).
+- **s2.2 Personalization**: HTML content, JSON content, DOM action set, rule set, rendering, `renderDecisions`, `prehidingStyle` and the display notification of rendered propositions each have a stock-vs-airlock differential. The redirect item navigates (`location.replace`) but its display notification is not sent (064-24). The click interact notification is a differential on `decisioning` only; its full shape is 064-25. **Target activity** and `__view__` propositions are covered by S4/S7 as recorded, S7 with the 064-23 gaps.
+- **s2.2 Lifecycle (B4 half)**: link-click collection (external, download, internal) and `clickCollectionEnabled:false`; the link-click request bodies equal stock's (meta stripped). SPA view change is not stock-equal (064-23).
 
 ### Fixtures
 
 - **S4** (`s4-base/repeat/active-base/active-repeat`): replayed through the production path (`placements` + `reservedPlacements`, `renderDecisions:false`); both POSTs (interact with `query.personalization`, display notification listing the two `__view__` propositions) compare clean. M1 resolved.
-- **S7**: page view, manual link click, SPA view compare clean with these documented production-path deltas: the connector sends declared `decisionScopes` on every event (stock only on the first); the recorded SPA view carries Alloy's view-cache display notification in `events[0].xdm._experience.decisioning` because stock caches view-scoped propositions and re-notifies them when a push names the view; we have no view cache (carried C2, not an effect of `renderDecisions`); a 4th POST is our own display notification; first two POSTs ignore `webPageDetails.URL` (064-19 note).
+- **S7**: page view, manual link click and SPA view compare only with these filters, all carried to 064-23 and none claimed as parity: the connector sends declared `decisionScopes` on every event (stock only on the first; this is a default that differs from stock, so it is a carry, not a decision); the recorded SPA view carries Alloy's view-cache display notification in `events[0].xdm._experience.decisioning` because stock caches view-scoped propositions and re-notifies them when a push names the view; we have no view cache (carried C2, not an effect of `renderDecisions`); a 4th POST is our own display notification; first two POSTs ignore `webPageDetails.URL` (064-19 note).
 
 ### Oracle disclosure
 
@@ -55,13 +55,23 @@ The corpus has no dom-action, redirect, JSON, ruleset, `propositionInteract` or 
 
 Not needed: S4 and S7 compare clean without it. `ALLOY_STORAGE_NAMES` is untouched and the refinement-todo entry "Alloy chamber storage persistence" stays open.
 
+### Cutline (2026-11-20, coordinator)
+
+The three ACs were reworded to what is built and fully met; each ends `except <gap> -> 064-NN`. Spec 064 s2.1/s2.2 rows 10 to 12, Personalization and Lifecycle carry a B4 pointer so 064-15 cannot read them as parity. Follow-ups: **064-23** (SPA view cache, first-event-only `decisionScopes`), **064-24** (redirect display notification), **064-25** (interact notification parity). 064-26 (H1 command entry) and 064-27 (storage grant) are reserved by the coordinator.
+
+**Keepalive correction:** the earlier "needs a keepalive path through the seam" was wrong. 064-18 already routes `sendBeacon` and `init.keepalive` requests through the seal and the shared `createKeepaliveTracker` (`core/egress.js`). What is missing is the `documentUnloading` hint on the display event that `connectors/alloy/connector.js` pushes (no such option today) and the ordering before `location.replace`. That is 064-24.
+
+**`renderDecisions` default:** `bootAlloy` defaults it to `true` (documented in the `opts` JSDoc). That matches the recorded corpus, whose stock replay sends `renderDecisions:true`, and a site that declares placements and wants them filled. Alloy's per-call default is `false`; a stock-style headless site sets `false` and uses `onDecisions` plus `applyPropositions`. The connector always sends `false` to the chamber.
+
 ### Carried (owner or later slice)
 
-- **Activity-map persistence**: stock `eventGroupingEnabled` and `sessionStorageEnabled` click persistence across pages is not ported (the main-thread collector keeps only the last page name in memory). Parity gap, carry to the host-command/storage item.
+- **064-23, 064-24, 064-25** own C2 (SPA view cache, with first-event-only `decisionScopes`), C3 (redirect display) and C5 (interact shape). The three bullets below name the gaps; the slices are the owners.
+
+- **Activity-map persistence** (goes with the storage-grant slice 064-27): stock `eventGroupingEnabled` and `sessionStorageEnabled` click persistence across pages is not ported (the main-thread collector keeps only the last page name in memory). Parity gap, carry to the host-command/storage item.
 - **Two linkClicks POSTs in the replay** were the rig booting airlock (click collection on) on the stock page too. The stock arm now boots with `clickCollectionEnabled:false`; the test asserts exactly one stock POST and compares full bodies.
-- **SPA view cache (C2)**: stock caches view-scoped propositions and renders/notifies on a push naming the view. Not built; needs its own design. Source of the S7 SPA-view display delta.
-- **Redirect display notification (C3)**: stock sends it with keepalive/`documentMayUnload`; we send none for redirects. Needs a keepalive path through the seam.
-- **Interact notification shape (C5)**: stock merges `propositionInteract` into the click event, sends `viewName`, reads `trackingLabel` from item characteristics, and has AJO auto-collect. Ours sends a separate event, uses `data-aep-click-label`, no AJO auto-collect. Compared on `decisioning` only.
+- **SPA view cache (C2)**: stock caches view-scoped propositions and renders/notifies on a push naming the view. Not built -> 064-23. Source of the S7 SPA-view display delta.
+- **Redirect display notification (C3)**: stock sends it with keepalive/`documentMayUnload`; we send none for redirects. The seam keepalive path exists (see Cutline) -> 064-24.
+- **Interact notification shape (C5)**: stock merges `propositionInteract` into the click event, sends `viewName`, reads `trackingLabel` from item characteristics, and has AJO auto-collect. Ours sends a separate event, uses `data-aep-click-label`, no AJO auto-collect. Compared on `decisioning` only -> 064-25.
 - **Trusted Types** for the template write is not addressed (per-item isolation only).
 - **Low carries**: K5 prehide selector injection/nonce/consent-out, K6 dedup attribute, K7 one observer per item, K10 remote fetches from rendered content sit outside the seal.
 - **`customCode` and script re-execution**: incompatible by design (no raw JS from a payload).

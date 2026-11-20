@@ -1420,9 +1420,9 @@ Owner decision 2026-11-20 ("Forward the opt-out only, via a narrow seam exemptio
 
 ## Personalization follow-ups (064-20, 2026-11-20)
 
-- **SPA view cache (open).** Stock caches view-scoped propositions and renders/notifies on a push naming the view; the main-thread renderer has no cache. Needs its own design.
-- **Redirect display notification (open).** Stock sends it with keepalive/`documentMayUnload`; a keepalive path through the seam is needed.
-- **Interact notification parity (open).** Merged interact-in-click event, `viewName`, `trackingLabel` tokens, AJO auto-collect.
+- **SPA view cache (open) -> slice 064-23**, with first-event-only `decisionScopes`.
+- **Redirect display notification (open) -> slice 064-24.** The seam keepalive path exists (064-18); the missing piece is the `documentUnloading` hint and the ordering before `location.replace`.
+- **Interact notification parity (open) -> slice 064-25.** Merged interact-in-click event, `viewName`, `trackingLabel` tokens, AJO auto-collect.
 - **Trusted Types for rendered HTML (open).** Template write is not behind a Trusted Types policy.
 - **Low:** prehide selector injection and nonce, dedup attribute, one observer per item, remote fetches from rendered content sit outside the seal.
-- **Activity-map persistence (open, 064-20).** Stock `eventGroupingEnabled`/`sessionStorageEnabled` click persistence across pages is not ported; only the last page name is kept in memory. Belongs with the host-command/storage item.
+- **Activity-map persistence (open, 064-20).** Stock `eventGroupingEnabled`/`sessionStorageEnabled` click persistence across pages is not ported; only the last page name is kept in memory. Goes with the storage-grant slice 064-27.

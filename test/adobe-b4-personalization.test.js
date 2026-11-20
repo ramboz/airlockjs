@@ -21,7 +21,7 @@ const sortedState = (text) => {
   if (b.meta && b.meta.state && b.meta.state.entries) b.meta.state.entries = [...b.meta.state.entries].sort(byKey);
   return JSON.stringify(b);
 };
-/** The production path: `push` plus declared placements (`renderDecisions:false`), never the stock rig's `renderDecisions:true`. */
+/** The production path: `push` plus declared placements. The connector sends `renderDecisions:false` to the chamber and the host renders; the stock rig's `sendEvent({renderDecisions:true})` is not used. */
 const PRODUCTION = {
   bootOptions: { placements: [{ scope: SCOPE, selector: "#hero", minHeight: 20 }, { scope: "__view__", selector: "#v", minHeight: 0 }] },
   bodyHtml: '<div id="hero"></div><div id="v"></div>',
@@ -111,12 +111,11 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
           await page.waitForFunction(() => window.__observed.length >= 4, null, { timeout: 8000 }).catch(() => {});
         } });
         const expected = posts(r.fixture);
-        // The one deliberate production difference: the connector asks for the declared scopes on EVERY event
-        // (headless personalization), where stock sends decisionScopes on the first only. The click and the SPA view
-        // therefore differ only under query.personalization; the 4th POST is our display notification for the
-        // __view__ propositions the first answer carried. The recorded SPA view also carries Alloy's own view-cache
-        // display because stock caches view-scoped propositions; we have no view cache, so that attachment is
-        // absent (carried as C2 in the slice notes).
+        // Known deltas, all carried to 064-23 (not parity): the connector asks for the declared scopes on EVERY event
+        // (stock sends decisionScopes on the first only), so the click and the SPA view differ under
+        // query.personalization; the 4th POST is our display notification for the __view__ propositions the first
+        // answer carried; the recorded SPA view carries Alloy's view-cache display because stock caches view-scoped
+        // propositions and we have no view cache; the first two POSTs ignore webPageDetails.URL (064-19 note).
         const VIEW_DISPLAY = /^events\[0\]\.xdm\._experience\.decisioning\./;
         expect(r.observed).toHaveLength(expected.length + 1);
         const url = "events[0].xdm.web.webPageDetails.URL";
