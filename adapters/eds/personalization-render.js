@@ -41,7 +41,7 @@ function selectAll(doc, selector, root) {
     if (css) {
       const next = [];
       for (const n of nodes) {
-        const found = n === doc || n === root ? n.querySelectorAll(css) : n.querySelectorAll(css);
+        const found = n.querySelectorAll(css);
         next.push(...found);
       }
       nodes = next;
@@ -115,11 +115,15 @@ export function createPropositionRenderer(deps = {}) {
       case "prependHtml": { const first = el.firstElementChild; for (const n of fragmentNodes(content)) el.insertBefore(n, first); return true; }
       case "appendHtml": el.append(...fragmentNodes(content)); return true;
       case "insertBefore": el.before(...fragmentNodes(content)); return true;
-      case "insertAfter": { const parent = el.parentNode; if (parent) for (const n of fragmentNodes(content)) parent.insertBefore(n, el.nextElementSibling); return true; }
+      case "insertAfter": { const parent = el.parentNode; const ref = el.nextElementSibling; if (parent) for (const n of fragmentNodes(content)) parent.insertBefore(n, ref); return true; }
       case "setText": el.textContent = String(content == null ? "" : content); return true;
       case "setAttribute":
         if (isObject(content)) for (const [k, v] of Object.entries(content)) {
-          if (/^on/i.test(k) || (/^(href|src|action|formaction|xlink:href)$/i.test(k) && isDangerousUrl(v))) { warn(`setAttribute "${k}" refused by the sanitizer policy`); continue; }
+          // Executable-content vectors the sanitizer would strip from HTML are refused here too (spec 064 2.2 customCode rule).
+          const tag = String(el.tagName).toLowerCase();
+          const risky = /^on/i.test(k) || /^(srcdoc|data|http-equiv|formaction)$/i.test(k) || /^(script|iframe|object|embed|base|meta|link)$/.test(tag)
+            || (/^(href|src|action|xlink:href|poster|background|ping)$/i.test(k) && isDangerousUrl(v));
+          if (risky) { warn(`setAttribute "${k}" on <${tag}> refused by the sanitizer policy`); continue; }
           el.setAttribute(k, String(v));
         }
         return true;
@@ -189,6 +193,8 @@ export function createPropositionRenderer(deps = {}) {
 
   /** Stock `applyPropositions` metadata: an html-content item renders as a dom-action at `{ selector, actionType }`. */
   function asDomAction(item, metadata) {
+    const own = isObject(item.data) && typeof item.data.selector === "string" && typeof item.data.type === "string";
+    if (own) return { ...item, schema: SCHEMA.DOM_ACTION };
     const meta = isObject(metadata) ? metadata : null;
     if (!meta || typeof meta.selector !== "string" || typeof meta.actionType !== "string") return null;
     return { ...item, schema: SCHEMA.DOM_ACTION, data: { ...item.data, selector: meta.selector, type: meta.actionType } };
@@ -220,12 +226,16 @@ export function createPropositionRenderer(deps = {}) {
       for (const item of items) {
         const schema = item && item.schema;
         let ok = false;
-        if (schema === SCHEMA.DEFAULT) ok = true;
-        else if (schema === SCHEMA.DOM_ACTION) ok = await renderDomAction(item, proposition);
-        else if (schema === SCHEMA.HTML) {
-          const action = asDomAction(item, metadata[proposition.scope]);
-          if (action) ok = await renderDomAction(action, proposition);
-        } else if (schema === SCHEMA.REDIRECT) ok = redirect(item.data && item.data.content, proposition);
+        try {
+          if (schema === SCHEMA.DEFAULT) ok = true;
+          else if (schema === SCHEMA.DOM_ACTION) ok = await renderDomAction(item, proposition);
+          else if (schema === SCHEMA.HTML) {
+            const action = asDomAction(item, metadata[proposition.scope]);
+            if (action) ok = await renderDomAction(action, proposition);
+          } else if (schema === SCHEMA.REDIRECT) ok = redirect(item.data && item.data.content, proposition);
+        } catch (e) {
+          warn(`item ${item && item.id} failed to render: ${e && e.message}`, { scope: proposition.scope });
+        }
         if (ok) renderedItems.push(item);
       }
       const attempted = renderedItems.length > 0;
@@ -264,7 +274,7 @@ export function displayNotificationXdm(displayed) {
 export function interactNotificationXdm(metas, { label, token } = {}) {
   const propositions = metas.map(({ id, scope, scopeDetails }) => ({ id, scope, scopeDetails }));
   const decisioning = { propositions, propositionEventType: { interact: 1 } };
-  if (label || token) decisioning.propositionAction = { ...(label ? { label } : {}), ...(token ? { token } : {}) };
+  if (label || token) decisioning.propositionAction = { ...(label ? { label } : {}), ...(token ? { tokens: [token] } : {}) };
   return { eventType: "decisioning.propositionInteract", _experience: { decisioning } };
 }
 

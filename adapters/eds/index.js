@@ -1494,7 +1494,7 @@ function deriveDecisionScopes(placements, reserved) {
  *   it, not the mutable `window.airlock` global (fixing the reachable re-boot misroute). Absent
  *   on a standalone bootAlloy (never wired into a composite) -> the exposure is dropped+diagnosed.
  */
-function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer, personalization }) {
+function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer, personalization, renderDecisions = true }) {
   const exposureReporter = createPropositionExposureReporter(
     {
       // The exposure routes through the WIRED composite-emit ref (034-03 AC2/AC3) — `{ accepts,
@@ -1525,44 +1525,46 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer,
     { seen: new Set() },
   );
   const deliver = async (decisions) => {
-      const displayed = [];
-      const sink = [];
-      for (const decision of decisions || []) {
-        const scope = decision && decision.scope;
-        // 064-20 M3: ruleset items arrive as data and fan out to the site's main-thread subscribers.
-        if (decision && decision.channel === "ruleset-items") { personalization.rulesetItems(decision.content); continue; }
-        if (decision && decision.content) sink.push(decision.content);
-        const handlePromise = scope != null ? reserved[scope] : undefined;
-        if (!handlePromise || !htmlOfDecision(decision)) {
-          // 064-20: no reserved box to fill (or nothing html for it) -> the main-thread renderer
-          // (default-content, dom-action, redirect).
-          const out = await renderer.render([decision && decision.content]);
-          if (out.displayed.length) { displayed.push(...out.displayed); continue; }
-          if (handlePromise) {
-            diagnose({ level: "warn", kind: "decisions", disposition: "dropped", reason: "the decision carried no renderable html-content-item (a JSON offer / redirect)", scope });
-            continue;
-          }
-          diagnose({ level: "warn", kind: "decisions", disposition: "dropped", reason: "no reserved placement for this scope — the eager reservePersonalization was skipped/mis-wired, or the scope is unconfigured (NOT lazily reserved — that would reintroduce the flicker AC2 fixes)", scope });
-          continue;
-        }
-        let handle;
-        try {
-          handle = await handlePromise;
-        } catch (e) {
-          diagnose({ level: "warn", kind: "decisions", disposition: "dropped", reason: "the reserved placement handle rejected (selector matched nothing at reserve time) — the prehide-timeout backstop reveals the box", scope });
-          continue;
-        }
-        const html = htmlOfDecision(decision);
-        if (!html) {
+    const displayed = [];
+    const sink = [];
+    for (const decision of decisions || []) {
+      const scope = decision && decision.scope;
+      // 064-20 M3: ruleset items arrive as data and fan out to the site's main-thread subscribers.
+      if (decision && decision.channel === "ruleset-items") { personalization.rulesetItems(decision.content); continue; }
+      if (decision && decision.content) sink.push(decision.content);
+      const handlePromise = scope != null ? reserved[scope] : undefined;
+      if (!handlePromise || !htmlOfDecision(decision)) {
+        // `renderDecisions:false` (stock default): the site gets the propositions through onDecisions and renders them with applyPropositions.
+        if (renderDecisions === false) continue;
+        // 064-20: no reserved box to fill (or nothing html for it) -> the main-thread renderer
+        // (default-content, dom-action, redirect).
+        const out = await renderer.render([decision && decision.content]);
+        if (out.displayed.length) { displayed.push(...out.displayed); continue; }
+        if (handlePromise) {
           diagnose({ level: "warn", kind: "decisions", disposition: "dropped", reason: "the decision carried no renderable html-content-item (a JSON offer / redirect)", scope });
           continue;
         }
-        handle.fill(html); // the pre-reserved box, filled via the 018 sanitizer boundary (never raw)
-        exposureReporter.report(decision); // then the proposition_display exposure (AC4)
-        // A reserved-box fill keeps its own proposition_display exposure; no Edge display notification (the recorded
-        // S4 notification likewise omits the readiness proposition the airlock fills itself).
+        diagnose({ level: "warn", kind: "decisions", disposition: "dropped", reason: "no reserved placement for this scope — the eager reservePersonalization was skipped/mis-wired, or the scope is unconfigured (NOT lazily reserved — that would reintroduce the flicker AC2 fixes)", scope });
+        continue;
       }
-      personalization.decided(sink, displayed);
+      let handle;
+      try {
+        handle = await handlePromise;
+      } catch (e) {
+        diagnose({ level: "warn", kind: "decisions", disposition: "dropped", reason: "the reserved placement handle rejected (selector matched nothing at reserve time) — the prehide-timeout backstop reveals the box", scope });
+        continue;
+      }
+      const html = htmlOfDecision(decision);
+      if (!html) {
+        diagnose({ level: "warn", kind: "decisions", disposition: "dropped", reason: "the decision carried no renderable html-content-item (a JSON offer / redirect)", scope });
+        continue;
+      }
+      handle.fill(html); // the pre-reserved box, filled via the 018 sanitizer boundary (never raw)
+      exposureReporter.report(decision); // then the proposition_display exposure (AC4)
+      // A reserved-box fill keeps its own proposition_display exposure; no Edge display notification (the recorded
+      // S4 notification likewise omits the readiness proposition the airlock fills itself).
+    }
+    personalization.decided(sink, displayed);
   };
   caps.decisions = {
     deliver: (decisions) => {
@@ -1808,7 +1810,7 @@ export async function bootAlloy(opts = {}) {
       }
     },
   };
-  if (personalizationConfigured) wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer, personalization });
+  if (personalizationConfigured) wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer, personalization, renderDecisions: opts.renderDecisions });
   // Stock prehiding: hide before the request, reveal after the first response (or on failure / backstop).
   const removePrehiding = typeof document !== "undefined" ? applyPrehidingStyle(document, opts.prehidingStyle) : () => {};
   let prehidingTimer = null;

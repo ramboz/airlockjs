@@ -1417,3 +1417,11 @@ Owner decision 2026-11-20 ("Forward the opt-out only, via a narrow seam exemptio
 `bootAlloy`'s handle has no entry point for `getIdentity`, `appendIdentityToUrl`, `applyResponse`, `getLibraryInfo`, `createEventMergeId`; they work in the chamber but only the test rig can call them. A mediated, allowlisted command entry is a new capability contract. Owner decision before 064-21 claims parity.
 
 - **Alloy chamber storage persistence (open, from 064-22).** `ALLOY_STORAGE_NAMES` is `null`, so chamber storage is in-memory: the Assurance `validation.clientId` (and other stock localStorage keys) is regenerated every page load instead of reused. Trigger: Assurance or any stock localStorage key is needed across page loads; needs a storage-grant decision (B4-adjacent) before changing the allowlist.
+
+## Personalization follow-ups (064-20, 2026-11-20)
+
+- **SPA view cache (open).** Stock caches view-scoped propositions and renders/notifies on a push naming the view; the main-thread renderer has no cache. Needs its own design.
+- **Redirect display notification (open).** Stock sends it with keepalive/`documentMayUnload`; a keepalive path through the seam is needed.
+- **Interact notification parity (open).** Merged interact-in-click event, `viewName`, `trackingLabel` tokens, AJO auto-collect.
+- **Trusted Types for rendered HTML (open).** Template write is not behind a Trusted Types policy.
+- **Low:** prehide selector injection and nonce, dedup attribute, one observer per item, remote fetches from rendered content sit outside the seal.

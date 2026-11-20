@@ -1,5 +1,5 @@
 ---
-status: DONE
+status: REVIEW
 dependencies: [064-19]
 last_verified: 2026-11-20
 ---
@@ -27,9 +27,9 @@ last_verified: 2026-11-20
 
 ### What was built (all main-thread, ADR-0014; egress still mediated)
 
-- `adapters/eds/personalization-render.js`: renderer for `html-content-item`, `dom-action-item` (setHtml, setText, setAttribute, setStyle, append/prepend/insertBefore/insertAfter, replaceHtml, move, resize, rearrange, remove, click), `redirect-item` (http(s) only, `location.replace`), plus the display and `propositionInteract` XDM builders and `applyPrehidingStyle`. HTML is sanitized (`core/sanitize-html.js`); stock re-executes inserted scripts, ours does not (deliberate difference, tested). `customCode` is refused with a diagnostic (incompatible, no raw JS from a payload).
+- `adapters/eds/personalization-render.js`: renderer for `html-content-item`, `dom-action-item` (setHtml, setText, setAttribute, setStyle, append/prepend/insertBefore/insertAfter, replaceHtml, move, resize, rearrange, remove, click), `redirect-item` (http(s) only, `location.replace`), plus the display and `propositionInteract` XDM builders and `applyPrehidingStyle`. `html-content-item` with `data.selector`+`data.type` renders as a dom-action. `setAttribute` refuses `on*`, `srcdoc`/`data`/`http-equiv`/`formaction`, any attribute on script/iframe/object/embed/base/meta/link, and dangerous URL schemes. `insertAfter` keeps node order. Each item is try/caught so one failure does not stop the batch. `propositionAction` uses `tokens:[token]`. HTML is sanitized (`core/sanitize-html.js`); stock re-executes inserted scripts, ours does not (deliberate difference, tested). `customCode` is refused with a diagnostic (incompatible, no raw JS from a payload).
 - `adapters/eds/link-click.js`: capture-phase `document` click listener (stock ActivityCollector rules: link name, region, download/exit/other type, remembered page name from the last page view, `pageIDType`). Click on a rendered click-action element sends `propositionInteract` with the proposition metas.
-- `adapters/eds/index.js` `bootAlloy`: `prehidingStyle` (applied before the response, removed after render or after `prehidingTimeoutMs`, default 3000), link-click install (`clickCollectionEnabled`, `clickCollection`, `downloadLinkQualifier`), `wireAlloyDecisions` (render, `ruleset-items` channel, display notification only for renderer-rendered propositions), handle methods `applyPropositions` and `subscribeRulesetItems`.
+- `adapters/eds/index.js` `bootAlloy`: `prehidingStyle` (applied before the response, removed after render or after `prehidingTimeoutMs`, default 3000), link-click install (`clickCollectionEnabled`, `clickCollection`, `downloadLinkQualifier`), `wireAlloyDecisions` (render unless `renderDecisions:false`, in which case propositions go only to the `onDecisions` sink with no render and no display; `onDecisions` is a documented option; `ruleset-items` channel, display notification only for renderer-rendered propositions), handle methods `applyPropositions` and `subscribeRulesetItems`.
 - `connectors/alloy/connector.js`: subscribes `subscribeRulesetItems` in the chamber (only when `decisions` is granted) and delivers items as data; forwards `params.data`; skips `personalization`/`decisionScopes` on `decisioning.proposition*` notification events.
 - `core/sanitize-html.js`: the `data:text/html` literal is built with `join` so the build's blob:/data: literal scan stays clean.
 - `rig/adobe-b1-replay.mjs`: `bodyHtml`/`headHtml` now actually reach the page (the 064-19 options were accepted but dropped).
@@ -45,7 +45,7 @@ last_verified: 2026-11-20
 ### Fixtures
 
 - **S4** (`s4-base/repeat/active-base/active-repeat`): replayed through the production path (`placements` + `reservedPlacements`, `renderDecisions:false`); both POSTs (interact with `query.personalization`, display notification listing the two `__view__` propositions) compare clean. M1 resolved.
-- **S7**: page view, manual link click, SPA view compare clean with these documented production-path deltas: the connector sends declared `decisionScopes` on every event (stock only on the first); the recorded SPA view carries Alloy's view-cache display notification in `events[0].xdm._experience.decisioning` because stock used `renderDecisions:true` (production sends `false`; the stock rig in B3 compares it clean); a 4th POST is our own display notification; first two POSTs ignore `webPageDetails.URL` (064-19 note).
+- **S7**: page view, manual link click, SPA view compare clean with these documented production-path deltas: the connector sends declared `decisionScopes` on every event (stock only on the first); the recorded SPA view carries Alloy's view-cache display notification in `events[0].xdm._experience.decisioning` because stock caches view-scoped propositions and re-notifies them when a push names the view; we have no view cache (carried C2, not an effect of `renderDecisions`); a 4th POST is our own display notification; first two POSTs ignore `webPageDetails.URL` (064-19 note).
 
 ### Oracle disclosure
 
@@ -58,7 +58,12 @@ Not needed: S4 and S7 compare clean without it. `ALLOY_STORAGE_NAMES` is untouch
 ### Carried (owner or later slice)
 
 - **Activity-map persistence**: stock `eventGroupingEnabled` and `sessionStorageEnabled` click persistence across pages is not ported (the main-thread collector keeps only the last page name in memory). Parity gap, carry to the host-command/storage item.
-- **Stock sends two linkClicks POSTs** for one click in the replay (unexplained, likely stock's retry/second flush); we send one. Compared body-for-body against the first.
+- **Two linkClicks POSTs in the replay** were the rig booting airlock (click collection on) on the stock page too. The stock arm now boots with `clickCollectionEnabled:false`; the test asserts exactly one stock POST and compares full bodies.
+- **SPA view cache (C2)**: stock caches view-scoped propositions and renders/notifies on a push naming the view. Not built; needs its own design. Source of the S7 SPA-view display delta.
+- **Redirect display notification (C3)**: stock sends it with keepalive/`documentMayUnload`; we send none for redirects. Needs a keepalive path through the seam.
+- **Interact notification shape (C5)**: stock merges `propositionInteract` into the click event, sends `viewName`, reads `trackingLabel` from item characteristics, and has AJO auto-collect. Ours sends a separate event, uses `data-aep-click-label`, no AJO auto-collect. Compared on `decisioning` only.
+- **Trusted Types** for the template write is not addressed (per-item isolation only).
+- **Low carries**: K5 prehide selector injection/nonce/consent-out, K6 dedup attribute, K7 one observer per item, K10 remote fetches from rendered content sit outside the seal.
 - **`customCode` and script re-execution**: incompatible by design (no raw JS from a payload).
 - **Host command entry**: `evaluateRulesets` stays rig-reachable only (064-19 H1 carry, unchanged).
 - **Reserved-box fills** keep `proposition_display` and send no Edge display notification; only renderer-rendered propositions do.
@@ -70,4 +75,4 @@ Not needed: S4 and S7 compare clean without it. `ALLOY_STORAGE_NAMES` is untouch
 
 ### Verification
 
-`npm test` 2918 passed; `npm run lint` clean; `test/adobe-b4-personalization.test.js` 20 tests in real Chromium (CI GATING step added to `browser-oracle`).
+`npm test` 2918 passed; `npm run lint` clean; `test/adobe-b4-personalization.test.js` 24 tests (22 real Chromium, 2 hermetic) (CI GATING step added to `browser-oracle`).

@@ -53,8 +53,8 @@ const ZONE = '<div id="z"><p id="a">A</p><p id="b">B</p><p id="c">C</p><p id="d"
 const zoneDom = (page) => page.evaluate(() => document.getElementById("z").outerHTML);
 const PV_XDM = { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name: "airlock064-page" } } };
 /** Stock vs airlock on the same SYNTHETIC answer; each returns what \`probe(page)\` reads afterwards. */
-const stockVsAirlock = async (browser, payload, { probe, head = "", stockConfig = {}, bootExtra = {}, after } = {}) => {
-  const stock = await replayFixture(browser, "s4-base", { event: null, headHtml: head, bodyHtml: ZONE, respond: synthetic(payload), run: async (page) => { await runStock(page, { renderDecisions: true, xdm: PV_XDM }, stockConfig); await page.waitForTimeout(600); return probe(page); } });
+const stockVsAirlock = async (browser, payload, { probe, head = "", stockConfig = {}, bootExtra = {}, after, renderDecisions = true } = {}) => {
+  const stock = await replayFixture(browser, "s4-base", { event: null, headHtml: head, bodyHtml: ZONE, respond: synthetic(payload), run: async (page) => { await runStock(page, { renderDecisions, xdm: PV_XDM }, stockConfig); await page.waitForTimeout(600); return probe(page); } });
   const ours = await replayFixture(browser, "s4-base", { event: null, headHtml: head, bodyHtml: '<div id="v"></div>' + ZONE, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }], ...bootExtra }, respond: synthetic(payload), run: async (page) => { await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x }), PV_XDM); await page.waitForTimeout(900); if (after) await after(page); return probe(page); } });
   return { stock, ours };
 };
@@ -177,6 +177,40 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       expect(navs.ours).toEqual(navs.stock);
     }, T);
 
+    it("several inserted nodes keep their order after insertAfter, as stock", async () => {
+      const payload = [proposition("p6", "__view__", [domAction("m1", "insertAfter", "#f", "<s>1</s>text<s>2</s>"), domAction("m2", "prependHtml", "#c", "<i>x</i><i>y</i>")])];
+      const { stock, ours } = await stockVsAirlock(browser, payload, { probe: zoneDom });
+      expect(ours.results.run).toBe(stock.results.run);
+    }, T);
+
+    it("an html-content-item carrying selector and type renders as a dom-action, as stock", async () => {
+      const payload = [proposition("p7", "__view__", [{ id: "hc", schema: `${NS}html-content-item`, data: { content: "<b>hc</b>", selector: "#a", type: "setHtml" } }])];
+      const { stock, ours } = await stockVsAirlock(browser, payload, { probe: zoneDom });
+      expect(ours.results.run).toBe(stock.results.run);
+      expect(ours.results.run).toContain("<b>hc</b>");
+    }, T);
+
+    it("renderDecisions:false renders nothing and sends no display notification, as stock", async () => {
+      const payload = [proposition("p8", "__view__", [domAction("n1", "setHtml", "#a", "<b>no</b>")])];
+      const probe = async (page) => ({ dom: await zoneDom(page) });
+      const { stock, ours } = await stockVsAirlock(browser, payload, { probe, renderDecisions: false, bootExtra: { renderDecisions: false } });
+      expect(ours.results.run.dom).toBe(stock.results.run.dom);
+      expect(ours.results.run.dom).not.toContain("<b>no</b>");
+      expect(ours.network.filter((n) => /propositionDisplay/.test(n.body || ""))).toHaveLength(0);
+    }, T);
+
+    it("refuses executable setAttribute vectors and isolates a failing item from the rest of the batch", async () => {
+      const payload = [proposition("p9", "__view__", [
+        domAction("x1", "setAttribute", "#h", { srcdoc: "<script>1</script>", "http-equiv": "refresh", onclick: "1", href: "javascript:1", title: "kept" }),
+        domAction("x2", "setAttribute", "#z", { "bad name": "1" }),
+        domAction("x3", "setHtml", "#a", "<b>after</b>"),
+      ])];
+      const { ours } = await stockVsAirlock(browser, payload, { probe: zoneDom });
+      expect(ours.results.run).toContain('title="kept"');
+      expect(ours.results.run).not.toMatch(/srcdoc|http-equiv|onclick|javascript:/);
+      expect(ours.results.run).toContain("<b>after</b>");
+    }, T);
+
     it("prehidingStyle is applied before the answer and removed after rendering, like stock", async () => {
       const head = '<script>window.__seen=[];new MutationObserver(()=>{const s=document.getElementById("alloy-prehiding");if(s&&!window.__seen.includes("on"))window.__seen.push("on");if(!s&&window.__seen.includes("on")&&!window.__seen.includes("off"))window.__seen.push("off");}).observe(document.documentElement,{childList:true,subtree:true});</script>';
       const payload = [proposition("p5", "__view__", [domAction("h1", "setHtml", "#a", "<b>x</b>")])];
@@ -214,7 +248,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
   describe("AC2 click collection and notifications vs pinned stock Alloy 2.31.1 (SYNTHETIC page, no capture)", () => {
     const LINKS = '<div id="box"><a id="ext" href="https://destination.example/landing" onclick="return false"><span id="inner">Go there</span></a><a id="dl" href="/files/report.pdf" onclick="return false">Report</a><a id="inl" href="/other" onclick="return false">Other</a></div>';
     const click = async (browser, selector) => {
-      const stock = await replayFixture(browser, "s4-base", { event: null, bodyHtml: LINKS, respond: synthetic([]), run: async (page) => { await runStock(page, { xdm: PV_XDM }); await page.click(selector); await page.waitForTimeout(800); } });
+      const stock = await replayFixture(browser, "s4-base", { event: null, bodyHtml: LINKS, bootOptions: { clickCollectionEnabled: false }, respond: synthetic([]), run: async (page) => { await runStock(page, { xdm: PV_XDM }); await page.click(selector); await page.waitForTimeout(800); } });
       const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml: LINKS, respond: synthetic([]), run: async (page) => { await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x }), PV_XDM); await page.waitForTimeout(600); await page.click(selector); await page.waitForTimeout(1000); } });
       const last = (r) => r.network.filter((n) => n.method === "POST").map((n) => n.body).filter((b) => /linkClicks/.test(b || ""));
       return { stock: last(stock), ours: last(ours) };
@@ -222,7 +256,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     for (const [name, selector] of [["external link (click on a nested element)", "#inner"], ["download link", "#dl"], ["internal link", "#inl"]]) {
       it(`${name}: the auto-collected request body is stock's`, async () => {
         const { stock, ours } = await click(browser, selector);
-        expect(stock.length).toBeGreaterThanOrEqual(1);
+        expect(stock).toHaveLength(1);
         expect(ours).toHaveLength(1);
         const strip = (t) => { const b = JSON.parse(t); delete b.meta; return JSON.stringify(b); };
         expect(diffBodies(strip(ours[0]), strip(stock[0]))).toEqual([]);
