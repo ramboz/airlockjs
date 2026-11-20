@@ -1425,3 +1425,4 @@ Owner decision 2026-11-20 ("Forward the opt-out only, via a narrow seam exemptio
 - **Interact notification parity (open).** Merged interact-in-click event, `viewName`, `trackingLabel` tokens, AJO auto-collect.
 - **Trusted Types for rendered HTML (open).** Template write is not behind a Trusted Types policy.
 - **Low:** prehide selector injection and nonce, dedup attribute, one observer per item, remote fetches from rendered content sit outside the seal.
+- **Activity-map persistence (open, 064-20).** Stock `eventGroupingEnabled`/`sessionStorageEnabled` click persistence across pages is not ported; only the last page name is kept in memory. Belongs with the host-command/storage item.

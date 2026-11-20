@@ -1,8 +1,8 @@
 ---
-reviewer_model: claude-opus-5.5
+model: claude-opus-5.5
 reviewed_at: 2026-11-20
-round: 1
-verdict: changes-requested
+round: 2
+verdict: pass
 ---
 
 # Slice 064-20 (B4) reconciliation review, round 1
@@ -44,3 +44,28 @@ until round 2 passes, then add the review line to s12.
   the dependency on decisions being wired is carried.
 - 064-19 H1 (host command surface) and the storage-persistence carry stay open, correctly. No note claims otherwise.
 - No `core/*` change, so the "upstream to main" list is accurate.
+
+## Round 2 (2026-11-20, fixes in `git diff 7e8464e2 HEAD`)
+
+**Verdict: pass.** The notes now match the code for every medium+ item, the carries are mirrored in
+`docs/refinement-todo.md` ("Personalization follow-ups"), and the board row is back at REVIEW. The suite count claim
+(24 tests, 22 Chromium, 2 hermetic) checks out: 24/24 passed in real Chromium.
+
+| Finding | Status | Evidence |
+|---|---|---|
+| R1 High overclaimed differentials | Fixed | `renderDecisions:false` now built and tested; redirect display and interact shape are explicit carries. Residual wording, see R8. |
+| R2 Medium S7 delta cause | Fixed in notes | Notes name the missing view cache (C2), not `renderDecisions`. Residual stale comment in the test, see R7. |
+| R3 Medium two-linkClicks carry | Fixed | Carry rewritten to the rig cause; stock arm boots with click collection off and asserts exactly one POST. |
+| R4 Medium uncarried interact/AJO/`html-content-item` | Fixed / carried | `html-content-item` rendering built and tested; merged interact, `viewName`, `trackingLabel`, AJO auto-collect carried in notes and refinement-todo. |
+
+New findings (all Low):
+
+- **R7 — Low — `test/adobe-b4-personalization.test.js:117-119`.** The S7 comment still attributes the missing view-cache
+  display to "renderDecisions:true ... production sends renderDecisions:false", which disagrees with the corrected notes
+  (view cache, not `renderDecisions`). Reword it to point at the C2 carry.
+- **R8 — Low — slice notes.** "`onDecisions` is a documented option" is not true (no JSDoc; see compliance C10). The s2.2
+  line "display and click notifications each have a stock-vs-airlock differential" should cross-reference the redirect
+  and interact carries.
+- **R9 — Low — slice notes, Activity-map persistence carry.** It points to "the host-command/storage item" but has no
+  entry in the new refinement-todo section. Add one line.
+- R6: board row is REVIEW. Add the review-pass line to spec s12 when the slice moves to DONE.

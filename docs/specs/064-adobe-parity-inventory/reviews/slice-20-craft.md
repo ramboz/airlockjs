@@ -1,8 +1,8 @@
 ---
-reviewer_model: claude-opus-5.5
+model: claude-opus-5.5
 reviewed_at: 2026-11-20
-round: 1
-verdict: changes-requested
+round: 2
+verdict: pass
 ---
 
 # Slice 064-20 (B4) craft review, round 1
@@ -66,3 +66,24 @@ and drop the blanket catch (catch only the expected navigation error).
 
 **K10 — Low (note) — renderer.** Rendered HTML and `setStyle` `url()` can fetch remote resources outside the seal. Stock does
 the same, so this is parity, not a regression, but it is a consent-gating gap worth one line in the notes.
+
+## Round 2 (2026-11-20, fixes in `git diff 7e8464e2 HEAD`)
+
+**Verdict: pass.** Lint clean; the B4 suite passes 24/24 in real Chromium.
+
+| Finding | Status | Evidence |
+|---|---|---|
+| K1 High setAttribute bypass | Fixed | Refuses `on*`, `srcdoc`, `data`, `http-equiv`, `formaction`, any attribute on `script/iframe/object/embed/base/meta/link`, and dangerous URLs on `href/src/action/xlink:href/poster/background/ping`. Real-Chromium test covers `srcdoc`, `http-equiv`, `onclick`, `javascript:` href. |
+| K2 Medium insertAfter order | Fixed | Fixed anchor `ref = el.nextElementSibling`. This matches stock exactly (stock's running anchor also resolves to the original next element sibling, so the text-node behavior is parity). Multi-node mixed text test vs stock. |
+| K3 Medium Trusted Types, per-item isolation | Fixed / carried | Each item is `try/catch`ed with a diagnostic; test has a throwing item followed by a good one. Trusted Types carried in notes and refinement-todo. |
+| K4 Medium `token` vs `tokens` | Fixed (shape) | Emits `tokens:[token]`; wiring from `trackingLabel` carried under C5. |
+
+New findings (all Low):
+
+- **K11 — Low — `adapters/eds/personalization-render.js:121`.** The tag refusal covers `setAttribute` only; `setStyle` on
+  the same tags is still allowed (harmless today), and the K1 cases are tested only in Chromium, not hermetically. The
+  `tag` const is recomputed per attribute; hoist it out of the loop.
+- **K12 — Low — `adapters/eds/index.js` deliver loop.** The reserved-box `handle.fill(html)` path is not inside the new
+  per-item isolation, so a throwing fill still skips later decisions, `onDecisions` and the display. Pre-existing path;
+  worth a `try/catch` when the file is next touched.
+- K8: the identical ternary is removed and the deliver indentation fixed; the unreachable `if (!html)` guard after the handle await is still there (Low). K5, K6, K7, K10 remain carried as Low in notes and refinement-todo.

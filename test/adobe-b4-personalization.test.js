@@ -115,8 +115,8 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
         // (headless personalization), where stock sends decisionScopes on the first only. The click and the SPA view
         // therefore differ only under query.personalization; the 4th POST is our display notification for the
         // __view__ propositions the first answer carried. The recorded SPA view also carries Alloy's own view-cache
-        // display (renderDecisions:true); production sends renderDecisions:false, so that attachment is absent
-        // (carried in the slice notes; the stock rig in test/adobe-b3-commands.test.js compares it clean).
+        // display because stock caches view-scoped propositions; we have no view cache, so that attachment is
+        // absent (carried as C2 in the slice notes).
         const VIEW_DISPLAY = /^events\[0\]\.xdm\._experience\.decisioning\./;
         expect(r.observed).toHaveLength(expected.length + 1);
         const url = "events[0].xdm.web.webPageDetails.URL";

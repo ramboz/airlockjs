@@ -202,7 +202,7 @@ do not grant live authority.
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-17 — B1: Environment snapshot and storage seeding (pilot) | DONE |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-18 — B2: Egress bridge | DONE |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-19 — B3: Command coverage and callbacks | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-20 — B4: Personalization and host DOM | REVIEW |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-20 — B4: Personalization and host DOM | DONE |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-21 — B5: aem-martech, ACDL and Launch | READY_FOR_IMPLEMENTATION |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-22 — B6: Out-of-default-surface disposition | DONE |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01: ADR status lines and docs rewording | **DONE** |  |

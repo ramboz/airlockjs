@@ -1494,6 +1494,10 @@ function deriveDecisionScopes(placements, reserved) {
  *   it, not the mutable `window.airlock` global (fixing the reachable re-boot misroute). Absent
  *   on a standalone bootAlloy (never wired into a composite) -> the exposure is dropped+diagnosed.
  */
+/**
+ * `bootAlloy` options used here: `renderDecisions` (default true; `false` sends propositions only to
+ * `onDecisions`, nothing is rendered or displayed) and `onDecisions(propositions)` (sink for delivered propositions).
+ */
 function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer, personalization, renderDecisions = true }) {
   const exposureReporter = createPropositionExposureReporter(
     {

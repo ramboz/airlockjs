@@ -1,8 +1,8 @@
 ---
-reviewer_model: claude-opus-5.5
+model: claude-opus-5.5
 reviewed_at: 2026-11-20
-round: 1
-verdict: changes-requested
+round: 2
+verdict: pass
 ---
 
 # Slice 064-20 (B4) compliance review, round 1
@@ -91,3 +91,29 @@ add a differential case.
 
 **C8 — Low — `adapters/eds/index.js` (bootAlloy).** The new `onDecisions` boot option is not listed in "What was built" and
 has no JSDoc on the boot options. Fix: list it in the notes and document it next to `placements`.
+
+## Round 2 (2026-11-20, fixes in `git diff 7e8464e2 HEAD`)
+
+**Verdict: pass.** Every round-1 high and medium is either fixed with a test or carried in the slice notes and
+`docs/refinement-todo.md` ("Personalization follow-ups"). Evidence: `npx eslint` on the changed files clean;
+`AIRLOCK_REAL_CHROMIUM=1 npx vitest run test/adobe-b4-personalization.test.js` 24/24 passed (22 Chromium, 2 hermetic).
+
+| Finding | Status | Evidence |
+|---|---|---|
+| C1 High `renderDecisions:false` | Fixed | Boot option skips the renderer and the display; propositions still go to `onDecisions`. New differential asserts same DOM as stock and no display POST. |
+| C2 High SPA view cache | Carried | Slice notes carry and refinement-todo entry; notes now name the view cache as the S7 delta cause. |
+| C3 High redirect display | Carried | Slice notes and refinement-todo (needs a keepalive path through the seam). |
+| C4 Medium click differential | Fixed | Stock arm boots with `clickCollectionEnabled:false`; `toHaveLength(1)` on both arms; full-body diff. Carry rewritten. |
+| C5 Medium interact shape | Carried | Merged event, `viewName`, `trackingLabel` tokens, AJO auto-collect carried in notes and refinement-todo. `tokens:[token]` shape fixed. |
+| C6 Medium response `html-content-item` | Fixed | `asDomAction` renders an item carrying `data.selector`+`data.type`; new differential vs stock. |
+
+New findings (all Low):
+
+- **C9 — Low — `adapters/eds/index.js:1496`.** `renderDecisions` is a boot option only, defaults to `true` (stock's
+  default is `false`), and is not a per-push option. On the default path `onDecisions` still gets propositions without
+  `renderAttempted`, so a stock-style headless site that keeps the default renders twice. Document the default, or carry it.
+- **C10 — Low — `adapters/eds/index.js` bootAlloy.** C8 is not fixed: neither `onDecisions` nor `renderDecisions` has JSDoc,
+  yet the slice notes say `onDecisions` "is a documented option".
+- **C11 — Low — slice notes, s2.2 Personalization line.** Still says display and click notifications "each have a
+  stock-vs-airlock differential" without pointing at the redirect-display and interact-shape carries listed below it.
+  Not a contradiction, but the line reads stronger than the carries.
