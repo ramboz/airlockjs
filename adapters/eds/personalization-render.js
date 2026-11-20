@@ -6,7 +6,9 @@
  *   - `default-content-item`: nothing to draw, counted as rendered (the recorded `__view__` display notification);
  *   - `dom-action` items (and `html-content-item` with `metadata[scope] = { selector, actionType }`): the stock
  *     action set; HTML goes through the 018 sanitizer, never raw;
- *   - `redirect-item`: `location.replace` to an http(s) URL;
+ *   - `redirect-item`: prehide BODY, send the display notification as a keepalive beacon (`deps.redirectDisplay`),
+ *     then `location.replace` to an http(s) URL (064-24). A display that is held, failed or slow is diagnosed and
+ *     the redirect proceeds after `redirectTimeoutMs`, so a held seal never strands the visitor on the page;
  *   - JSON, rule set, in-app and content-card items: returned to the caller as data, not rendered.
  *
  * `customCode` is NOT rendered: it runs arbitrary site-unknown script on the main thread, which the airlock
@@ -28,6 +30,7 @@ export const SCHEMA = Object.freeze({
 export const VIEW_SCOPE = "__view__";
 export const PREHIDING_ID = "alloy-prehiding";
 const SELECTOR_WAIT_MS = 3000;
+const REDIRECT_DISPLAY_WAIT_MS = 1500;
 
 const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 const IDS_ATTR = "data-adobe-proposition-ids";
@@ -107,7 +110,10 @@ const toPx = (v) => (String(v).endsWith("px") ? v : `${v}px`);
 
 /**
  * Build the renderer.
- * @param {{ document?: Document, window?: Window, sanitize?: (html: string) => string, diagnose?: (r: object) => void, selectorTimeoutMs?: number }} [deps]
+ * @param {{ document?: Document, window?: Window, sanitize?: (html: string) => string, diagnose?: (r: object) => void, selectorTimeoutMs?: number,
+ *   redirectDisplay?: (displayed: object[]) => Promise<{ sent: boolean, reason?: string }>, redirectTimeoutMs?: number }} [deps]
+ *   `redirectDisplay` sends the redirect's display notification (documentUnloading) and settles once the request
+ *   has left, or says why it did not. Absent, a redirect navigates at once (no notification).
  */
 export function createPropositionRenderer(deps = {}) {
   const win = deps.window || (typeof window !== "undefined" ? window : {});
@@ -115,6 +121,7 @@ export function createPropositionRenderer(deps = {}) {
   const sanitize = deps.sanitize || ((html) => sanitizeHtml(html));
   const diagnose = deps.diagnose || (() => {});
   const waitMs = deps.selectorTimeoutMs ?? SELECTOR_WAIT_MS;
+  const redirectWaitMs = deps.redirectTimeoutMs ?? REDIRECT_DISPLAY_WAIT_MS;
   const rendered = new WeakMap(); // element -> Set of item ids already rendered (stock renderStatusHandler)
   const clickMetas = new Map(); // selector -> { [propositionId]: { scope, scopeDetails, trackingLabel } }
   const prehidden = new Map(); // selector -> <style>
@@ -245,23 +252,53 @@ export function createPropositionRenderer(deps = {}) {
     return { ...item, schema: SCHEMA.DOM_ACTION, data: { ...item.data, selector: meta.selector, type: meta.actionType } };
   }
 
+  /**
+   * Stock order: hide the body, send the display notification (keepalive), then `location.replace`. The display is
+   * not awaited by the caller: it is queued behind the event that delivered this proposition, so waiting here would
+   * deadlock. Navigation follows the send, or the bounded wait when the display is held, failed or never settles.
+   */
   function redirect(url, proposition) {
     if (typeof url !== "string" || !/^https?:\/\//i.test(url) || isDangerousUrl(url)) {
       warn("redirect refused: only http(s) URLs are followed", { scope: proposition.scope });
       return false;
     }
-    if (win.location && typeof win.location.replace === "function") win.location.replace(url);
+    let navigated = false;
+    const navigate = () => {
+      if (navigated) return;
+      navigated = true;
+      if (win.location && typeof win.location.replace === "function") win.location.replace(url);
+    };
+    if (typeof deps.redirectDisplay !== "function") { navigate(); return true; }
+    prehide("BODY");
+    const problem = (disposition, reason) => diagnose({ level: "warn", kind: "decisions", disposition, reason, scope: proposition.scope });
+    const timer = setTimeout(() => {
+      problem("redirect-display-held", `the redirect display notification was not sent within ${redirectWaitMs}ms (held at the seal or still queued); redirecting without it`);
+      navigate();
+    }, redirectWaitMs);
+    const settle = (fn) => (arg) => { clearTimeout(timer); fn(arg); navigate(); };
+    let pending;
+    try {
+      pending = Promise.resolve(deps.redirectDisplay([{ id: proposition.id, scope: proposition.scope, scopeDetails: proposition.scopeDetails }]));
+    } catch (e) {
+      pending = Promise.reject(e);
+    }
+    pending.then(
+      settle((r) => { if (!(r && r.sent)) problem("redirect-display-failed", `the redirect display notification was not sent (${(r && r.reason) || "unknown"}); redirecting without it`); }),
+      settle((e) => problem("redirect-display-failed", `the redirect display notification failed (${(e && e.message) || e}); redirecting without it`)),
+    );
     return true;
   }
 
   /**
    * Render propositions. `metadata` is the `applyPropositions` per-scope map; the post-response path passes none.
-   * @returns {Promise<{ propositions: object[], displayed: object[] }>} `propositions` is the stock return value
-   *   (each with `renderAttempted`); `displayed` are the `{ id, scope, scopeDetails }` the display notification carries.
+   * @returns {Promise<{ propositions: object[], displayed: object[], redirected: boolean }>} `propositions` is the stock return value
+   *   (each with `renderAttempted`); `displayed` are the `{ id, scope, scopeDetails }` the display notification carries;
+   *   `redirected` is true when a redirect was started (its own display notification is sent by the redirect).
    */
   async function render(propositions, { metadata = {} } = {}) {
     const out = [];
     const displayed = [];
+    let redirected = false;
     for (const proposition of Array.isArray(propositions) ? propositions : []) {
       if (!isObject(proposition)) continue;
       // Stock skips a `__view__` proposition that was already rendered (applyPropositions re-run).
@@ -277,7 +314,7 @@ export function createPropositionRenderer(deps = {}) {
           else if (schema === SCHEMA.HTML) {
             const action = asDomAction(item, metadata[proposition.scope]);
             if (action) ok = await renderDomAction(action, proposition);
-          } else if (schema === SCHEMA.REDIRECT) ok = redirect(item.data && item.data.content, proposition);
+          } else if (schema === SCHEMA.REDIRECT) { ok = redirect(item.data && item.data.content, proposition); redirected = redirected || ok; }
         } catch (e) {
           warn(`item ${item && item.id} failed to render: ${e && e.message}`, { scope: proposition.scope });
         }
@@ -289,7 +326,7 @@ export function createPropositionRenderer(deps = {}) {
         displayed.push({ id: proposition.id, scope: proposition.scope, scopeDetails: proposition.scopeDetails });
       }
     }
-    return { propositions: out, displayed };
+    return { propositions: out, displayed, redirected };
   }
 
   /** The metas for a clicked element: every stored click selector the element (or an ancestor) matches. */

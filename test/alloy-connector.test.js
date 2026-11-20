@@ -132,6 +132,16 @@ describe("alloy connector (spec 012-01 AC2)", () => {
     expect(out).toEqual([]);
   });
 
+  it("forwards a documentUnloading hint to sendEvent, and only then (064-24)", async () => {
+    const alloy = fakeAlloy();
+    const connector = createAlloyConnector({ ...baseConfig(), alloy });
+    await connector.init({});
+    await connector.handle(pageView());
+    await connector.handle(pageView({ params: { documentUnloading: true } }));
+    expect(alloy.calls[1].options).not.toHaveProperty("documentUnloading");
+    expect(alloy.calls[2].options.documentUnloading).toBe(true);
+  });
+
   it("the pageView fallback carries only the fields the event has, so no placeholder overrides the channel URL (067-08 AC3)", async () => {
     const alloy = fakeAlloy();
     const connector = createAlloyConnector({ ...baseConfig(), alloy });

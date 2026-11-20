@@ -1547,6 +1547,7 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer,
         // (default-content, dom-action, redirect).
         const out = await renderer.render([decision && decision.content]);
         if (out.displayed.length) { displayed.push(...out.displayed); continue; }
+        if (out.redirected) continue; // the redirect sends its own display notification and navigates
         if (handlePromise) {
           diagnose({ level: "warn", kind: "decisions", disposition: "dropped", reason: "the decision carried no renderable html-content-item (a JSON offer / redirect)", scope });
           continue;
@@ -1771,10 +1772,21 @@ export async function bootAlloy(opts = {}) {
       // main-thread fetch (ADR-0004). The host runs the endpoint/consent/config
       // gates BEFORE calling this, so a held interact never reaches the network.
       async dispatch(req) {
+        const watch = redirectWatches.size ? [...redirectWatches].find((w) => w.matches(req.body)) : undefined;
+        if (watch) redirectWatches.delete(watch);
         // 064-18 (AC1/AC3): the seam-sanitized transport init (cache / credentials / referrerPolicy /
         // keepalive) is applied, and every response header the page can read is handed back
         // (`x-adobe-edge` and `Retry-After` drive Alloy's edge-cluster state and retry delay).
-        const res = await fetch(req.url, { method: req.method || "POST", headers: req.headers || {}, body: req.body, ...(req.init || {}) });
+        let res;
+        try {
+          const sent = fetch(req.url, { method: req.method || "POST", headers: req.headers || {}, body: req.body, ...(req.init || {}) });
+          if (watch) watch.issued();
+          res = await sent;
+        } catch (e) {
+          if (watch) watch.failed(e);
+          throw e;
+        }
+        if (watch && res.ok === false) watch.failed(new Error(`HTTP ${res.status}`));
         const body = typeof res.text === "function" ? await res.text() : "";
         const headers = {};
         if (res.headers && typeof res.headers.forEach === "function") res.headers.forEach((v, k) => { headers[k] = v; });
@@ -1818,7 +1830,11 @@ export async function bootAlloy(opts = {}) {
     (Array.isArray(opts.placements) && opts.placements.length > 0) || Object.keys(reserved).length > 0 || typeof opts.onDecisions === "function";
   // 064-20 (B4): the host-side personalization surface. Rendering, prehiding and click collection run on
   // the main thread (ADR-0014); every notification they produce goes through the same mediated `enqueue`.
-  const renderer = createPropositionRenderer({ diagnose });
+  // 064-24: a redirect proposition's display notification (documentUnloading) goes out before it navigates;
+  // `redirectWatches` sees it leave through the main-thread dispatch below.
+  const redirectWatches = new Set();
+  let redirectDisplay = () => Promise.resolve({ sent: false, reason: "not wired" });
+  const renderer = createPropositionRenderer({ diagnose, redirectDisplay: (displayed) => redirectDisplay(displayed), redirectTimeoutMs: opts.redirectDisplayTimeoutMs });
   // 064-23: the SPA view cache and the event in flight (events run one at a time through the pump below).
   const viewCache = createViewCache();
   let currentEvent = null;
@@ -2073,6 +2089,21 @@ export async function bootAlloy(opts = {}) {
     return { type: event, params };
   };
 
+  redirectDisplay = (displayed) => new Promise((resolve) => {
+    const ids = displayed.map((d) => JSON.stringify(d.id));
+    let issued = false;
+    const watch = {
+      matches: (body) => typeof body === "string" && body.includes("decisioning.propositionDisplay") && ids.every((id) => body.includes(id)),
+      issued: () => { issued = true; resolve({ sent: true }); },
+      // A failure after the request left (the page is already navigating) is diagnosed, never retried.
+      failed: (e) => {
+        if (!issued) resolve({ sent: false, reason: String((e && e.message) || e) });
+        else diagnose({ level: "warn", kind: "decisions", disposition: "redirect-display-failed", reason: `the redirect display notification failed after it was sent (${(e && e.message) || e})` });
+      },
+    };
+    redirectWatches.add(watch);
+    enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed), documentUnloading: true } }).catch((e) => resolve({ sent: false, reason: String((e && e.message) || e) }));
+  });
   notifyDisplayed = (displayed) => { enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed) } }); };
   const uninstallClicks = typeof document !== "undefined" && opts.clickCollectionEnabled !== false
     ? installLinkClickCollection({

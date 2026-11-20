@@ -81,6 +81,47 @@ describe("064-20 the renderer (hermetic)", () => {
   });
 });
 
+describe("064-24 redirect ordering (hermetic)", () => {
+  const redirectProp = { id: "rp", scope: "__view__", scopeDetails: { k: 1 }, items: [{ id: "i", schema: "https://ns.adobe.com/personalization/redirect-item", data: { content: "https://redirect.example/x" } }] };
+  const setup = (redirectDisplay, redirectTimeoutMs = 20) => {
+    const log = [];
+    const seen = [];
+    const doc = { querySelectorAll: () => [], documentElement: { appendChild: (n) => log.push(`prehide:${n.textContent}`) }, createElement: () => ({ remove() {} }) };
+    const win = { location: { replace: (u) => log.push(`replace:${u}`) } };
+    const r = createPropositionRenderer({ document: doc, window: win, diagnose: (d) => seen.push(d.disposition), redirectDisplay: (d) => { log.push("display"); return redirectDisplay(d); }, redirectTimeoutMs });
+    return { r, log, seen };
+  };
+  const settled = () => new Promise((res) => setTimeout(res, 60));
+
+  it("prehides BODY, sends the display, then replaces, exactly once", async () => {
+    const { r, log, seen } = setup(async () => ({ sent: true }));
+    const out = await r.render([redirectProp]);
+    await settled();
+    expect(out.redirected).toBe(true);
+    expect(log).toEqual(["prehide:BODY { visibility: hidden }", "display", "replace:https://redirect.example/x"]);
+    expect(seen).toEqual([]);
+  });
+
+  it("a display that never settles does not block navigation and is diagnosed as held", async () => {
+    const { r, log, seen } = setup(() => new Promise(() => {}));
+    await r.render([redirectProp]);
+    expect(log).not.toContain("replace:https://redirect.example/x");
+    await settled();
+    expect(log.at(-1)).toBe("replace:https://redirect.example/x");
+    expect(seen).toEqual(["redirect-display-held"]);
+  });
+
+  it("a failed display (not sent, or rejected) navigates once and is diagnosed as failed", async () => {
+    for (const fail of [async () => ({ sent: false, reason: "x" }), async () => { throw new Error("boom"); }]) {
+      const { r, log, seen } = setup(fail);
+      await r.render([redirectProp]);
+      await settled();
+      expect(log.filter((l) => l.startsWith("replace:"))).toHaveLength(1);
+      expect(seen).toEqual(["redirect-display-failed"]);
+    }
+  });
+});
+
 describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () => {
   let browser;
   beforeAll(async () => { browser = await chromium.launch(); }, T);
@@ -380,6 +421,95 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + LINKS, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] }, respond: synthetic(payload), run: async (page) => { await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x }), PV_XDM); await page.waitForTimeout(900); await page.click("#cta"); await page.waitForTimeout(1000); } });
       expect(cta(stock)).toHaveLength(1);
       expect(cta(ours)).toEqual(cta(stock));
+    }, T);
+  });
+
+  describe("064-24 redirect display notification vs pinned stock Alloy 2.31.1 (SYNTHETIC redirect answer, no capture)", () => {
+    const URL_TO = "https://redirect.example/landing";
+    // Stock sends a documentUnloading event as a beacon only once the identity cookie exists, so the answer stores a synthetic one.
+    const IDENTIFIED = (payload, hint) => JSON.stringify({ requestId: "00000000-0000-0000-0000-000000000064", handle: [{ type: "state:store", payload: [{ key: "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_identity", value: "SYNTHETIC-064", maxAge: 34128000 }, ...(hint ? [{ key: "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_cluster", value: hint, maxAge: 1800 }] : [])] }, { type: "personalization:decisions", payload }] });
+    const REDIRECT = [proposition("rp", "__view__", [{ id: "rd", schema: `${NS}redirect-item`, data: { content: URL_TO } }])];
+    // Records every edge send on the main thread (a beacon or a fetch) with the body visibility and keepalive flag it had at call time.
+    const TRACE = `<script>(() => {
+      const edge = (u) => /interact|adobedc/.test(String(u));
+      const log = (o) => console.log("__trace " + JSON.stringify({ ...o, bodyVisibility: document.body ? getComputedStyle(document.body).visibility : "none" }));
+      const beacon = navigator.sendBeacon.bind(navigator);
+      navigator.sendBeacon = (u, d) => { if (edge(u)) log({ kind: "send", via: "beacon", keepalive: true }); return beacon(u, d); };
+      const nativeFetch = window.fetch.bind(window);
+      window.fetch = (u, init) => { if (edge(u)) log({ kind: "send", via: "fetch", keepalive: !!(init && init.keepalive) }); return nativeFetch(u, init); };
+    })();</script>`;
+    /** One arm: the edge answers the first interact with the redirect and the later ones per `later`; returns the ordered trace. */
+    const arm = async (browser, who, { later = () => ({ status: 204, body: "" }), bootExtra = {}, drive, hint } = {}) => {
+      const trace = [];
+      let posts = 0;
+      const respond = (req) => {
+        if (req.method() !== "POST") return { status: 204, headers: cors(req), body: "" };
+        const first = posts++ === 0;
+        if (first) return { status: 200, headers: { "content-type": "application/json", ...cors(req) }, body: IDENTIFIED(REDIRECT, hint) };
+        const out = later(req);
+        return out === "abort" ? out : { headers: { "content-type": "application/json", ...cors(req) }, ...out };
+      };
+      const common = { event: null, headHtml: TRACE, bodyHtml: '<div id="v"></div>' + ZONE, respond };
+      const run = async (page) => {
+        page.on("console", (m) => { const t = m.text(); if (t.startsWith("__trace ")) trace.push(JSON.parse(t.slice(8))); });
+        page.on("request", (rq) => {
+          if (rq.isNavigationRequest() && rq.url() === URL_TO) trace.push({ kind: "navigate" });
+          else if (/interact|adobedc/.test(rq.url()) && rq.method() === "POST") trace.push({ kind: "request" });
+        });
+        if (drive) await drive(page, who); else if (who === "stock") await runStock(page, { renderDecisions: true, xdm: PV_XDM }).catch(() => {}); else await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x }), PV_XDM);
+        await page.waitForTimeout(2500);
+      };
+      const r = await replayFixture(browser, "s4-base", who === "stock" ? { ...common, run } : { ...common, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }], ...bootExtra }, run });
+      return { trace, network: r.network.filter((n) => n.method === "POST"), diagnostics: r.diagnostics };
+    };
+    const displayOf = (network) => network.find((n) => /propositionDisplay/.test(n.body));
+
+    it("prehides the body, sends the display with keepalive, then navigates, as stock", async () => {
+      const stock = await arm(browser, "stock");
+      const ours = await arm(browser, "ours");
+      const keep = (t) => t.filter((e) => e.kind === "send" && e.keepalive);
+      // The display is the second edge POST and it carries the keepalive flag, sent while the body is hidden.
+      expect(stock.network).toHaveLength(2);
+      expect(ours.network).toHaveLength(2);
+      expect(keep(stock.trace).map((e) => e.bodyVisibility)).toEqual(["hidden"]);
+      expect(keep(ours.trace).map((e) => e.bodyVisibility)).toEqual(["hidden"]);
+      expect(keep(ours.trace).map((e) => e.keepalive)).toEqual(keep(stock.trace).map((e) => e.keepalive));
+      // Display request first, then the navigation, in both arms.
+      for (const a of [stock, ours]) {
+        const kinds = a.trace.map((e) => e.kind).filter((k) => k === "request" || k === "navigate");
+        expect(kinds).toEqual(["request", "request", "navigate"]);
+      }
+    }, T);
+
+    it("the display request body compares clean against stock, keepalive flag included", async () => {
+      const stock = await arm(browser, "stock");
+      const ours = await arm(browser, "ours");
+      const s = displayOf(stock.network);
+      const o = displayOf(ours.network);
+      expect(s && o).toBeTruthy();
+      expect(diffBodies(sortedState(o.body), sortedState(s.body))).toEqual([]);
+      expect(JSON.parse(o.body).events[0].xdm.eventType).toBe("decisioning.propositionDisplay");
+      // Same transport flag on both sides (stock: sendBeacon; ours: keepalive fetch through the seam).
+      const sent = (a) => a.trace.filter((e) => e.kind === "send").map((e) => e.keepalive);
+      expect(sent(ours)).toEqual(sent(stock));
+      expect(sent(ours)).toEqual([false, true]);
+    }, T);
+
+    const kinds = (a) => a.trace.map((e) => e.kind).filter((k) => k === "request" || k === "navigate");
+    const dispositions = (a) => a.diagnostics.map((d) => d.disposition);
+
+    it("a failed display still navigates, and the failure is diagnosed", async () => {
+      const ours = await arm(browser, "ours", { later: () => "abort" });
+      expect(kinds(ours)).toEqual(["request", "request", "navigate"]);
+      expect(dispositions(ours)).toContain("redirect-display-failed");
+    }, T);
+
+    it("a held display (its destination is outside the declared endpoints) still navigates after the bounded wait, and the hold is diagnosed", async () => {
+      // A location hint with two path segments does not match the one-segment `{hint}` endpoint, so the seal holds the display.
+      const ours = await arm(browser, "ours", { hint: "va6/x", bootExtra: { redirectDisplayTimeoutMs: 600 } });
+      expect(kinds(ours)).toEqual(["request", "navigate"]);
+      expect(dispositions(ours)).toContain("redirect-display-held");
+      expect(dispositions(ours)).toContain("held");
     }, T);
   });
 

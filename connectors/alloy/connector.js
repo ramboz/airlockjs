@@ -26,7 +26,8 @@ export const ALLOY_INTERACT_ENDPOINT = "https://adobedc.demdex.net/ee/v1/interac
  * in the frozen capture, as a seam endpoint ceiling. The Adobe domain serves the first page
  * view and `identity/acquire`; the edge domain serves everything after the location hint is
  * known, as `/ee/<hint>/v1/...` (`{hint}` is one path segment, see core/endpoint-ceiling.js),
- * plus the hint-less `privacy/set-consent`. A first-party edge domain adds the same three
+ * plus the hint-less `privacy/set-consent` and, for a documentUnloading event sent before any hint is
+ * known (064-24), the hint-less `collect`. A first-party edge domain adds the same three
  * paths on the site's own host (`allowlistForEdgeDomain`), host-owned, never chamber-supplied.
  */
 export const ALLOY_STOCK_ENDPOINTS = Object.freeze([
@@ -34,6 +35,7 @@ export const ALLOY_STOCK_ENDPOINTS = Object.freeze([
   "https://adobedc.demdex.net/ee/v1/identity/acquire",
   "https://adobedc.demdex.net/ee/v1/privacy/set-consent",
   "https://edge.adobedc.net/ee/v1/interact",
+  "https://edge.adobedc.net/ee/v1/collect",
   "https://edge.adobedc.net/ee/v1/privacy/set-consent",
   "https://edge.adobedc.net/ee/{hint}/v1/interact",
   "https://edge.adobedc.net/ee/{hint}/v1/collect",
@@ -54,6 +56,7 @@ export function allowlistForEdgeDomain(edgeDomain) {
   return [
     `https://${host}/ee/v1/interact`,
     `https://${host}/ee/v1/identity/acquire`,
+    `https://${host}/ee/v1/collect`,
     `https://${host}/ee/v1/privacy/set-consent`,
     `https://${host}/ee/{hint}/v1/interact`,
     `https://${host}/ee/{hint}/v1/collect`,
@@ -387,6 +390,9 @@ export function createAlloyConnector(config = {}) {
     // `__view__` default, byte-unchanged (033-02/033-03).
     const eventData = event && event.params && event.params.data;
     if (eventData && typeof eventData === "object" && !Array.isArray(eventData)) options.data = eventData;
+    // 064-24: stock `sendEvent({ documentUnloading: true })`: the request goes out as a keepalive beacon so it
+    // survives the navigation that follows (a redirect proposition's display notification).
+    if (event && event.params && event.params.documentUnloading === true) options.documentUnloading = true;
     const notification = isPropositionNotification(options.xdm);
     let sendsScopes = false;
     if (notification) {
