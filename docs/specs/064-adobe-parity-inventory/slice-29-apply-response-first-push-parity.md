@@ -17,6 +17,8 @@ last_verified: 2026-11-20
 1. After `applyResponse`, the first push carries the declared decision scopes only when a stock `sendEvent` for the same call does (stock sends no personalization query when the call passes no `decisionScopes` and the cache is warm), shown by a differential test on the request bodies.
 2. A first push that carries scopes and names a view an earlier `applyResponse` cached, where the fetch answer lacks that view, ends in the state stock reaches (stock's fetch replaces the named view with the empty-view placeholder and sends its display), shown by a differential test on the DOM and the notification.
 3. `track` (and so a caller awaiting it) waits for a redirect display's keepalive send to be issued, not only for its queue position, shown by a test that holds the display and observes `track` pending until it leaves.
+4. Under a consent hold, a redirect display queued at the front of the ring is not dropped by a later enqueue before older held events, and a dropped display settles `redirectDisplay` (not only the renderer timer), shown by a hermetic test.
+5. A push queued before an `applyResponse` finishes sees the warmed cache, as stock runs its commands in order, shown by a differential test.
 
 **DoD:**
 - `npm test && npm run lint` and servo gate pass.
@@ -26,4 +28,4 @@ last_verified: 2026-11-20
 
 ## Notes
 
-Found by the 064-28 differential. Its tests give both arms a scoped, view-less first push (so the request matches) and then name the view; these two differences are what that shape avoids. Stock source: `createViewCacheManager.createCacheUpdate().update()` returns the named view of the NEW storage only, while a later merge keeps the old views for later pushes.
+Found by the 064-28 differential (AC1, AC2) and its round-3 review (AC3 to AC5). Its tests give both arms a scoped, view-less first push (so the request matches) and then name the view; these two differences are what that shape avoids. Stock source: `createViewCacheManager.createCacheUpdate().update()` returns the named view of the NEW storage only, while a later merge keeps the old views for later pushes.
