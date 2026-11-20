@@ -18,6 +18,7 @@ last_verified: 2026-11-20
 3. The `onBeforeEventSend` hook the wrapper runs sees the same `xdm` stock passes it (context merged in), shown by a differential that records the hook argument in both arms. `aem-martech` only edits `data` unless `includeDataLayerState` is set, so the S10 journey is unaffected.
 4. The wrapper's `setConsent` produces the set-consent request stock produces for the same call: the `marketing`, `personalize.content` and `share` consent values are present in the body, and the request goes to the host stock uses (`edge.adobedc.net` with `edgeDomain`), shown by the 064-21 differential with `CONSENT_BODY` removed from its allowed differences. This needs a consent-surface change; if it needs a new ADR (ADR-0062 exception (a) is the consent rule), stop and ask the owner before building.
 5. An `onBeforeEventSend` that throws drops the event with a `hook-threw` diagnostic today; the differential records what stock does for a throwing hook and the wrapper matches it.
+6. `configure` options the wrapper cannot honour that conflict with the boot options (`orgId`, `datastreamId`, `edgeDomain`, `idMigrationEnabled`, `thirdPartyCookiesEnabled`, `clickCollectionEnabled`) get an `unsupported-option` diagnostic, and a `renderDecisions: true` call is checked against what stock renders (the wrapper sends `false` unless the page asks, so personalization rendering through `aem-martech` stays inert until `sendEvent` resolves the interact result, AC2).
 
 **DoD:**
 - `npm test && npm run lint` and servo gate pass.

@@ -1,7 +1,7 @@
 // Spec 064-21 (ADR-0063): the site-side wrapper that lets a page written against stock `alloy(command, options)`,
 // such as the `aem-martech` library, run on a `bootAlloy` handle. It is site code in the adapter: it maps each stock
 // command onto the handle's own entry points and adds no capability, no page-global `alloy` of its own making
-// (attaching to a name the page already reserved is the caller's explicit act, see `attachAlloyBridge`) and no
+// (`attachAlloyBridge` installs the page's own `alloy` name only when the site calls it; the loader's queue stub is normally already there) and no
 // command beyond the ADR-0063 allowlist.
 //
 //   sendEvent         -> handle.push     (after the page's onBeforeEventSend, run here on the main thread)
@@ -69,7 +69,7 @@ export function createAlloyCommandBridge(handle, opts = {}) {
       ...(documentUnloading === true ? { documentUnloading: true } : {}),
       ...(Array.isArray(decisionScopes) ? { decisionScopes: clone(decisionScopes) } : {}),
       ...(personalization && typeof personalization === "object" ? { personalization: clone(personalization) } : {}),
-      ...(typeof renderDecisions === "boolean" ? { renderDecisions } : {}),
+      renderDecisions: renderDecisions === true, // stock defaults to false; the host default would render
     });
     return {};
   };

@@ -20,7 +20,7 @@ A framework-agnostic runtime core, with EDS as the first adapter and connectors 
 
 - `core/` — the orchestrator, event log, state projection, capability broker, and worker-runtime host. No framework or vendor coupling.
 - `core/*.worker.js` + `core/worker-dom/` — the **chambers** (the worker-side connector runtime) and the worker-side DOM-compat mirror ([ADR-0014](decisions/adr-0014-worker-dom-compat-minimal-mirror.md)). One chamber per connector; the roster is the table below.
-- `adapters/eds/` — EDS integration: the three-phase hooks, block-decoration instrumentation, eager-window decisioning, and the native-tag suppressor (see below). `adapters/eds/alloy-bridge.js` is the opt-in `alloy(cmd, opts)` wrapper a site attaches so stock libraries such as `aem-martech` reach `push`, `setConsent` and `handle.command` (spec 064-21).
+- `adapters/eds/` — EDS integration: the three-phase hooks, block-decoration instrumentation, eager-window decisioning, and the native-tag suppressor (see below). `adapters/eds/alloy-bridge.js` is the opt-in `alloy(cmd, opts)` wrapper a site attaches so stock libraries such as `aem-martech` reach `push`, `setConsent`, `applyPropositions` and `handle.command` (spec 064-21).
 - `connectors/` — the pluggable connector directory, one connector per vendor tag. See **The connectors** below.
 - `drivers/consent/` — host-neutral **consent-input drivers**: the *source* side of the seal (produce a consent vector to feed in), distinct from `core/consent.js`'s egress enforcement. See below.
 - `diagnostics/` — the `PerformanceObserver` wrappers and the inspector surface (reuses/vendors `aem-cwv-helper` primitives).

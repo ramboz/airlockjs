@@ -111,6 +111,9 @@ describe.runIf(real)("spec 064-21: aem-martech through the airlock wrapper (real
     const a = posts(ours.network);
     const b = posts(stock.network);
     expect(a.map(pathOf)).toEqual(b.map(pathOf));
+    // Hosts are compared per request: only the set-consent host differs (-> 064-31 AC4).
+    expect(a.map((n) => new URL(n.url).hostname)).toEqual(["adobedc.demdex.net", ...b.slice(1).map((n) => new URL(n.url).hostname)]);
+    expect(new URL(b[0].url).hostname).toBe("edge.adobedc.net");
     expect(diffBodies(normalised(a[0].body), normalised(b[0].body)).sort()).toEqual([...CONSENT_BODY, IDENTITY_FETCH].sort());
     for (const k of [1, 2, 3]) expect(diffBodies(normalised(a[k].body), normalised(b[k].body))).toEqual([IDENTITY_FETCH]);
     // the page's data layer link event reached the airlock collect with the ACDL-built xdm and data
@@ -167,6 +170,14 @@ describe("spec 064-21: the alloy command wrapper (hermetic)", () => {
     expect(diag.map((d) => d.kind)).toEqual(["unsupported-option", "unsupported-option", "hook-threw", "unsupported-consent"]);
     expect(h.push).not.toHaveBeenCalled();
     expect(h.setConsent).not.toHaveBeenCalled();
+  });
+
+  it("sendEvent never renders unless the page asks (stock default is false)", async () => {
+    const h = fakeHandle();
+    const alloy = createAlloyCommandBridge(h, { onDiagnostic: () => {} });
+    await alloy("sendEvent", { xdm: {} });
+    await alloy("sendEvent", { xdm: {}, renderDecisions: true });
+    expect(h.push.mock.calls.map((c) => c[0].renderDecisions)).toEqual([false, true]);
   });
 
   it("setConsent maps Adobe 2.0 collect and personalize onto the vector; applyPropositions and other commands go to the handle", async () => {
