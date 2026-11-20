@@ -33,6 +33,7 @@
  */
 import { createAirlock, MAX_HELD_BEACONS } from "../../core/airlock.js";
 import { createWrappedSdkHost } from "../../core/wrapped-sdk-host.js";
+import { ALLOY_CONSENT_OPT_OUT } from "../../connectors/alloy/connector.js";
 import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
 import { resolveOnetrustBootConsent, subscribeOnetrustConsentChanges } from "../../drivers/consent/onetrust.js";
@@ -1796,6 +1797,8 @@ export async function bootAlloy(opts = {}) {
     // 020-02: the TRUSTED strict seam gate; 067-03: on unless the hold is explicitly off.
     egressPurposes: consentRef ? ALLOY_EGRESS_PURPOSES : [],
     consentHold,
+    flushOnGrant: true,
+    consentOptOut: ALLOY_CONSENT_OPT_OUT,
     payloadDenylist,
     payloadDenylistOverride,
     // spec 035-01 AC2/AC3 — the WRITE-side name-scope + validation gate, wired to
@@ -1951,6 +1954,7 @@ export async function bootAlloy(opts = {}) {
     dispose: () => {
       if (disposed) return; // idempotent (021-01 AC1)
       disposed = true;
+      host.dispose(); // parked consent holds have no later decision to flush to (068-01)
       if (worker && typeof worker.terminate === "function") worker.terminate();
     },
   };

@@ -132,12 +132,37 @@ describe("067-03 AC3/AC4 — pending holds, a grant flushes the queued sendEvent
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("the seam drop is a backstop only: an interact alloy did NOT queue is still held, and the held count shows it", async () => {
+  it("an interact alloy did NOT queue (stale consent cookie) is held visibly, then sent exactly once on grant (068-01)", async () => {
     const { handle, worker } = await boot();
-    worker.fire("{}"); // what a compromised chamber (or alloy on a stale consent cookie) would send
+    worker.fire("{}"); // alloy on a stale consent cookie says "in" while page consent is pending
     await tick();
     expect(fetchMock).not.toHaveBeenCalled();
     expect(handle.getState().consentHeld).toBe(1);
+
+    handle.setConsent(GRANTED);
+    await tick();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    handle.setConsent(GRANTED);
+    await tick();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("the held interact is dropped on deny and on teardown (068-01)", async () => {
+    const a = await boot();
+    a.worker.fire("{}");
+    await tick();
+    a.handle.setConsent({ analytics_storage: "denied", personalization: "denied" });
+    a.handle.setConsent(GRANTED);
+    await tick();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    const b = await boot();
+    b.worker.fire("{}");
+    await tick();
+    b.handle.dispose();
+    b.handle.setConsent(GRANTED);
+    await tick();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("bounds the waiting events at MAX_HELD_BEACONS while consent is not granted, dropping the oldest with a diagnostic", async () => {
