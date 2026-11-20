@@ -49,7 +49,7 @@ Read from the Alloy 2.31.1 source and checked against the pinned bundle: **17 co
 | 8 | `setConsent` | Consent | mediated | B3 | Endpoint `privacy/set-consent` (`Consent/createConsentRequest.js:20`) |
 | 9 | `createEventMergeId` | EventMerge | worker-native | B3 | uuid (`EventMerge/createEventMergeId.js:17`) |
 | 10 | `applyPropositions` | Personalization | host-side | B4 | DOM rendering. Built in 064-20 (differential vs stock); not full parity, gaps 064-23/24/25 |
-| 11 | `evaluateRulesets` | RulesEngine | worker-native | B4 | Reads non-standard window props (see 2.2). 064-20: runs in the chamber, rig-reachable only (H1, 064-26) |
+| 11 | `evaluateRulesets` | RulesEngine | worker-native | B4 | Reads non-standard window props (see 2.2). 064-20: runs in the chamber, rig-reachable only (H1, reserved 064-26) |
 | 12 | `subscribeRulesetItems` | RulesEngine | worker-native | B4 | Function-valued `callback` (B3 decides). 064-20: mediated as data, built |
 | 13 | `createMediaSession` | StreamingMedia | incompatible until proven | B6 | Function-valued `getPlayerDetails` |
 | 14 | `sendMediaEvent` | StreamingMedia | incompatible until proven | B6 | |

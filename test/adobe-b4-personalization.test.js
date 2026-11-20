@@ -189,6 +189,12 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       expect(ours.results.run).toContain("<b>hc</b>");
     }, T);
 
+    it("a json-content-item renders nothing and sends no DOM change, as stock", async () => {
+      const payload = [proposition("pj", "__view__", [{ id: "j1", schema: `${NS}json-content-item`, data: { content: { a: 1 } } }])];
+      const { stock, ours } = await stockVsAirlock(browser, payload, { probe: zoneDom });
+      expect(ours.results.run).toBe(stock.results.run);
+    }, T);
+
     it("renderDecisions:false renders nothing and sends no display notification, as stock", async () => {
       const payload = [proposition("p8", "__view__", [domAction("n1", "setHtml", "#a", "<b>no</b>")])];
       const probe = async (page) => ({ dom: await zoneDom(page) });
@@ -267,7 +273,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       expect(r.network.filter((n) => /linkClicks/.test(n.body || ""))).toHaveLength(0);
     }, T);
 
-    it("a click on a rendered click-action element sends propositionInteract with the proposition metas (stock parity)", async () => {
+    it("a click on a rendered click-action element sends propositionInteract with the proposition metas (decisioning compared; full shape is 064-25)", async () => {
       const payload = [proposition("pc", "__view__", [
         domAction("c0", "setHtml", "#box", '<a id="cta" href="https://destination.example/x" onclick="return false" data-aep-click-label="cta-label" data-aep-click-token="tok">CTA</a>'),
         { ...domAction("c1", "click", "#cta", {}), characteristics: { trackingLabel: "cta-label" } },

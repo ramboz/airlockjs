@@ -1671,13 +1671,15 @@ function probeApexDomain(granted) {
  *                                         recorded corpus (the stock rig that replays S4/S7 sends `renderDecisions:true`)
  *                                         and a site that declares `placements`/`reservedPlacements` and expects
  *                                         Airlock to fill them. It differs from Alloy's per-call default of
- *                                         `false`: a stock-style headless site sets `false`, receives the
+ *                                         `false` (the renderer then stays idle): a stock-style headless site sets `false`, receives the
  *                                         propositions through `onDecisions` and renders with `applyPropositions`,
- *                                         so nothing renders or is displayed twice. The connector itself always
+ *                                         so the main-thread renderer neither renders nor sends a display twice. A scope with an eagerly
+ *                                         reserved box (`reservedPlacements`, spec 033-03) is still filled and
+ *                                         still emits `proposition_display`, regardless of this option. The connector itself always
  *                                         sends `renderDecisions:false` to the chamber; rendering is host-side.
  * @param {(propositions: object[]) => void} [opts.onDecisions] 064-20: sink called with the propositions
  *                                         the chamber delivered through the `decisions` capability, before
- *                                         any rendering. Data only; a throw is diagnosed (`sink-threw`).
+ *                                         any rendering (`renderDecisions:false` skips only the renderer). Data only; a throw is diagnosed (`sink-threw`).
  * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function }>}
  */
 export async function bootAlloy(opts = {}) {

@@ -14,7 +14,7 @@ last_verified:
 
 **Acceptance Criteria:**
 
-1. A redirect proposition prehides the body, sends the display notification with keepalive (`documentMayUnload`) through the seam, then calls `location.replace`.
+1. A redirect proposition prehides the body, sends the display notification with keepalive (the `documentUnloading` hint on the pushed event) through the seam, then calls `location.replace`.
 2. The display request body compares clean against pinned stock Alloy 2.31.1 on the same synthetic page (differential), including the keepalive flag.
 3. A held or failed display does not block navigation indefinitely; the outcome is diagnosed.
 
