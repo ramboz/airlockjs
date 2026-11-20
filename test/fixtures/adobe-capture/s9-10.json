@@ -1,0 +1,323 @@
+{
+  "schema": "airlock.adobe-capture",
+  "manifest": {
+    "schema_version": 1,
+    "vendor": "adobe",
+    "captured_at": "2026-11-20T00:08:29.994Z",
+    "input_state": {
+      "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-capture=v1&run=airlock064-86579d3590d9494198ee1cb18332b9c9&state=S9-10&google-ads=off&meta-pixel=off",
+      "referrer": null,
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "locale": "en-US",
+      "timezone": "America/New_York",
+      "egress": {
+        "region": "non-eea",
+        "exit_id": "default"
+      },
+      "browser": {
+        "name": "chromium",
+        "version": "151.0.0.0"
+      },
+      "mode": "headed",
+      "profile_kind": "fresh",
+      "loaded_digests": {
+        "script_sha256": "7dd09409bb07d47b1b2289eec4ca15d67084a85a3d832bef6c73180889da32e8"
+      },
+      "storage_before": {
+        "cookies": [],
+        "local_storage": {},
+        "session_storage": {}
+      },
+      "storage_after": {
+        "cookies": [
+          {
+            "name": "demdex",
+            "value": "64872091212217385862441234150215008822",
+            "domain": ".demdex.net",
+            "path": "/"
+          },
+          {
+            "name": "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_cluster",
+            "value": "or2",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          },
+          {
+            "name": "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_identity",
+            "value": "CiY1OTYxNTAyNzQ5NTkxNDg3OTM1Mjk4MDczMzE0MTQ3NjIxNDczOVISCIf4obKfNBABGAEqA09SMjAAoAGO-KGynzSwAQDwAYf4obKfNA==",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          },
+          {
+            "name": "AMCV_908936ED5D35CC220A495CD4%40AdobeOrg",
+            "value": "MCMID|59615027495914879352980733141476214739",
+            "domain": ".main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+            "path": "/"
+          },
+          {
+            "name": "everest_g_v2",
+            "value": "g_surferid~av_PfAAAAE4O9xNT",
+            "domain": ".everesttech.net",
+            "path": "/"
+          },
+          {
+            "name": "dpm",
+            "value": "64872091212217385862441234150215008822",
+            "domain": ".dpm.demdex.net",
+            "path": "/"
+          }
+        ],
+        "local_storage": {},
+        "session_storage": {
+          "fonts-loaded": "true"
+        }
+      }
+    }
+  },
+  "capture": {
+    "recording_id": "s9-10",
+    "state": "S9-10",
+    "scenario": "decisions",
+    "variant": null,
+    "poc_commit": "27054432f4f3248ddb6d24cf44b0bab54bf08023",
+    "source_fixture": null,
+    "rerecord": null,
+    "owner_change": {
+      "change": "DS-05 Target service off",
+      "at": "2026-11-20T00:07:17Z",
+      "waited": "personalization:decisions handle disappeared after about 61 s of polling"
+    },
+    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+    "alloy_loads": [
+      {
+        "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+        "bytes": 152336,
+        "sha256": "7dd09409bb07d47b1b2289eec4ca15d67084a85a3d832bef6c73180889da32e8"
+      }
+    ],
+    "dropped": 0,
+    "steps": [
+      {
+        "step": "configure",
+        "at_ms": 952,
+        "ok": true,
+        "result": {}
+      },
+      {
+        "step": "sendEvent",
+        "at_ms": 1753,
+        "ok": true,
+        "result": {
+          "destinations": [],
+          "propositions": [],
+          "decisions": []
+        }
+      }
+    ]
+  },
+  "requests": [
+    {
+      "seq": 1,
+      "url": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+      "method": "GET",
+      "resource_type": "script",
+      "started_at": "2026-11-20T00:08:26.566Z",
+      "request_headers": {
+        ":authority": "main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        ":method": "GET",
+        ":path": "/tools/airlock-stock/vendor/aem-martech/alloy.min.js",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "priority": "u=1",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/tools/airlock-stock/capture-entry.mjs",
+        "sec-ch-ua": "\"Chromium\";v=\"151\", \"Not=A?Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "script",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+      },
+      "request_body": null,
+      "request_body_bytes": 0,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "accept-ranges": "bytes",
+        "alt-svc": "h3=\":443\";ma=86400,h3-29=\":443\";ma=86400,h3-27=\":443\";ma=86400",
+        "cache-control": "max-age=60, must-revalidate",
+        "content-encoding": "gzip",
+        "content-length": "50279",
+        "content-type": "text/javascript; charset=utf-8",
+        "date": "Fri, 20 Nov 2026 00:08:27 GMT",
+        "etag": "\"09ff98941352bc88ba31ddd0de223e97\"",
+        "last-modified": "Fri, 09 Oct 2026 23:44:21 GMT",
+        "strict-transport-security": "max-age=31557600",
+        "vary": "Accept-Encoding",
+        "via": "1.1 varnish, 1.1 varnish, 1.1 varnish",
+        "x-cache": "MISS, MISS, HIT",
+        "x-cache-hits": "0, 0, 0",
+        "x-robots-tag": "noindex, nofollow",
+        "x-served-by": "cache-iad-kcgs7200145-IAD, cache-iad-kcgs7200145-IAD, cache-den-kden1300086-DEN",
+        "x-timer": "S1795105458.707658,VS0,VE64"
+      },
+      "response_body": null,
+      "response_body_bytes": 152336,
+      "response_body_truncated": false,
+      "failure": null
+    },
+    {
+      "seq": 2,
+      "url": "https://adobedc.demdex.net/ee/v1/interact?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297&requestId=e273f182-d3ff-4acb-a301-f2604b1cde0c",
+      "method": "POST",
+      "resource_type": "fetch",
+      "started_at": "2026-11-20T00:08:26.689Z",
+      "request_headers": {
+        ":authority": "adobedc.demdex.net",
+        ":method": "POST",
+        ":path": "/ee/v1/interact?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297&requestId=e273f182-d3ff-4acb-a301-f2604b1cde0c",
+        ":scheme": "https",
+        "accept": "*/*",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "cache-control": "max-age=0",
+        "content-length": "1508",
+        "content-type": "text/plain; charset=UTF-8",
+        "origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "priority": "u=1, i",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-capture=v1&run=airlock064-86579d3590d9494198ee1cb18332b9c9&state=S9-10&google-ads=off&meta-pixel=off",
+        "sec-ch-ua": "\"Chromium\";v=\"151\", \"Not=A?Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "sec-fetch-storage-access": "active",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+      },
+      "request_body": "{\"events\":[{\"query\":{\"personalization\":{\"schemas\":[\"https://ns.adobe.com/personalization/default-content-item\",\"https://ns.adobe.com/personalization/html-content-item\",\"https://ns.adobe.com/personalization/json-content-item\",\"https://ns.adobe.com/personalization/redirect-item\",\"https://ns.adobe.com/personalization/ruleset-item\",\"https://ns.adobe.com/personalization/message/in-app\",\"https://ns.adobe.com/personalization/message/content-card\",\"https://ns.adobe.com/personalization/dom-action\"],\"decisionScopes\":[\"airlock.readiness.2e2319c8\",\"__view__\"],\"surfaces\":[\"web://main--aem-eds-airlock-poc--adobe-rnd.aem.page/\"]}},\"xdm\":{\"web\":{\"webPageDetails\":{\"URL\":\"https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-capture=v1&run=airlock064-86579d3590d9494198ee1cb18332b9c9&state=S9-10&google-ads=off&meta-pixel=off\",\"name\":\"airlock064-page\"},\"webReferrer\":{\"URL\":\"\"}},\"device\":{\"screenHeight\":800,\"screenWidth\":1280,\"screenOrientation\":\"landscape\"},\"environment\":{\"type\":\"browser\",\"browserDetails\":{\"viewportWidth\":1265,\"viewportHeight\":800}},\"placeContext\":{\"localTimezoneOffset\":300,\"localTime\":\"2026-11-19T19:08:26.685-05:00\"},\"timestamp\":\"2026-11-20T00:08:26.686Z\",\"implementationDetails\":{\"name\":\"https://ns.adobe.com/experience/alloy\",\"version\":\"2.31.1\",\"environment\":\"browser\"},\"eventType\":\"web.webpagedetails.pageViews\"}}],\"query\":{\"identity\":{\"fetch\":[\"ECID\",\"CORE\"]}},\"meta\":{\"queueTimeMillis\":4,\"state\":{\"domain\":\"main--aem-eds-airlock-poc--adobe-rnd.aem.page\",\"cookiesEnabled\":true}}}",
+      "request_body_bytes": 1508,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "access-control-allow-credentials": "true",
+        "access-control-allow-origin": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page",
+        "access-control-expose-headers": "Retry-After, X-Adobe-Edge, X-Request-ID",
+        "cache-control": "no-cache, no-store, max-age=0, no-transform, private",
+        "content-encoding": "gzip",
+        "content-type": "application/json;charset=utf-8",
+        "date": "Fri, 20 Nov 2026 00:08:27 GMT",
+        "server": "jag",
+        "set-cookie": "demdex=64872091212217385862441234150215008822; Max-Age=15552000; Domain=demdex.net; Path=/; Secure; SameSite=None; $x-enc=URI_ENCODING",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "vary": "Origin",
+        "x-adobe-edge": "OR2;9",
+        "x-content-type-options": "nosniff",
+        "x-konductor": "26.10.2-HEAD-SNAPSHOT:b15ed3dbd",
+        "x-request-id": "e273f182-d3ff-4acb-a301-f2604b1cde0c-f48bcbfbd060430c",
+        "x-xss-protection": "1; mode=block"
+      },
+      "response_body": "{\"requestId\":\"e273f182-d3ff-4acb-a301-f2604b1cde0c-f48bcbfbd060430c\",\"handle\":[{\"payload\":[{\"id\":\"59615027495914879352980733141476214739\",\"namespace\":{\"code\":\"ECID\"}},{\"id\":\"64872091212217385862441234150215008822\",\"namespace\":{\"code\":\"CORE\"}}],\"type\":\"identity:result\"},{\"payload\":[{\"type\":\"url\",\"id\":411,\"spec\":{\"url\":\"//cm.everesttech.net/cm/dd?d_uuid=64872091212217385862441234150215008822\",\"hideReferrer\":false,\"ttlMinutes\":10080}}],\"type\":\"identity:exchange\"},{\"payload\":[{\"scope\":\"Target\",\"hint\":\"35\",\"ttlSeconds\":1800},{\"scope\":\"AAM\",\"hint\":\"9\",\"ttlSeconds\":1800},{\"scope\":\"EdgeNetwork\",\"hint\":\"or2\",\"ttlSeconds\":1800}],\"type\":\"locationHint:result\"},{\"payload\":[{\"key\":\"kndctr_908936ED5D35CC220A495CD4_AdobeOrg_cluster\",\"value\":\"or2\",\"maxAge\":1800,\"attrs\":{\"SameSite\":\"None\"}},{\"key\":\"kndctr_908936ED5D35CC220A495CD4_AdobeOrg_identity\",\"value\":\"CiY1OTYxNTAyNzQ5NTkxNDg3OTM1Mjk4MDczMzE0MTQ3NjIxNDczOVISCIf4obKfNBABGAEqA09SMjAAoAGO-KGynzSwAQDwAYf4obKfNA==\",\"maxAge\":34128000,\"attrs\":{\"SameSite\":\"None\"}}],\"type\":\"state:store\"}]}",
+      "response_body_bytes": 1033,
+      "response_body_truncated": false,
+      "failure": null
+    },
+    {
+      "seq": 3,
+      "url": "https://cm.everesttech.net/cm/dd?d_uuid=64872091212217385862441234150215008822",
+      "method": "GET",
+      "resource_type": "image",
+      "started_at": "2026-11-20T00:08:26.952Z",
+      "request_headers": {
+        "accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "connection": "keep-alive",
+        "host": "cm.everesttech.net",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/",
+        "sec-fetch-dest": "image",
+        "sec-fetch-mode": "no-cors",
+        "sec-fetch-site": "cross-site",
+        "sec-fetch-storage-access": "active",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
+        "sec-ch-ua": "\"Chromium\";v=\"151\", \"Not=A?Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\""
+      },
+      "request_body": null,
+      "request_body_bytes": 0,
+      "request_body_truncated": false,
+      "status": 302,
+      "response_headers": {
+        "cache-control": "no-cache",
+        "connection": "keep-alive",
+        "content-length": "0",
+        "date": "Fri, 20 Nov 2026 00:08:28 GMT",
+        "location": "https://dpm.demdex.net/ibs:dpid=411&dpuuid=av_PfAAAAE4O9xNT",
+        "p3p": "CP=\"NOI NID DEVa PSAa PSDa OUR IND PUR COM NAV INT DEM\"",
+        "server": "AMO-cookiemap/1.1",
+        "set-cookie": "everest_g_v2=g_surferid~av_PfAAAAE4O9xNT;path=/;Max-Age=31536000;domain=.everesttech.net;Secure;SameSite=None\neverest_session_v2=av@PfAAAAE4O@BNT;path=/;Max-Age=-1;domain=.everesttech.net;Secure;SameSite=None"
+      },
+      "response_body": null,
+      "response_body_bytes": 0,
+      "response_body_truncated": false,
+      "failure": null
+    },
+    {
+      "seq": 4,
+      "url": "https://dpm.demdex.net/ibs:dpid=411&dpuuid=av_PfAAAAE4O9xNT",
+      "method": "GET",
+      "resource_type": "image",
+      "started_at": "2026-11-20T00:08:27.259Z",
+      "request_headers": {
+        ":authority": "dpm.demdex.net",
+        ":method": "GET",
+        ":path": "/ibs:dpid=411&dpuuid=av_PfAAAAE4O9xNT",
+        ":scheme": "https",
+        "accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+        "accept-encoding": "gzip, deflate, br, zstd",
+        "accept-language": "en-US",
+        "cookie": "demdex=64872091212217385862441234150215008822",
+        "priority": "i",
+        "referer": "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/",
+        "sec-ch-ua": "\"Chromium\";v=\"151\", \"Not=A?Brand\";v=\"99\"",
+        "sec-ch-ua-mobile": "?0",
+        "sec-ch-ua-platform": "\"macOS\"",
+        "sec-fetch-dest": "image",
+        "sec-fetch-mode": "no-cors",
+        "sec-fetch-site": "cross-site",
+        "sec-fetch-storage-access": "active",
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36"
+      },
+      "request_body": null,
+      "request_body_bytes": 0,
+      "request_body_truncated": false,
+      "status": 200,
+      "response_headers": {
+        "cache-control": "no-cache,no-store,must-revalidate,max-age=0,proxy-revalidate,no-transform,private",
+        "content-encoding": "zstd",
+        "content-length": "46",
+        "content-type": "image/gif",
+        "date": "Fri, 20 Nov 2026 00:08:28 GMT",
+        "dcs": "dcs-prod-usw2-1-v094-0ef731f91.edge-usw2.demdex.com 3 ms",
+        "expires": "Thu, 01 Jan 1970 00:00:00 UTC",
+        "p3p": "policyref=\"/w3c/p3p.xml\", CP=\"NOI NID CURa ADMa DEVa PSAa PSDa OUR SAMa BUS PUR COM NAV INT\"",
+        "pragma": "no-cache",
+        "set-cookie": "demdex=64872091212217385862441234150215008822; Max-Age=15552000; Expires=Wed, 19 May 2027 00:08:28 GMT; Path=/; Domain=.demdex.net; Secure; SameSite=None\ndpm=64872091212217385862441234150215008822; Max-Age=15552000; Expires=Wed, 19 May 2027 00:08:28 GMT; Path=/; Domain=.dpm.demdex.net; Secure; SameSite=None",
+        "strict-transport-security": "max-age=31536000; includeSubDomains",
+        "x-content-type-options": "nosniff",
+        "x-tid": "B5L9XQ9DMEM="
+      },
+      "response_body": "GIF89a\u0001\u0000\u0001\u0000�\u0000\u0000\u0000\u0000\u0000���!�\u0004\u0001\u0000\u0000\u0000\u0000,\u0000\u0000\u0000\u0000\u0001\u0000\u0001\u0000\u0000\u0002\u0001D\u0000;",
+      "response_body_bytes": 42,
+      "response_body_truncated": false,
+      "failure": null
+    }
+  ]
+}

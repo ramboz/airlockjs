@@ -87,3 +87,11 @@ Phase A passed the servo quality-gate (composite 1.0) before its push.
 - S9-03 (20:27): property token and environment ID restored. The owner had not added Audience Manager (it was not on the datastream), so this recording covers the Target restore only; the airlock decision returned after about 61 s.
 - S9-04 (20:33): Audience Manager service on plus cookie and URL destinations on, in one save (DS-10, DS-11, DS-12 share this recording). No response change in 10 min; recorded (`s9-04`).
 - S9-05 (22:28): Third Party ID Sync on, container ID 0. An `identity:exchange` handle appeared after about 61 s (`s9-05`).
+- S9-06 (23:34): First Party ID cookie on, name `airlock064_fpid`. Fixed 10 min wait; response looked like S9-05 (`s9-06`, scenario `fpid`).
+- S9-07, S9-08: skipped. The owner has no second Target environment, report suite, namespace, AEP dataset/schema or Event Forwarding property, and the OAuth credential cannot create them. Rows stay unverified.
+- S9-11 (about 23:52, combined): Analytics and Target third-party namespaces set to `airlock064ns`; all Geo, Network and Device boxes on; IP obfuscation strongest; bot rule `referer` contains `referrer.example` (the UI offers no custom header). Overrides lists, Data Prep and Event Forwarding were not flipped. Waited 12 min; recorded with `--variant referrer` (`s9-11`).
+- S9-10 (00:07, 11-20): Target service off. The decisions handle vanished after about 61 s (`s9-10`).
+- S9-09 (00:09): Analytics service off. Fixed 10 min wait (`s9-09`).
+- S9-12 (00:20): Access Type "Authenticated only". Waited 10 min. The unauthenticated sendEvent failed as expected (`s9-12`).
+- Attempt count: 41 after S9-12. Earlier notes calling S12 the "31st attempt" are off by one; the running total after S12 was 32.
+- Datastream was NOT yet restored at this point; restore follows.
