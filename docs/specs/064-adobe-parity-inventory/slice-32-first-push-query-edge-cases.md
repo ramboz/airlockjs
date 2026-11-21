@@ -6,7 +6,7 @@ last_verified: 2026-11-20
 
 ## Slice 064-32 — first push query edge cases match stock
 
-**Goal:** The decision of whether a push carries a personalization query, and what it carries, matches pinned stock Alloy 2.31.1 for the odd inputs 064-29 left out: invalid surfaces and scopes, placement scopes spent by `applyResponse`, and a notification-shaped push that passes scopes.
+**Goal:** The decision of whether a push carries a personalization query, and what it carries, matches pinned stock Alloy 2.31.1 for the odd inputs 064-29 left out: invalid surfaces and scopes, placement scopes spent by `applyResponse`, a notification-shaped push that passes scopes, and the order of a push against an `applyResponse` call.
 
 **DoR:**
 - ✅ 064-29 done (the host tells the chamber the view cache is warm; `carriesQuery` follows stock for well-formed scopes and surfaces).
@@ -17,6 +17,7 @@ last_verified: 2026-11-20
 2. A push whose `decisionScopes` holds an empty string or a non-string entry behaves as stock for the same call (a query, or the validation error stock raises), shown by a differential test on the request bodies and the settled result.
 3. A push whose XDM names a `decisioning.proposition*` event type and passes `decisionScopes` sends the personalization query as stock does (today the connector sends none, 064-20), shown by a differential test on the request body.
 4. A boot with `placements` naming scopes other than `__view__`, then `applyResponse`, then a first push that passes no scopes: the placements' scopes are not fetched (stock declares none and sends no query on a warm cache), shown by a differential test on the request bodies; the adopter docs say an earlier `applyResponse` spends the declared placement scopes.
+5. A push enqueued before an `applyResponse` call, and still waiting when that call finishes, does not see its cache (stock runs the push first, with the declared scopes and a cold cache), and an event pushed after an `applyResponse` never reaches the wire ahead of that response's redirect display, shown by a differential test on the request bodies. Today the host reads the cache state when an event runs, not in call order.
 
 **DoD:**
 - `npm test && npm run lint` and servo gate pass.
@@ -26,4 +27,4 @@ last_verified: 2026-11-20
 
 ## Notes
 
-Found by the 064-29 reconciliation review (M1, M2, L1 to L3). Use SYNTHETIC responses only; if a new live capture is needed, stop and report `blocked`. Confirm each stock behavior in the pinned 2.31.1 bundle before building the AC (the review read stock from memory).
+Found by the 064-29 reconciliation review (M1, M2, L1 to L3, AC1 to AC4) and the round 2 craft review (AC5). Use SYNTHETIC responses only; if a new live capture is needed, stop and report `blocked`. Confirm each stock behavior in the pinned 2.31.1 bundle before building the AC (the review read stock from memory).
