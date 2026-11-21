@@ -47,7 +47,7 @@ const journey = (page) => page.evaluate(async ({ orgId, datastreamId, scope, lin
   return { calls: Object.keys(m).sort() };
 }, { orgId: ORG, datastreamId: DATASTREAM, scope: SCOPE, link: LINK, pageUrl: "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-stock=v1&case=no-offer&run=airlock05102-c19434f3bd208c0bd9c3706132f6a24b&consent=decline&google-ads=off&meta-pixel=off" });
 
-/** The shim the site serves where aem-martech imports `./alloy.min.js`: it hands aem-martech's queue stub to the wrapper. */
+/** Test-only: the stand-in a site would serve where aem-martech imports `./alloy.min.js`; it hands the queue stub to the wrapper. */
 const SHIM = "window.__attachAlloyBridge();";
 const ATTACH = (page) => page.evaluate(([src]) => {
   const attach = (0, eval)(`(${src})`);
@@ -208,9 +208,23 @@ describe("spec 064-21: the alloy command wrapper (hermetic)", () => {
     expect(out.map((x) => x[0])).toEqual(["a", "b"]);
   });
 
-  it("creating the bridge leaves no page global: globalThis.alloy stays undefined", () => {
+  it("the bridge neither reads nor writes a page global, at creation or on any command", async () => {
     expect(globalThis.alloy).toBeUndefined();
-    createAlloyCommandBridge(fakeHandle(), { onDiagnostic: () => {} });
-    expect(globalThis.alloy).toBeUndefined();
+    const sentinel = { q: [[() => {}, () => {}, ["sendEvent", { xdm: {} }]]] };
+    globalThis.alloy = sentinel;
+    const keys = Object.keys(globalThis).sort();
+    try {
+      const h = fakeHandle();
+      const alloy = createAlloyCommandBridge(h, { onDiagnostic: () => {} });
+      await alloy("configure", {});
+      await alloy("sendEvent", { xdm: {} });
+      await alloy("setConsent", { consent: [{ standard: "Adobe", version: "2.0", value: { collect: { val: "y" } } }] });
+      await alloy("applyPropositions", { propositions: [] });
+      await alloy("getLibraryInfo", {});
+      expect(globalThis.alloy).toBe(sentinel);
+      expect(sentinel.q).toHaveLength(1);
+      expect(h.push).toHaveBeenCalledTimes(1);
+      expect(Object.keys(globalThis).sort()).toEqual(keys);
+    } finally { delete globalThis.alloy; }
   });
 });

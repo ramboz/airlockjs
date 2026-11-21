@@ -1,8 +1,9 @@
 // Spec 064-21 (ADR-0063): the site-side wrapper that lets a page written against stock `alloy(command, options)`,
 // such as the `aem-martech` library, run on a `bootAlloy` handle. It is site code in the adapter: it maps each stock
-// command onto the handle's own entry points and adds no capability, no page-global `alloy` of its own making
-// and it neither reads nor writes any page global: a site that needs a global `alloy` (the stock `aem-martech` library) installs it in its own code, as the test-only rig/alloy-queue-shim.mjs does and no
-// command beyond the ADR-0063 allowlist. It is meant for a `bootAlloy` handle (every stock `sendEvent` is pushed as
+// command onto the handle's own entry points. It adds no capability, reads and writes no page global, and allows no
+// command beyond the ADR-0063 allowlist. A site that needs a global `alloy` (the stock `aem-martech` library) installs
+// it in its own code, as the test-only rig/alloy-queue-shim.mjs does. It is meant for a `bootAlloy` handle (every stock
+// `sendEvent` is pushed as
 // `page_view`, which that handle ignores; a handle that routes by event name would not be a fit). `configure` options
 // other than function callbacks are fixed at boot and left inert here (064-31 AC6 and AC7).
 //
