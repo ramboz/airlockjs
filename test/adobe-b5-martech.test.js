@@ -208,6 +208,20 @@ describe("spec 064-21: the alloy command wrapper (hermetic)", () => {
     expect(out.map((x) => x[0])).toEqual(["a", "b"]);
   });
 
+  it("the test-only queue shim routes a sync throw and a rejected command to reject", async () => {
+    const h = fakeHandle();
+    h.command = vi.fn(async () => { throw new Error("boom"); });
+    h.push = vi.fn(() => { throw new Error("SYNC"); });
+    const rejected = [];
+    const g = { alloy: Object.assign(() => {}, { q: [
+      [() => {}, (e) => rejected.push(["sync", e.message]), ["sendEvent", { xdm: {} }]],
+      [() => {}, (e) => rejected.push(["async", e.message]), ["getLibraryInfo", {}]],
+    ] }) };
+    attachQueueShim(createAlloyCommandBridge(h, { onDiagnostic: () => {} }), g, "alloy");
+    await new Promise((r) => setTimeout(r, 0));
+    expect(rejected).toEqual([["sync", "SYNC"], ["async", "boom"]]);
+  });
+
   it("the bridge neither reads nor writes a page global, at creation or on any command", async () => {
     expect(globalThis.alloy).toBeUndefined();
     const sentinel = { q: [[() => {}, () => {}, ["sendEvent", { xdm: {} }]]] };

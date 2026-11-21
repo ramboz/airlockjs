@@ -2,10 +2,10 @@
 slice: 064-21 — aem-martech, ACDL and Launch (B5)
 pass: compliance
 round: follow-up 1
-verdict: approved
+verdict: changes-requested
 reviewer: independent reviewer (Claude Opus 5.5, Copilot jig:reviewer sub-agent)
 reviewed_at: 2026-11-20 (time not recorded)
-prompt_source: review prompts for slice 064-21 (commits 3be50885, 1a5058a3, 1f751acd; follow-up round 1 reviewed a15457ec, findings fixed in the next pushed commit)
+prompt_source: review prompts for slice 064-21 (commits 3be50885, 1a5058a3, 1f751acd; follow-up round 1 reviewed a15457ec; fixes landed in 7e466871 and the next commit, not re-reviewed)
 ---
 
 # 064-21 compliance
@@ -16,12 +16,9 @@ Round 1 changes-requested (high: the set-consent exception pointed to a 064-30 s
 
 ## Follow-up round 1 (owner-directed: no shipped page global)
 
-Fresh Opus 5.5 reviewer on a15457ec; verdict was changes-requested, with small findings, all fixed in the following commit (the author saved this text):
+Fresh Opus 5.5 reviewer on a15457ec; verdict changes-requested (the author saved this text). This reviewer's findings only. Fixes landed in 7e466871 and were not re-reviewed (no extra round):
 
-- Garbled `alloy-bridge.js` header: rewritten (no capability, no page global, no command beyond the ADR-0063 allowlist, site installs its own global).
-- `architecture.md` lacked the product-path clause: added.
-- No-global test too thin: now plants a sentinel `globalThis.alloy`, runs configure, sendEvent, setConsent, applyPropositions and a default command, and asserts the sentinel and the global key set are untouched.
-- Shim injection via `toString()` fragile under coverage: noted in `rig/alloy-queue-shim.mjs`.
-- Test comment wording and spec s12 parenthetical: fixed. The unissued ADR number was dropped; the ADR and slice are created separately.
-
-Verdict after fixes: approved (fixes are comment, doc and test only; no production logic changed).
+- `docs/architecture.md:23` lacked the product-path clause (medium): fixed in 7e466871.
+- `alloy-bridge.js:2-5` header spliced into a broken sentence (low): fixed in 7e466871.
+- No-global test only created the bridge, never called it (low, optional): fixed in 7e466871 (it now plants a sentinel global and runs every command).
+- Note: `git diff` could not be run by the read-only reviewer; the coordinator verified `core/` and the consent mapping are unchanged.
