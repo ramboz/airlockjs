@@ -4,7 +4,7 @@ slice: 064-30
 round: 1
 verdict: changes-requested
 reviewer: jig:reviewer (Opus 5.5)
-reviewed_at: (time not recorded)
+reviewed_at: 2026-11-21T07:58:00-08:00
 prompt_source: kickoff-064-30 phase 2, actual diff e878f0de..7f69dfca
 ---
 
@@ -17,7 +17,7 @@ Verdict: changes requested. Code follows ADR-0064; test and edge-case gaps.
 | 1 | High | AC4 full-object refusal forward test missing | fixed (test `AC4`, next commit) |
 | 2 | Medium | `plainDataProblem` outside a try; a throwing Proxy lost the vector | fixed (try/catch in `classifyAdobeConsent` and the bridge; nothing posted plus `unsupported-consent`) |
 | 3 | Medium | "Proxy" test used no Proxy | fixed (real throwing and revoked Proxy tests) |
-| 4 | Medium | AC2 b/c test posted to the fake worker, proved nothing | fixed (chamber-originated `adobeConsent` via `worker.emit`, ref and held count asserted) |
+| 4 | Medium | AC2 b/c test posted to the fake worker, proved nothing | round-1 fix incomplete: the rewritten test still passed under a mutation that applied a chamber-sent object's vector (found by a coordinator revert-check); fixed in the next commit (a request fired after the chamber message must stay held; revert-checked), not re-reviewed |
 | 5 | Low | AC2d lacked check by return | carried: release is asynchronous through the seal; message order and release after a tick are asserted. Owner: none needed |
 | 6 | Low | Partial object test did not check the kept vector | fixed (adapter-level test) |
 | 7 | Low | Rejection signal is a `phase`, not a diagnostic | fixed by rewording AC7 to the phase record |

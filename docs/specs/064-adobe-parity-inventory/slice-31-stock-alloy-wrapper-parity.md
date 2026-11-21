@@ -14,6 +14,7 @@ last_verified: 2026-11-20
 **Acceptance Criteria:**
 
 1. A boot with the stock `idMigrationEnabled: false` sends `query.identity.fetch` of `["ECID"]` (the recorded S10 interact and the stock run), and the default boot keeps `["ECID","CORE"]`, shown by the 064-21 differential with the `query.identity.fetch[1]` exception removed.
+   - Note (064-30): the S10 stock config sets both `thirdPartyCookiesEnabled: false` and `idMigrationEnabled: false`. Matching only the first already makes the fetch list equal stock's, so the difference was `thirdPartyCookiesEnabled` (closed by 064-30). This AC is re-grounded or dropped at the 064-31 re-scope.
 2. The wrapper's `sendEvent` resolves with the result stock gives for the same call (`propositions` and `decisions` from the interact response), shown by a differential test that reads the resolved value in both arms. Today `handle.push` returns nothing, so the wrapper resolves `{}`.
 3. The `onBeforeEventSend` hook the wrapper runs sees the same `xdm` stock passes it (context merged in), shown by a differential that records the hook argument in both arms. `aem-martech` only edits `data` unless `includeDataLayerState` is set, so the S10 journey is unaffected.
 4. Moved to 064-30 (ADR-0064).

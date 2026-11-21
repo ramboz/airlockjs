@@ -145,14 +145,14 @@ describe("064-30 AC2/AC5/AC6: handle.setAdobeConsent on a booted chamber", () =>
     expect(vector.analytics_storage).toBe("denied");
   });
 
-  it("(b, c) an adobeConsent message from the chamber neither changes the seal nor releases a held request", async () => {
-    const { handle, worker } = await boot({ consent: { analytics_storage: "denied" } });
+  it("(b, c) an adobeConsent message from the chamber neither changes the seal nor releases or admits a request", async () => {
+    const { handle, worker } = await boot(); // consent pending: requests park at the seal
     worker.fire();
     worker.emit({ type: "adobeConsent", consent: [FULL] });
-    worker.emit({ type: "setConsent", consent: { analytics_storage: "granted" } });
+    worker.fire(); // a request made after the chamber's object message
     await tick();
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(handle.getState().consentHeld).toBe(1);
+    expect(handle.getState().consentHeld).toBe(2);
   });
 
   it.each([

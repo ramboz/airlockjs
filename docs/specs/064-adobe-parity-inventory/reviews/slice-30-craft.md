@@ -4,7 +4,7 @@ slice: 064-30
 round: 1
 verdict: changes-requested
 reviewer: jig:reviewer (Opus 5.5)
-reviewed_at: (time not recorded)
+reviewed_at: 2026-11-21T07:58:00-08:00
 prompt_source: kickoff-064-30 phase 2, actual diff e878f0de..7f69dfca
 ---
 
@@ -17,7 +17,7 @@ Verdict: changes requested. Races and message lifetime are sound.
 | 1 | Medium | Throwing/revoked Proxy escaped `classifyAdobeConsent` | fixed (try/catch) |
 | 2 | Medium | Transparent Proxy is sent as a copy, not a fallback | fixed by rewording AC5: the guarantee is the plain copy |
 | 3 | Medium | Fake "Proxy" test | fixed (real Proxy tests) |
-| 4 | Medium | AC2 b/c test passed without the change | fixed (see compliance 4) |
+| 4 | Medium | AC2 b/c test passed without the change | round-1 fix incomplete (see compliance 4); fixed in the next commit, not re-reviewed |
 | 5 | Medium | AC4 full-object test missing | fixed |
 | 6 | Low | AC2d assertion weak | carried (see compliance 5) |
 | 7 | Low | Partial-object vector not asserted | fixed |
