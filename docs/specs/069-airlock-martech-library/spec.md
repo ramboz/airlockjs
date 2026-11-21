@@ -18,11 +18,11 @@ use_cases: [UC-2, UC-7]
 
 **Main tradeoff.** Source-compatible at the export level, not a drop-in for code that calls `window.alloy` directly. `martechDelayed` does not load Launch containers.
 
-**What needs you.** The ADR's one question (the data layer) and its acceptance. Nothing else.
+**What needs you.** The ADR's one question (where the data-layer behavior lives: core to the library, or through a chamber) and its acceptance. Nothing else.
 
 ## 1. Scope
 
-In scope: the library, the three handle additions it needs (`handle.sendEvent`, `handle.applyPropositions({ viewName })`, a settling `handle.setAdobeConsent`), the S10 differential's third arm, the docs.
+In scope: the library, the data-layer capture bridge (Airlock's own, no ACDL), the three handle additions it needs (`handle.sendEvent`, `handle.applyPropositions({ viewName })`, a settling `handle.setAdobeConsent`), the S10 differential's third arm, the docs.
 
 Out of scope: Launch container loading, a package split, freezing the library under ADR-0017, any `core/` change, any ADR-0063 allowlist change.
 
@@ -31,11 +31,12 @@ Out of scope: Launch container loading, a package split, freezing the library un
 | Slice | One line |
 |---|---|
 | [069-01](slice-01-handle-results.md) | The handle returns what stock returns: `sendEvent` result, the hook's `xdm`, a throwing hook, `applyPropositions({ viewName })`, a settling `setAdobeConsent` |
-| [069-02](slice-02-martech-library.md) | `adapters/eds/martech.js`: the 14 `aem-martech` exports on the handle, no page global, proven against the recording and the stock run |
+| [069-02](slice-02-data-layer-bridge.md) | The data layer without ACDL: `window.adobeDataLayer` as a narrow capture bridge (object pushes, O(1) validate-and-append), Airlock's own state merge and event mapping, the dispositions for what ACDL gave that cannot cross the airlock |
+| [069-03](slice-03-martech-library.md) | `adapters/eds/martech.js`: the 14 `aem-martech` exports on the handle, no page global, proven against the recording and the stock run |
 
-Order: 069-01, then 069-02.
+Order: 069-01, 069-02, then 069-03 (the library uses both).
 
 ## 3. Boundaries
 
-- Slice 064-31 (wrapper parity) was re-scoped against ADR-0065: AC2, AC3, AC5 and AC8 moved to 069-01, AC6 and AC7 to 069-02, AC1 dropped. See its file.
+- Slice 064-31 (wrapper parity) was re-scoped against ADR-0065: AC2, AC3, AC5 and AC8 moved to 069-01, AC6 and AC7 to 069-03, AC1 dropped. See its file.
 - Slices 064-32 and 064-33 are untouched.

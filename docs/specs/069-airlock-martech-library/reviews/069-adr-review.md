@@ -2,12 +2,14 @@
 round: 1
 verdict: changes-requested
 reviewer: Opus 5.5 jig:reviewer (fresh, read-only)
-reviewed_at: 2026-11-21T16:35:00Z
-prompt_source: ADR-0065, spec 069 slices 01 and 02 and re-scoped slice 064-31 as drafted before the commit that adds this file (squashed into the docs(adobe) ADR-0065 commit on vendor-adobe)
+reviewed_at: 2026-11-21T16:38:07Z
+prompt_source: ADR-0065, spec 069 slices 01 and 02 and re-scoped slice 064-31 as drafted before commit 1abe1670 on vendor-adobe (squashed into 1abe1670, which adds this file)
 scope: ADR-0065, slices 069-01 and 069-02, 064-31 re-scope
 ---
 
 # ADR-0065 and slice review (round 1)
+
+Slice numbers below are as of round 1. After the owner's data-layer direction, the library slice became 069-03 and a new 069-02 holds the data-layer bridge.
 
 The author saved this text from the reviewer's output. The reviewer returned `changes-requested`. The author fixed every finding in the same docs commit; no re-review has run, so the verdict above stays the reviewer's. A fresh round is run if the owner asks for one before acceptance.
 

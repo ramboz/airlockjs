@@ -213,11 +213,12 @@ do not grant live authority.
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-28 — applyResponse warms the host view cache | DONE |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-29 — first push after applyResponse matches stock | DONE |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-30 — stock Adobe consent path (set-consent body and host match stock; ADR-0064) | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-31 — stock `alloy()` wrapper parity (re-scoped against ADR-0065: its ACs moved to 069-01 and 069-02 or dropped) | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-31 — stock `alloy()` wrapper parity (re-scoped against ADR-0065: its ACs moved to 069-01 and 069-03 or dropped) | READY_FOR_IMPLEMENTATION |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-32 — first push query edge cases match stock | READY_FOR_IMPLEMENTATION |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-33 — the opt-out forward carries only the consent the page gave | READY_FOR_IMPLEMENTATION |  |
 | [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-01 — the handle returns what stock returns (`sendEvent` result, hook argument, `viewName`, consent outcome) | READY_FOR_IMPLEMENTATION |  |
-| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-02 — `adapters/eds/martech.js`: the `aem-martech` exports on the `bootAlloy` handle | READY_FOR_IMPLEMENTATION |  |
+| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-02 — the data-layer capture bridge: `window.adobeDataLayer` as a narrow capture bridge with Airlock's own state and event mapping, no ACDL | READY_FOR_IMPLEMENTATION |  |
+| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-03 — `adapters/eds/martech.js`: the `aem-martech` exports on the `bootAlloy` handle | READY_FOR_IMPLEMENTATION |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01: ADR status lines and docs rewording | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-02: Consent hold on every track, with a no-consent-input warning | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-03: Alloy holds and flushes, and an empty `egressPurposes` holds and warns | **DONE** |  |
