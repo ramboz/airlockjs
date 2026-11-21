@@ -15,7 +15,7 @@ last_verified: 2026-11-20
 **Acceptance Criteria:**
 
 1. Decision is one of drop-in, wrapper or not viable, with evidence. **Met: wrapper** (inside ADR-0063; Findings).
-2. Fixture S10 (POC site, `aem-martech` + ACDL + Alloy 2.31.1, no Launch, D10) compares clean, except the set-consent request (body and host) -> 064-31 AC4 and the identity fetch list `["ECID","CORE"]` vs `["ECID"]` -> 064-31.
+2. Fixture S10 (POC site, `aem-martech` + ACDL + Alloy 2.31.1, no Launch, D10) compares clean, except the set-consent request (body and host) -> 064-30 and the identity fetch list `["ECID","CORE"]` vs `["ECID"]` -> 064-31.
 3. The Launch bridge is a gap row owned here (D10): tagged `live-only` (no Launch property exists; the journey loads none).
 
 **DoD:**
@@ -51,7 +51,7 @@ The `alloy(cmd, opts)` queue drain (`stub.q`) is covered by the hermetic "the te
 
 - **Recorded S10 (real):** the airlock run's POST order is set-consent, interact, collect, collect (paths and methods equal the recording). The interact URL equals the recorded one; the interact body differs only at `query.identity.fetch[1]`.
 - **SYNTHETIC (real):** the collect bodies were not captured. Stock aem-martech on stock Alloy 2.31.1 (main thread) and aem-martech on the wrapper run the same journey against the same Edge answers; all four requests' paths and bodies are compared (cookie entries sorted, generated fields normalised). This is a differential, not a capture, and is labelled so in the test names.
-- Differences found, each with an owner: the set-consent body (`marketing`, `share`, `personalize.content`) and its host (the airlock sends `adobedc.demdex.net`, stock with `edgeDomain` sends `edge.adobedc.net`) -> 064-31 AC4; `query.identity.fetch` `["ECID","CORE"]` vs `["ECID"]` (stock `idMigrationEnabled:false` is not a boot option), the wrapper resolving `{}` instead of the interact result, and `onBeforeEventSend` seeing the site's `xdm` without the context merged in -> 064-31 (new slice, READY_FOR_IMPLEMENTATION).
+- Differences found, each with an owner: the set-consent body (`marketing`, `share`, `personalize.content`) and its host (the airlock sends `adobedc.demdex.net`, stock with `edgeDomain` sends `edge.adobedc.net`) -> 064-30 (ADR-0064); `query.identity.fetch` `["ECID","CORE"]` vs `["ECID"]` (stock `idMigrationEnabled:false` is not a boot option), the wrapper resolving `{}` instead of the interact result, and `onBeforeEventSend` seeing the site's `xdm` without the context merged in -> 064-31 (new slice, READY_FOR_IMPLEMENTATION).
 
 ### Launch bridge (AC3, D10)
 
