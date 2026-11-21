@@ -110,7 +110,8 @@ const DEFAULT_ENDPOINTS = ["https://www.google-analytics.com/mp/collect"];
  * `consent ? … : []` back-compat gate `bootMetaPixel` uses.
  */
 export { META_EGRESS_PURPOSES, LINKEDIN_EGRESS_PURPOSES, BING_EGRESS_PURPOSES };
-export { createAlloyCommandBridge, consentToVector } from "./alloy-bridge.js";
+export { createAlloyCommandBridge, consentToVector, classifyAdobeConsent } from "./alloy-bridge.js";
+import { classifyAdobeConsent } from "./alloy-bridge.js";
 
 /**
  * The DISTINCT GA4 event names the UC-2 interaction wiring emits (slice 004-04).
@@ -1686,6 +1687,10 @@ function probeApexDomain(granted) {
  *                                         Passed to alloy `configure`, and its `/ee/...` paths join the seam's
  *                                         endpoint ceiling and the tenant pin. Host-owned: the chamber cannot
  *                                         add a host.
+ * @param {boolean}  [opts.thirdPartyCookiesEnabled] 064-30: Alloy's `thirdPartyCookiesEnabled`, passed to `configure`
+ *                                         unchanged. While on (Alloy's default) Alloy sends identity-bearing requests
+ *                                         (the set-consent among them) to `adobedc.demdex.net`; `false` keeps them on the
+ *                                         edge domain. Both hosts are already in the endpoint ceiling; no allowlist change.
  * @param {string|URL} [opts.workerUrl]    test/rig seam: override the chamber Worker
  *                                         URL (default the built same-origin sibling).
  * @param {Record<string, Promise<{fill:Function}>>} [opts.reservedPlacements] spec 033-03:
@@ -1716,7 +1721,7 @@ function probeApexDomain(granted) {
  * @returns {Promise<{ push: Function, pushCritical: Function, setConsent: Function, getState: Function, stats: Function, dispose: Function, applyPropositions: Function, subscribeRulesetItems: Function, command: Function }>}
  */
 export async function bootAlloy(opts = {}) {
-  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, consent, consentHold, minimalXdm, payloadDenylist, payloadDenylistOverride, cookieGrantNarrowing, storageGrantNarrowing, workerUrl, reservedPlacements, compositeEmit, edgeDomain } = opts;
+  const { bundleUrl, datastreamId, orgId, datastream, edgeConfigId, consent, consentHold, minimalXdm, payloadDenylist, payloadDenylistOverride, cookieGrantNarrowing, storageGrantNarrowing, workerUrl, reservedPlacements, compositeEmit, edgeDomain, thirdPartyCookiesEnabled } = opts;
 
   const context = Array.isArray(opts.context) ? opts.context : ALLOY_DEFAULT_CONTEXT;
 
@@ -1743,6 +1748,10 @@ export async function bootAlloy(opts = {}) {
   // hold every interact (an incomplete pin) or mis-configure alloy.
   const resolvedDatastreamId = datastreamId ?? datastream ?? edgeConfigId;
   // 064-18: validate the first-party edge domain at boot (throws on a non-host value).
+  // 064-30 (ADR-0064 point 7): Alloy's own `thirdPartyCookiesEnabled`, mirrored as a host option.
+  if (thirdPartyCookiesEnabled !== undefined && typeof thirdPartyCookiesEnabled !== "boolean") {
+    throw new Error("airlock bootAlloy: `thirdPartyCookiesEnabled` must be a boolean");
+  }
   const edgeDomainHost = edgeDomain == null ? null : (allowlistForEdgeDomain(edgeDomain), String(edgeDomain).trim().toLowerCase());
   if (typeof resolvedDatastreamId !== "string" || resolvedDatastreamId.length === 0) {
     throw new Error("airlock bootAlloy: a datastream id is required (`datastreamId`, or its `datastream`/`edgeConfigId` alias) — alloy configure() + the config-integrity tenant pin both need it");
@@ -1784,6 +1793,15 @@ export async function bootAlloy(opts = {}) {
       reason: "consentHold: false — the consent hold is off for this connector; it sends without waiting for consent",
     });
   }
+
+  // The vector half of a consent update (also the whole of `handle.setConsent`): (a) the seam's live ref,
+  // (b) the chamber message that drives Alloy's own setConsent.
+  const applyVector = (v) => {
+    if (!consentRef || !v) return;
+    consentInputWired = true;
+    Object.assign(consentRef, v);
+    host.setConsent(consentRef);
+  };
 
   const caps = {
     egress: {
@@ -1980,7 +1998,7 @@ export async function bootAlloy(opts = {}) {
   // crosses into the untrusted chamber — so createSyncCookieCache is seeded with
   // nothing the connector didn't declare, and a chamber read can never surface a
   // foreign cookie (closes the live whole-jar READ leak).
-  const config = { datastreamId: resolvedDatastreamId, orgId, context, ...(edgeDomainHost ? { edgeDomain: edgeDomainHost } : {}), ...(minimalXdm ? { minimalXdm: true } : {}), ...(decisionScopes.length ? { decisionScopes } : {}) };
+  const config = { datastreamId: resolvedDatastreamId, orgId, context, ...(edgeDomainHost ? { edgeDomain: edgeDomainHost } : {}), ...(typeof thirdPartyCookiesEnabled === "boolean" ? { thirdPartyCookiesEnabled } : {}), ...(minimalXdm ? { minimalXdm: true } : {}), ...(decisionScopes.length ? { decisionScopes } : {}) };
   const rawSeedCookie = (typeof document !== "undefined" && document.cookie) || "";
   const seedCookie = scopeSeedCookies(rawSeedCookie, resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).names);
   // 067-08 (ADR-0062 point 2): feed Alloy's listed `context` groups from the stock-context
@@ -2268,11 +2286,23 @@ export async function bootAlloy(opts = {}) {
     //       defaultConsent:"pending" queue (grounded: rig/alloy-consent-pending.mjs).
     // Gated on `consentRef`: only a `consentHold: false` boot with no consent vector has none,
     // leaves the gate off and posts NO chamber message.
-    setConsent: (v) => {
-      if (!consentRef || !v) return;
-      consentInputWired = true;
-      Object.assign(consentRef, v); // (a) seam live ref
-      host.setConsent(consentRef); // (b) chamber alloy setConsent -> native flush
+    setConsent: applyVector,
+    // 064-30 (ADR-0064): the page's Adobe 2.0 object. ONE synchronous call: post the object to the chamber first
+    // (it waits there for the very next vector message), then apply the vector DERIVED FROM THE SAME OBJECT, which
+    // updates the seam's ref and posts the vector message. The object is never a seal signal: only the vector is.
+    setAdobeConsent: (consent) => {
+      if (!consentRef) return;
+      const r = classifyAdobeConsent(consent);
+      if (r.kind === "none") {
+        warnDiagnostic({ level: "warn", kind: "unsupported-consent", reason: "setAdobeConsent carried no Adobe collect/personalize value; nothing was applied" });
+        return;
+      }
+      let sent = false;
+      if (r.kind === "send") {
+        try { worker.postMessage({ type: "adobeConsent", consent: r.consent }); sent = true; } catch (e) { r.reason = `the consent object could not be posted (${e && e.message})`; }
+      }
+      if (!sent) warnDiagnostic({ level: "warn", kind: "consent-object-fallback", reason: `${r.reason}; the chamber drives Alloy's setConsent from the consent vector instead` });
+      applyVector(r.vector);
     },
     getState: () => host.getState(),
     stats: () => host.getState(),

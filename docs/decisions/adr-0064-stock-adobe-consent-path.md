@@ -1,6 +1,7 @@
 ---
-status: Proposed
-dependencies: [ADR-0007, ADR-0061, ADR-0062, ADR-0063, 064-21, 064-33]
+status: Accepted
+dependencies: [ADR-0007, ADR-0061, ADR-0062, ADR-0063, 064-21]
+see_also: [064-33]
 last_verified: 2026-11-20
 frame_review: true
 ---
@@ -9,7 +10,7 @@ frame_review: true
 
 ## Status
 
-Proposed (2026-11-20). Waiting for the owner to accept it.
+Accepted (2026-11-20). Asked "Do you accept ADR-0064?", the owner chose: "Accept ADR-0064 as written (Recommended)" (2026-11-20, ~19:45 PST).
 
 The owner asked for this path. The coordinator offered "add a stock consent path (ADR-0064 + slice 064-30), or record the set-consent body as a known difference?" and the owner answered: "Yes, add the stock consent path (ADR-0064 + 064-30) (Recommended)" (2026-11-20).
 

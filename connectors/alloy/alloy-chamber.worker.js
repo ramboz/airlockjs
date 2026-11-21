@@ -599,7 +599,13 @@ async function drive(event) {
  *      not a mapped replay). This DELEGATE runs inside the UNTRUSTED chamber and is never
  *      the enforcement — the seam's strict egressVerdict is the backstop. Fire-and-forget
  *      (the flushed interact rides the intercepted-fetch -> main dispatch path). ---- */
+// 064-30 (ADR-0064): the page's Adobe 2.0 object waits here for the VERY NEXT vector message, which uses it for
+// its one Alloy `setConsent` call and then drops it (used or not). It is never an input to the seal or to the
+// retained vector.
+let waitingConsentObject = null;
 function applyConsent(vector) {
+  const object = waitingConsentObject;
+  waitingConsentObject = null;
   // Merge the update into the retained ADR-0007 vector (a partial update from either
   // direction still yields the full picture for the mapping below).
   if (vector) consentVector = { ...(consentVector || {}), ...vector };
@@ -616,7 +622,14 @@ function applyConsent(vector) {
   const options = shapeAlloyBoot(consentVector).setConsentOptions;
   if (!options || typeof self.alloy !== "function") return;
   Promise.resolve()
-    .then(() => self.alloy("setConsent", options))
+    .then(() => self.alloy("setConsent", object ? { consent: object } : options))
+    .catch((e) => {
+      if (!object) throw e;
+      // Alloy rejected the page's object: retry once with the vector-shaped options so a grant still flushes
+      // Alloy's pending queue and a refusal is still recorded.
+      post("phase", { name: "consent-object-rejected", message: String((e && e.message) || e) });
+      return self.alloy("setConsent", options);
+    })
     .then(
       () => { summary.consentDriven = "fulfilled"; },
       (e) => { summary.consentDriven = "rejected: " + (e && e.message); },
@@ -759,6 +772,8 @@ self.onmessage = (e) => {
   // 045-02 (ADR-0023): a mid-session consent update — drive alloy's OWN setConsent
   // so alloy natively FLUSHES its defaultConsent:"pending" queue (grant-time flush).
   if (m.type === "setConsent") return void applyConsent(m.consent);
+  // 064-30 (ADR-0064): the page's Adobe 2.0 object, posted just before its vector message. Plain data only.
+  if (m.type === "adobeConsent") { waitingConsentObject = plainDataProblem(m.consent, "consent") ? null : m.consent; return; }
   // AC4: the main-thread dispatcher's response to an intercepted fetch.
   if (m.type === "intercepted-fetch-response") return void resolveInterceptedFetch(m);
   // AC5: the harness asks the chamber to run the adversarial egress self-probe.

@@ -8,15 +8,18 @@
 // other than function callbacks are fixed at boot and left inert here (064-31 AC6 and AC7).
 //
 //   sendEvent         -> handle.push     (after the page's onBeforeEventSend, run here on the main thread)
-//   setConsent        -> handle.setConsent (the consent vector the seam understands; see CONSENT_GAP below)
+//   setConsent        -> handle.setAdobeConsent (the page's Adobe 2.0 object; the handle derives the seal's vector from it,
+//                        ADR-0064), else handle.setConsent(vector) on a handle that has no such method
 //   configure         -> boot options are fixed at `bootAlloy`; only `onBeforeEventSend` is taken from it
 //   applyPropositions -> handle.applyPropositions
 //   anything else     -> handle.command   (it rejects a name outside the allowlist with a plain Error)
 
+import { plainDataProblem } from "../../connectors/alloy/host-commands.js";
+
 /**
  * `consent` (Adobe 2.0) -> the host consent vector. `collect` and `personalize.content` are the two purposes the seam
- * governs. CONSENT_GAP: `marketing` and `share` have no counterpart in the vector, so they are not carried (the
- * recorded set-consent body names them; owned by 064-31 AC4).
+ * governs; `marketing` and `share` have no counterpart in the vector and travel only inside the object (ADR-0064).
+ * The Adobe entry is the first `standard: "Adobe"` entry, whatever its version.
  * @param {unknown} consent the `consent` option of a stock `setConsent`
  * @returns {Record<string, "granted" | "denied"> | null}
  */
@@ -30,6 +33,36 @@ export function consentToVector(consent) {
   if (v.collect) out.analytics_storage = verdict(v.collect);
   if (v.personalize && v.personalize.content) out.personalization = verdict(v.personalize.content);
   return Object.keys(out).length ? out : null;
+}
+
+/**
+ * ADR-0064 point 2: may the page's object go to Alloy as given? Only when the adapter can read it with certainty:
+ * one Adobe entry, version "2.0", first in the array, with `collect` (`val` exactly "y" or "n"), any
+ * `personalize.content` `val` exactly "y" or "n", and plain JSON data. Anything else takes the vector-shaped fallback.
+ * @param {unknown} consent the `consent` option of a stock `setConsent`
+ * @returns {{ kind: "none" } | { kind: "fallback", vector: object, reason: string } | { kind: "send", vector: object, consent: object[] }}
+ */
+export function classifyAdobeConsent(consent) {
+  let plain = null;
+  let problem = plainDataProblem(consent, "consent");
+  if (!problem) {
+    try { plain = JSON.parse(JSON.stringify(consent)); } catch (e) { problem = `consent could not be copied (${e && e.message})`; }
+  }
+  let vector = null;
+  try { vector = consentToVector(plain ?? consent); } catch { vector = null; }
+  if (!vector) return { kind: "none" };
+  const fallback = (reason) => ({ kind: "fallback", vector, reason });
+  if (problem) return fallback(problem);
+  const adobe = plain.filter((c) => c && c.standard === "Adobe");
+  if (adobe.length !== 1) return fallback("more than one Adobe consent entry");
+  const [entry] = adobe;
+  if (plain[0] !== entry) return fallback("the Adobe consent entry is not the first entry");
+  if (entry.version !== "2.0") return fallback(`Adobe consent version ${JSON.stringify(entry.version)} is not "2.0"`);
+  const yn = (x) => Boolean(x) && typeof x === "object" && (x.val === "y" || x.val === "n");
+  const v = entry.value;
+  if (!yn(v.collect)) return fallback("collect has no val of exactly \"y\" or \"n\"");
+  if (v.personalize && v.personalize.content !== undefined && !yn(v.personalize.content)) return fallback("personalize.content has no val of exactly \"y\" or \"n\"");
+  return { kind: "send", vector, consent: plain };
 }
 
 const clone = (x) => (x === undefined ? undefined : JSON.parse(JSON.stringify(x)));
@@ -79,8 +112,9 @@ export function createAlloyCommandBridge(handle, opts = {}) {
 
   const setConsent = async (options = {}) => {
     const vector = consentToVector(options.consent);
-    if (vector) handle.setConsent(vector);
-    else diagnose({ level: "warn", kind: "unsupported-consent", reason: "setConsent carried no Adobe 2.0 collect/personalize value; nothing was applied" });
+    if (!vector) diagnose({ level: "warn", kind: "unsupported-consent", reason: "setConsent carried no Adobe 2.0 collect/personalize value; nothing was applied" });
+    else if (typeof handle.setAdobeConsent === "function") handle.setAdobeConsent(options.consent);
+    else handle.setConsent(vector);
     return {};
   };
 

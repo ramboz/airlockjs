@@ -10,7 +10,7 @@ last_verified: 2026-11-20
 
 **DoR:**
 - ✅ 064-21 done (the wrapper and the S10 differential exist).
-- ⬜ ADR-0064 Accepted by the owner (the slice does not build before that).
+- ✅ ADR-0064 Accepted by the owner (2026-11-20).
 
 **Acceptance Criteria:**
 

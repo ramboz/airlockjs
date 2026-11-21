@@ -56,7 +56,7 @@ const ATTACH = (page) => page.evaluate(([src]) => {
 }, [attachQueueShim.toString()]);
 
 
-const AIRLOCK_BOOT = { consent: {}, context: ["web", "device", "environment"], edgeDomain: "edge.adobedc.net" };
+const AIRLOCK_BOOT = { consent: {}, context: ["web", "device", "environment"], edgeDomain: "edge.adobedc.net", thirdPartyCookiesEnabled: false };
 /** Cookie entries arrive in jar order, which is not part of the contract; sort them before comparing. */
 const normalised = (text) => {
   const b = JSON.parse(text);
@@ -66,9 +66,6 @@ const normalised = (text) => {
 const posts = (network) => network.filter((n) => n.method === "POST");
 const pathOf = (n) => new URL(n.url).pathname;
 
-// Known, owned differences. Anything else in a diff fails the test.
-const IDENTITY_FETCH = "query.identity.fetch[1]"; // stock config `idMigrationEnabled:false` is not a boot option -> 064-31
-const CONSENT_BODY = ["consent[0].value.marketing.any.val", "consent[0].value.marketing.preferred", "consent[0].value.personalize.content.val", "consent[0].value.share.val"]; // stock consent path -> 064-30
 
 describe.runIf(real)("spec 064-21: aem-martech through the airlock wrapper (real Chromium)", () => {
   let browser;
@@ -94,33 +91,31 @@ describe.runIf(real)("spec 064-21: aem-martech through the airlock wrapper (real
     const got = posts(ours.network);
     expect(got.map(pathOf)).toEqual(rec.map((r) => new URL(r.url).pathname));
     expect(got.map((n) => n.method)).toEqual(rec.map((r) => r.method));
-    // The interact URL is the recorded one; the set-consent host is part of the consent path (064-30).
     expect(splitRequestUrl(got[1].url).stable).toBe(splitRequestUrl(rec[1].url).stable);
-    expect(splitRequestUrl(got[0].url).stable.replace(/^https:\/\/[^/]+/, "")).toBe(splitRequestUrl(rec[0].url).stable.replace(/^https:\/\/[^/]+/, ""));
+    expect(splitRequestUrl(got[0].url).stable).toBe(splitRequestUrl(rec[0].url).stable);
   }, T);
 
-  it("AC2 (recorded S10): the interact body is the recorded one with the explicit decision scope, except the identity fetch list (-> 064-31)", () => {
+  it("AC2 (recorded S10): the interact body is the recorded one with the explicit decision scope", () => {
     const rec = JSON.parse(recordedBody("interact"));
     expect(rec.events[0].query.personalization.decisionScopes).toEqual([SCOPE]);
     const got = JSON.parse(posts(ours.network)[1].body);
     expect(got.events[0].xdm.eventType).toBe("decisioning.propositionFetch");
     expect(got.events[0].query.personalization.decisionScopes).toEqual([SCOPE]);
-    expect(diffBodies(normalised(posts(ours.network)[1].body), normalised(recordedBody("interact")))).toEqual([IDENTITY_FETCH]);
+    expect(diffBodies(normalised(posts(ours.network)[1].body), normalised(recordedBody("interact")))).toEqual([]);
   });
 
-  it("AC2 (recorded S10): the set-consent body differs from the recording only in the consent value and the identity list (-> 064-30, 064-31 AC1)", () => {
-    expect(diffBodies(posts(ours.network)[0].body, recordedBody("set-consent")).sort()).toEqual([...CONSENT_BODY, IDENTITY_FETCH].sort());
+  it("AC2 (recorded S10): the set-consent body equals the recording: the page's consent object is stock's (064-30)", () => {
+    expect(diffBodies(posts(ours.network)[0].body, recordedBody("set-consent")).sort()).toEqual([]);
   });
 
-  it("AC2 (SYNTHETIC, no collect capture): every request of the airlock run equals the stock run's, except the owned differences", () => {
+  it("AC2 (SYNTHETIC, no collect capture): every request of the airlock run equals the stock run's (host and body)", () => {
     const a = posts(ours.network);
     const b = posts(stock.network);
     expect(a.map(pathOf)).toEqual(b.map(pathOf));
-    // Hosts are compared per request: only the set-consent host differs (-> 064-30).
-    expect(a.map((n) => new URL(n.url).hostname)).toEqual(["adobedc.demdex.net", ...b.slice(1).map((n) => new URL(n.url).hostname)]);
+    expect(a.map((n) => new URL(n.url).hostname)).toEqual(b.map((n) => new URL(n.url).hostname));
     expect(new URL(b[0].url).hostname).toBe("edge.adobedc.net");
-    expect(diffBodies(normalised(a[0].body), normalised(b[0].body)).sort()).toEqual([...CONSENT_BODY, IDENTITY_FETCH].sort());
-    for (const k of [1, 2, 3]) expect(diffBodies(normalised(a[k].body), normalised(b[k].body))).toEqual([IDENTITY_FETCH]);
+    expect(diffBodies(normalised(a[0].body), normalised(b[0].body))).toEqual([]);
+    for (const k of [1, 2, 3]) expect(diffBodies(normalised(a[k].body), normalised(b[k].body))).toEqual([]);
     // the page's data layer link event reached the airlock collect with the ACDL-built xdm and data
     const link = JSON.parse(a[3].body).events[0];
     expect(link.xdm.eventType).toBe(LINK);

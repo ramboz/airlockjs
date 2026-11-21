@@ -1,0 +1,295 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { bootAlloy, createAlloyCommandBridge, classifyAdobeConsent } from "../adapters/eds/index.js";
+
+// Slice 064-30 (ADR-0064): the stock Adobe consent path. HERMETIC tests: a fake Worker records what the
+// adapter posts; the chamber's own handling is exercised against the real worker file in the second half.
+// The real-Chromium proof (the set-consent body and host equal stock's) is test/adobe-b5-martech.test.js.
+const INTERACT = "https://adobedc.demdex.net/ee/v1/interact";
+const DS = "12345678-1234-1234-1234-123456789012";
+const entry = (extra = {}) => ({ type: "alloy", bundleUrl: "https://airlock.example/alloy.js", datastreamId: DS, orgId: "ORG@AdobeOrg", ...extra });
+
+const adobe = (value, version = "2.0") => ({ standard: "Adobe", version, value });
+const FULL = adobe({ collect: { val: "y" }, marketing: { preferred: "email", any: { val: "y" } }, personalize: { content: { val: "y" } }, share: { val: "y" } });
+const REFUSAL = adobe({ collect: { val: "n" }, personalize: { content: { val: "n" } } });
+const TCF = { standard: "IAB TCF", version: "2.0", value: "CPxyz" };
+
+class Worker {
+  constructor() { this.handlers = []; this.messages = []; this.n = 0; Worker.last = this; }
+  addEventListener(t, fn) { if (t === "message") this.handlers.push(fn); }
+  removeEventListener() {}
+  terminate() {}
+  emit(msg) { for (const h of this.handlers.slice()) h({ data: msg }); }
+  fire() {
+    this.n += 1;
+    this.emit({ type: "intercepted-fetch", id: `f${this.n}`, url: `${INTERACT}?configId=${DS}`, method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+  }
+  postMessage(m) {
+    this.messages.push(m);
+    if (m.type === "init") setTimeout(() => { this.emit({ type: "phase", name: "install" }); this.emit({ type: "phase", name: "configured" }); }, 0);
+    if (m.type === "intercepted-fetch-response") setTimeout(() => this.emit({ type: "result", summary: { booted: true }, ready: [] }), 0);
+  }
+}
+
+const tick = (ms = 30) => new Promise((r) => setTimeout(r, ms));
+let fetchMock;
+beforeEach(() => {
+  fetchMock = vi.fn(() => Promise.resolve({ status: 200, statusText: "OK", headers: { get: () => "application/json" }, text: async () => "{}" }));
+  vi.stubGlobal("Worker", Worker);
+  vi.stubGlobal("window", {});
+  vi.stubGlobal("fetch", fetchMock);
+});
+afterEach(() => vi.unstubAllGlobals());
+
+const boot = async (extra = {}) => {
+  const diags = [];
+  const handle = await bootAlloy(entry({ onDiagnostic: (d) => diags.push(d), ...extra }));
+  return { handle, diags, worker: Worker.last };
+};
+const types = (worker) => worker.messages.map((m) => m.type);
+
+describe("064-30 AC5: classifyAdobeConsent (the readable-shape rule)", () => {
+  it("sends the whole array only for one first Adobe 2.0 entry with y/n values and plain data", () => {
+    const r = classifyAdobeConsent([FULL, TCF]);
+    expect(r.kind).toBe("send");
+    expect(r.consent).toEqual([FULL, TCF]);
+    expect(r.vector).toEqual({ analytics_storage: "granted", personalization: "granted" });
+  });
+
+  it.each([
+    ["a TCF entry first", [TCF, REFUSAL]],
+    ["two Adobe entries", [REFUSAL, FULL]],
+    ["an Adobe version that is not 2.0", [adobe({ collect: { val: "y" } }, "1.0")]],
+    ["no collect", [adobe({ personalize: { content: { val: "y" } } })]],
+    ["a collect val that is not y or n", [adobe({ collect: { val: "yes" } })]],
+    ["a personalize.content val that is not y or n", [adobe({ collect: { val: "y" }, personalize: { content: { val: "maybe" } } })]],
+    ["a function inside the object", [adobe({ collect: { val: "n" }, hook: () => 1 })]],
+  ])("falls back to the vector for %s", (_name, consent) => {
+    const r = classifyAdobeConsent(consent);
+    expect(r.kind).toBe("fallback");
+    expect(r.reason).toEqual(expect.any(String));
+    expect(r.vector).toBeTruthy();
+  });
+
+  it("keeps the opt-out vector for [TCF, Adobe collect n]", () => {
+    expect(classifyAdobeConsent([TCF, REFUSAL]).vector.analytics_storage).toBe("denied");
+  });
+
+  it.each([[[]], [[TCF]], [null], ["y"]])("reports no readable Adobe entry for %j", (consent) => {
+    expect(classifyAdobeConsent(consent).kind).toBe("none");
+  });
+
+  it("never lets a non-y collect val derive a granted analytics_storage (AC2a)", () => {
+    for (const val of ["yes", "Y", "", 1, null]) {
+      expect(classifyAdobeConsent([adobe({ collect: { val } })]).vector.analytics_storage).toBe("denied");
+    }
+  });
+});
+
+describe("064-30 bridge: setConsent -> handle.setAdobeConsent", () => {
+  const rig = (handle) => {
+    const diags = [];
+    return { alloy: createAlloyCommandBridge(handle, { onDiagnostic: (d) => diags.push(d) }), diags };
+  };
+
+  it("hands the page's object to the handle and nothing else", async () => {
+    const handle = { setAdobeConsent: vi.fn(), setConsent: vi.fn() };
+    await rig(handle).alloy("setConsent", { consent: [FULL] });
+    expect(handle.setAdobeConsent).toHaveBeenCalledWith([FULL]);
+    expect(handle.setAdobeConsent.mock.calls[0]).toHaveLength(1);
+    expect(handle.setConsent).not.toHaveBeenCalled();
+  });
+
+  it("falls back to handle.setConsent(vector) for a handle with no setAdobeConsent (consent is never lost)", async () => {
+    const handle = { setConsent: vi.fn() };
+    await rig(handle).alloy("setConsent", { consent: [FULL] });
+    expect(handle.setConsent).toHaveBeenCalledWith({ analytics_storage: "granted", personalization: "granted" });
+  });
+
+  it("applies nothing and says so when there is no Adobe entry with collect or personalize", async () => {
+    const handle = { setAdobeConsent: vi.fn(), setConsent: vi.fn() };
+    const { alloy, diags } = rig(handle);
+    await alloy("setConsent", { consent: [TCF] });
+    expect(handle.setAdobeConsent).not.toHaveBeenCalled();
+    expect(handle.setConsent).not.toHaveBeenCalled();
+    expect(diags.map((d) => d.kind)).toEqual(["unsupported-consent"]);
+  });
+});
+
+describe("064-30 AC2/AC5/AC6: handle.setAdobeConsent on a booted chamber", () => {
+  it("(d) posts the object message first, then the vector message, and by return the seal holds the new vector and parked requests are released", async () => {
+    const { handle, worker } = await boot();
+    worker.fire(); // parked at the seal: no consent yet
+    await tick();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    const before = worker.messages.length;
+    handle.setAdobeConsent([FULL]);
+    expect(types(worker).slice(before)).toEqual(["adobeConsent", "setConsent"]);
+    expect(worker.messages[before].consent).toEqual([FULL]);
+    expect(worker.messages[before + 1].consent).toEqual({ analytics_storage: "granted", personalization: "granted" });
+    await tick(80);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("(a) takes the object only: an extra vector argument is ignored", async () => {
+    const { handle, worker } = await boot();
+    handle.setAdobeConsent([REFUSAL], { analytics_storage: "granted" });
+    const vector = worker.messages.filter((m) => m.type === "setConsent").at(-1).consent;
+    expect(vector.analytics_storage).toBe("denied");
+  });
+
+  it("(b, c) the object message alone neither changes the seal nor releases a held request", async () => {
+    const { handle, worker } = await boot();
+    handle.setConsent({ analytics_storage: "denied" });
+    worker.postMessage({ type: "adobeConsent", consent: [FULL] }); // a chamber-side or test-posted object
+    worker.fire();
+    await tick();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["a TCF entry first", [TCF, REFUSAL], "denied"],
+    ["a val of yes", [adobe({ collect: { val: "yes" } })], "denied"],
+    ["a version that is not 2.0", [adobe({ collect: { val: "y" } }, "1.0")], "granted"],
+    ["a function in the object", [adobe({ collect: { val: "y" }, hook: () => 1 })], "granted"],
+  ])("AC5 fallback for %s: no adobeConsent message, a diagnostic, the vector still applied", async (_n, consent, expected) => {
+    const { handle, worker, diags } = await boot();
+    handle.setAdobeConsent(consent);
+    expect(types(worker)).not.toContain("adobeConsent");
+    expect(diags.filter((d) => d.kind === "consent-object-fallback")).toHaveLength(1);
+    expect(worker.messages.filter((m) => m.type === "setConsent").at(-1).consent.analytics_storage).toBe(expected);
+  });
+
+  it("AC5: a Proxy that cannot be posted takes the fallback and the vector is still applied", async () => {
+    const { handle, worker, diags } = await boot();
+    worker.postMessage = (m) => { if (m.type === "adobeConsent") throw new Error("DataCloneError"); Worker.prototype.postMessage.call(worker, m); };
+    handle.setAdobeConsent([FULL]);
+    expect(diags.some((d) => d.kind === "consent-object-fallback")).toBe(true);
+    expect(worker.messages.filter((m) => m.type === "setConsent")).toHaveLength(1);
+  });
+
+  it("AC5: no readable Adobe entry posts nothing and leaves the seal alone", async () => {
+    const { handle, worker, diags } = await boot();
+    const before = worker.messages.length;
+    handle.setAdobeConsent([TCF]);
+    expect(worker.messages).toHaveLength(before);
+    expect(diags.some((d) => d.kind === "unsupported-consent")).toBe(true);
+  });
+
+  it("AC5: with no consent ref (consentHold:false, no consent) it does nothing, like setConsent", async () => {
+    const { handle, worker } = await boot({ consentHold: false });
+    const before = worker.messages.length;
+    handle.setAdobeConsent([FULL]);
+    handle.setConsent({ analytics_storage: "granted" });
+    expect(worker.messages).toHaveLength(before);
+  });
+
+  it("AC6: a direct handle.setConsent(vector) posts only the vector message", async () => {
+    const { handle, worker } = await boot();
+    handle.setConsent({ analytics_storage: "granted" });
+    expect(types(worker)).not.toContain("adobeConsent");
+    expect(types(worker)).toContain("setConsent");
+  });
+});
+
+describe("064-30 AC3: the thirdPartyCookiesEnabled boot option", () => {
+  it("reaches the chamber config unchanged and only when given", async () => {
+    for (const value of [true, false]) {
+      const { worker } = await boot({ thirdPartyCookiesEnabled: value });
+      expect(worker.messages.find((m) => m.type === "init").config.thirdPartyCookiesEnabled).toBe(value);
+    }
+    const { worker } = await boot();
+    expect(worker.messages.find((m) => m.type === "init").config).not.toHaveProperty("thirdPartyCookiesEnabled");
+  });
+
+  it("rejects a non-boolean with a plain Error", async () => {
+    await expect(bootAlloy(entry({ thirdPartyCookiesEnabled: "false" }))).rejects.toThrow(/thirdPartyCookiesEnabled.*boolean/);
+  });
+
+  it("does not change which hosts the seal allows", async () => {
+    for (const value of [true, false]) {
+      fetchMock.mockClear();
+      const { handle, worker } = await boot({ thirdPartyCookiesEnabled: value, consent: { analytics_storage: "granted" } });
+      handle.push({ event: "page_view", page_location: "https://site/p" });
+      worker.emit({ type: "intercepted-fetch", id: "x1", url: "https://evil.example/ee/v1/interact", method: "POST", headers: {}, body: "{}" });
+      worker.emit({ type: "intercepted-fetch", id: "x2", url: `${INTERACT}?configId=${DS}`, method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+      await tick();
+      const urls = fetchMock.mock.calls.map((c) => String(c[0]));
+      expect(urls.some((u) => u.startsWith("https://evil.example"))).toBe(false);
+      expect(urls.some((u) => u.startsWith("https://adobedc.demdex.net/"))).toBe(true);
+    }
+  });
+});
+
+describe("064-30 AC7: the chamber's use of the waiting object (real worker file)", () => {
+  let fakeSelf;
+  let alloy;
+  const send = (m) => fakeSelf.onmessage({ data: m });
+  const GRANT = { analytics_storage: "granted", personalization: "granted" };
+
+  beforeEach(async () => {
+    alloy = vi.fn(() => Promise.resolve({}));
+    fakeSelf = { postMessage: vi.fn(), alloy, fetch: vi.fn() };
+    globalThis.self = fakeSelf;
+    vi.resetModules();
+    await import("../connectors/alloy/alloy-chamber.worker.js");
+  });
+  afterEach(() => { delete globalThis.self; });
+
+  it("calls Alloy's setConsent once with the object, and a later vector-only message uses the shaped options", async () => {
+    send({ type: "adobeConsent", consent: [FULL] });
+    send({ type: "setConsent", consent: GRANT });
+    await tick(5);
+    expect(alloy).toHaveBeenCalledTimes(1);
+    expect(alloy).toHaveBeenCalledWith("setConsent", { consent: [FULL] });
+
+    send({ type: "setConsent", consent: GRANT }); // no waiting object: an older one is never reused
+    await tick(5);
+    expect(alloy).toHaveBeenCalledTimes(2);
+    expect(alloy.mock.calls[1][1].consent[0].value.collect).toEqual({ val: "y" });
+    expect(alloy.mock.calls[1][1].consent).not.toEqual([FULL]);
+  });
+
+  it("the object message alone does not call Alloy (AC2b)", async () => {
+    send({ type: "adobeConsent", consent: [FULL] });
+    await tick(5);
+    expect(alloy).not.toHaveBeenCalled();
+  });
+
+  it("drops the object under a still-pending analytics_storage, leaving Alloy's queue alone", async () => {
+    send({ type: "adobeConsent", consent: [FULL] });
+    send({ type: "setConsent", consent: { personalization: "granted" } });
+    await tick(5);
+    expect(alloy).not.toHaveBeenCalled();
+    send({ type: "setConsent", consent: GRANT });
+    await tick(5);
+    expect(alloy.mock.calls[0][1].consent).not.toEqual([FULL]); // dropped, not kept for later
+  });
+
+  it("a partial object keeps the earlier purposes in the vector and sends only what the page sent", async () => {
+    send({ type: "setConsent", consent: GRANT });
+    const partial = [adobe({ collect: { val: "n" } })];
+    send({ type: "adobeConsent", consent: partial });
+    send({ type: "setConsent", consent: { analytics_storage: "denied" } });
+    await tick(5);
+    expect(alloy.mock.calls.at(-1)).toEqual(["setConsent", { consent: partial }]);
+  });
+
+  it("ignores an object that is not plain data", async () => {
+    send({ type: "adobeConsent", consent: [{ standard: "Adobe", fn() {} }] });
+    send({ type: "setConsent", consent: GRANT });
+    await tick(5);
+    expect(alloy.mock.calls[0][1].consent[0].value.collect).toEqual({ val: "y" });
+  });
+
+  it("retries once with the vector-shaped options when Alloy rejects the object", async () => {
+    alloy.mockImplementationOnce(() => Promise.reject(new Error("invalid consent")));
+    send({ type: "adobeConsent", consent: [FULL] });
+    send({ type: "setConsent", consent: GRANT });
+    await tick(10);
+    expect(alloy).toHaveBeenCalledTimes(2);
+    expect(alloy.mock.calls[0][1]).toEqual({ consent: [FULL] });
+    expect(alloy.mock.calls[1][1].consent).not.toEqual([FULL]);
+    expect(fakeSelf.postMessage.mock.calls.some(([m]) => m.name === "consent-object-rejected")).toBe(true);
+  });
+});
