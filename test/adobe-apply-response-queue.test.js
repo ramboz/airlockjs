@@ -166,4 +166,27 @@ describe("064-29 redirect display: track and the consent ring (hermetic)", () =>
     const dropped = diags.filter((d) => d.disposition === "redirect-display-failed" && /dropped by the consent hold ring/.test(d.reason));
     expect(dropped.length).toBeGreaterThan(0);
   }, 20000);
+
+  it("round 1: a page-supplied viewCacheWarm never reaches the chamber, even on a notification-shaped event", async () => {
+    const { handle, worker } = await boot({ consent: GRANTED });
+    handle.push({ event: "x", viewCacheWarm: true, xdm: { eventType: "decisioning.propositionDisplay" } });
+    handle.push({ ...view("a"), viewCacheWarm: true });
+    await tick(100);
+    for (const e of sentEvents(worker)) expect(e.params).not.toHaveProperty("viewCacheWarm");
+  });
+
+  it("round 1: the redirect display an in-flight applyResponse queues is sent ahead of the push waiting on that applyResponse", async () => {
+    const { handle, worker } = await boot({ consent: GRANTED, redirectTimeoutMs: 5000 });
+    await tick(20);
+    const applied = handle.command("applyResponse", { responseBody: {}, renderDecisions: true });
+    await tick(20);
+    handle.push(view("a"));
+    const cmd = worker.messages.find((m) => m.type === "command");
+    worker.emit({ type: "command-result", id: cmd.id, result: { propositions: [REDIRECT] } });
+    await tick(300);
+    const sent = sentEvents(worker);
+    expect(sent.findIndex(isDisplay)).toBe(0);
+    expect(sent.length).toBeGreaterThan(1);
+    await applied;
+  });
 });

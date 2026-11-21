@@ -105,5 +105,6 @@ Question: does `evaluateRulesets` join the allowlist? Recommended: no. Owner: "Y
 - `applyResponse` with `renderDecisions:true` passes no `metadata` to the renderer; the display notification gap is the one `applyPropositions` already has (064-24/25).
 - A render failure rejects the call with a plain `Error` that names rendering; after `dispose` the render step is skipped.
 - The ADR-0060 open question "which host observations must complete before an SDK operation settles" is answered here for `applyResponse` only; ADR-0060 stays Proposed.
+- A `push` enqueued while an `applyResponse` is in flight waits for it before it is sent (stock runs its commands in order, 064-29); a redirect display that `applyResponse` queues is still sent first. Other commands do not gate a push.
 - The no-consent-input warning now also fires when `command("getIdentity")` is called, so a page that only uses commands gets the same warning a `push` raises. Calls to the other four commands do not warn: they settle under a hold.
 - Recorded against stock for `applyResponse({renderDecisions: true})`: stock also sends a display notification and drops rendered propositions from `decisions`; the handle does neither (slice 064-26 notes).

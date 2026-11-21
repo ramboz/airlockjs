@@ -2063,14 +2063,16 @@ export async function bootAlloy(opts = {}) {
   const consentOpen = () => resolveConsent(consentRef, "analytics_storage") === "granted";
   /** Tells the connector (in the chamber) the host view cache is warm, so it adds no declared scopes: stock sends none for a call that passes none (064-29). */
   const withCacheHint = (event) => {
-    if (!event || isNotificationDescriptor(event)) return event;
+    if (!event) return event;
+    // Strip first: a page-supplied flag must never reach the connector, even on an event the host classes as a notification.
     const { viewCacheWarm: _ignored, ...params } = event.params || {};
+    if (isNotificationDescriptor(event)) return { ...event, params };
     return { ...event, params: viewCache.isInitialized() ? { ...params, viewCacheWarm: true } : params };
   };
   let wake = null;
   const runEntry = async ({ event, resolve, reject, gate }) => {
     const notification = isNotificationDescriptor(event);
-    if (gate) await gate;
+    if (gate) await drainDisplaysUntil(gate);
     currentEvent = personalizationConfigured ? eventContext(event) : null;
     const ctx = currentEvent;
     try {
@@ -2089,13 +2091,16 @@ export async function bootAlloy(opts = {}) {
   };
   // Wait for the event's deliveries. A redirect display is tracked as a delivery (064-29) and queued behind this
   // event, so while waiting the pump sends any display queued at the front itself, or the wait could never end.
-  const settleDeliveries = async (ctx) => {
+  const settleDeliveries = (ctx) => drainDisplaysUntil(deliveries.settled(), ctx);
+  // Waits for `promise`, sending any front-queued display meanwhile: a display queued by a command (applyResponse)
+  // that the head entry is gated on must not wait behind that gate (064-29).
+  const drainDisplaysUntil = async (promise, ctx) => {
     let done = false;
-    const all = deliveries.settled().then(() => { done = true; });
+    const all = promise.then(() => { done = true; });
     while (!done) {
       if (waiting.length && waiting[0].display) {
         await runEntry(waiting.shift());
-        currentEvent = ctx;
+        currentEvent = ctx || null;
         continue;
       }
       await Promise.race([all, new Promise((r) => { wake = r; })]);
