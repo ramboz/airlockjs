@@ -13,6 +13,8 @@ Two tag families:
 
 ## [Unreleased]
 
+- `feat(adobe)`: stock Adobe consent path (ADR-0064, 064-30): `handle.setAdobeConsent`, `thirdPartyCookiesEnabled` boot option.
+
 ## [0.8.0] — 2026-09-14 — MVP8 (Ad-Conversion Offloading)
 
 The ad-conversion tags that carry ~two-thirds of the reference site's martech TBT are now rewired off-thread,

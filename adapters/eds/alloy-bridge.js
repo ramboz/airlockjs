@@ -44,7 +44,8 @@ export function consentToVector(consent) {
  */
 export function classifyAdobeConsent(consent) {
   let plain = null;
-  let problem = plainDataProblem(consent, "consent");
+  let problem;
+  try { problem = plainDataProblem(consent, "consent"); } catch (e) { problem = `consent could not be inspected (${e && e.message})`; }
   if (!problem) {
     try { plain = JSON.parse(JSON.stringify(consent)); } catch (e) { problem = `consent could not be copied (${e && e.message})`; }
   }
@@ -68,7 +69,7 @@ export function classifyAdobeConsent(consent) {
 const clone = (x) => (x === undefined ? undefined : JSON.parse(JSON.stringify(x)));
 
 /**
- * @param {{ push: Function, setConsent: Function, applyPropositions: Function, command: Function }} handle a `bootAlloy` handle
+ * @param {{ push: Function, setConsent: Function, setAdobeConsent?: Function, applyPropositions: Function, command: Function }} handle a `bootAlloy` handle
  * @param {{ onDiagnostic?: (record: object) => void }} [opts]
  * @returns {(command: string, options?: object) => Promise<unknown>} a stock-shaped `alloy(command, options)`
  */
@@ -111,7 +112,8 @@ export function createAlloyCommandBridge(handle, opts = {}) {
   };
 
   const setConsent = async (options = {}) => {
-    const vector = consentToVector(options.consent);
+    let vector;
+    try { vector = consentToVector(options.consent); } catch { vector = null; }
     if (!vector) diagnose({ level: "warn", kind: "unsupported-consent", reason: "setConsent carried no Adobe 2.0 collect/personalize value; nothing was applied" });
     else if (typeof handle.setAdobeConsent === "function") handle.setAdobeConsent(options.consent);
     else handle.setConsent(vector);

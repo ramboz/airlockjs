@@ -10,7 +10,7 @@ last_verified: 2026-11-20
 
 **DoR:**
 - ✅ ADR-0062 amendment (068-02) built; the opt-out forward exists.
-- ⬜ 064-30 built (the page's full object now travels through the forward; ADR-0064 point 6).
+- ✅ 064-30 built (the page's full object now travels through the forward; ADR-0064 point 6).
 
 **Acceptance Criteria:**
 

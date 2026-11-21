@@ -15,7 +15,7 @@ last_verified: 2026-11-20
 **Acceptance Criteria:**
 
 1. Decision is one of drop-in, wrapper or not viable, with evidence. **Met: wrapper** (inside ADR-0063; Findings).
-2. Fixture S10 (POC site, `aem-martech` + ACDL + Alloy 2.31.1, no Launch, D10) compares clean, except the set-consent request (body and host) -> 064-30 and the identity fetch list `["ECID","CORE"]` vs `["ECID"]` -> 064-31.
+2. Fixture S10 (POC site, `aem-martech` + ACDL + Alloy 2.31.1, no Launch, D10) compares clean, except the set-consent request (body and host, closed by 064-30) and the identity fetch list `["ECID","CORE"]` vs `["ECID"]` -> 064-31.
 3. The Launch bridge is a gap row owned here (D10): tagged `live-only` (no Launch property exists; the journey loads none).
 
 **DoD:**

@@ -131,6 +131,13 @@ describe("064-30 AC2/AC5/AC6: handle.setAdobeConsent on a booted chamber", () =>
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("a partial object keeps the earlier purposes in the vector the adapter posts", async () => {
+    const { handle, worker } = await boot();
+    handle.setConsent({ analytics_storage: "granted", personalization: "granted" });
+    handle.setAdobeConsent([adobe({ collect: { val: "n" } })]);
+    expect(worker.messages.filter((m) => m.type === "setConsent").at(-1).consent).toEqual({ analytics_storage: "denied", personalization: "granted" });
+  });
+
   it("(a) takes the object only: an extra vector argument is ignored", async () => {
     const { handle, worker } = await boot();
     handle.setAdobeConsent([REFUSAL], { analytics_storage: "granted" });
@@ -138,13 +145,14 @@ describe("064-30 AC2/AC5/AC6: handle.setAdobeConsent on a booted chamber", () =>
     expect(vector.analytics_storage).toBe("denied");
   });
 
-  it("(b, c) the object message alone neither changes the seal nor releases a held request", async () => {
-    const { handle, worker } = await boot();
-    handle.setConsent({ analytics_storage: "denied" });
-    worker.postMessage({ type: "adobeConsent", consent: [FULL] }); // a chamber-side or test-posted object
+  it("(b, c) an adobeConsent message from the chamber neither changes the seal nor releases a held request", async () => {
+    const { handle, worker } = await boot({ consent: { analytics_storage: "denied" } });
     worker.fire();
+    worker.emit({ type: "adobeConsent", consent: [FULL] });
+    worker.emit({ type: "setConsent", consent: { analytics_storage: "granted" } });
     await tick();
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(handle.getState().consentHeld).toBe(1);
   });
 
   it.each([
@@ -160,12 +168,20 @@ describe("064-30 AC2/AC5/AC6: handle.setAdobeConsent on a booted chamber", () =>
     expect(worker.messages.filter((m) => m.type === "setConsent").at(-1).consent.analytics_storage).toBe(expected);
   });
 
-  it("AC5: a Proxy that cannot be posted takes the fallback and the vector is still applied", async () => {
+  it("AC5: a Proxy whose traps throw never loses the call: nothing is posted and a diagnostic says so", async () => {
     const { handle, worker, diags } = await boot();
-    worker.postMessage = (m) => { if (m.type === "adobeConsent") throw new Error("DataCloneError"); Worker.prototype.postMessage.call(worker, m); };
-    handle.setAdobeConsent([FULL]);
-    expect(diags.some((d) => d.kind === "consent-object-fallback")).toBe(true);
-    expect(worker.messages.filter((m) => m.type === "setConsent")).toHaveLength(1);
+    const before = worker.messages.length;
+    const bad = new Proxy([], { getPrototypeOf() { throw new Error("trap"); }, ownKeys() { throw new Error("trap"); } });
+    expect(() => handle.setAdobeConsent(bad)).not.toThrow();
+    expect(worker.messages).toHaveLength(before);
+    expect(diags.some((d) => d.kind === "unsupported-consent")).toBe(true);
+  });
+
+  it("AC5: a revoked Proxy does not throw out of the bridge's setConsent", async () => {
+    const { handle } = await boot();
+    const { proxy, revoke } = Proxy.revocable([], {});
+    revoke();
+    await expect(createAlloyCommandBridge(handle)("setConsent", { consent: proxy })).resolves.toEqual({});
   });
 
   it("AC5: no readable Adobe entry posts nothing and leaves the seal alone", async () => {
@@ -189,6 +205,20 @@ describe("064-30 AC2/AC5/AC6: handle.setAdobeConsent on a booted chamber", () =>
     handle.setConsent({ analytics_storage: "granted" });
     expect(types(worker)).not.toContain("adobeConsent");
     expect(types(worker)).toContain("setConsent");
+  });
+});
+
+describe("064-30 AC4: the full-object refusal still forwards (068-02 opt-out)", () => {
+  it("a refusal sent through setAdobeConsent forwards only consent and meta, with the full object inside consent", async () => {
+    const { handle, worker } = await boot();
+    handle.setAdobeConsent([REFUSAL]);
+    const body = JSON.stringify({ consent: [REFUSAL], query: { identity: { fetch: ["ECID"] } }, meta: { state: { domain: "site.example" } } });
+    worker.emit({ type: "intercepted-fetch", id: "o1", url: "https://adobedc.demdex.net/ee/v1/privacy/set-consent?configId=" + DS, method: "POST", headers: {}, body });
+    await tick(60);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(Object.keys(sent).sort()).toEqual(["consent", "meta"]);
+    expect(sent.consent).toEqual([REFUSAL]);
   });
 });
 

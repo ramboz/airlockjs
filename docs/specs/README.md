@@ -212,7 +212,7 @@ do not grant live authority.
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-27 — Alloy storage grant | DONE |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-28 — applyResponse warms the host view cache | DONE |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-29 — first push after applyResponse matches stock | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-30 — stock Adobe consent path (set-consent body and host match stock; ADR-0064) | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-30 — stock Adobe consent path (set-consent body and host match stock; ADR-0064) | DONE |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-31 — stock `alloy()` wrapper parity (identity list, `sendEvent` result, hook argument, configure diagnostics, `setConsent` promise) | READY_FOR_IMPLEMENTATION |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-32 — first push query edge cases match stock | READY_FOR_IMPLEMENTATION |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-33 — the opt-out forward carries only the consent the page gave | READY_FOR_IMPLEMENTATION |  |
