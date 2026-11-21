@@ -1,0 +1,41 @@
+---
+status: IN_PROGRESS
+skill: jig:spec-workflow
+use_cases: [UC-2, UC-7]
+---
+
+# Spec 069: Airlock martech library (ADR-0065)
+
+> Implements [ADR-0065](../../decisions/adr-0065-airlock-martech-library.md) (Proposed 2026-11-21; slices are built only after the owner accepts it).
+> Pinned inputs: `aem-martech` 1aa3dee3 `src/index.js` (Apache-2.0), Alloy 2.31.1, the frozen S10 corpus. Definition of done: [ADR-0061](../../decisions/adr-0061-definition-of-done-vendor-compatibility.md).
+> Lives on `vendor-adobe` with the Alloy connector work.
+
+## 0. Summary for the owner
+
+**What changes.** A new module, `adapters/eds/martech.js`, gives Adobe EDS sites the `aem-martech` calls (`initMartech`, `martechEager`, `martechLazy`, `martechDelayed`, `updateUserConsent`, `sendEvent` and the rest) on top of the Airlock `bootAlloy` handle. Alloy runs in the chamber. No `window.alloy` exists.
+
+**Why it matters.** The stock `aem-martech` needs a page-global `alloy` and loads Alloy on the main thread. The owner declined shipping that global (2026-11-20). This library is the product path for Adobe sites that today use `aem-martech`.
+
+**Main tradeoff.** Source-compatible at the export level, not a drop-in for code that calls `window.alloy` directly. `martechDelayed` does not load Launch containers.
+
+**What needs you.** The ADR's one question (the data layer) and its acceptance. Nothing else.
+
+## 1. Scope
+
+In scope: the library, the three handle additions it needs (`handle.sendEvent`, `handle.applyPropositions({ viewName })`, a settling `handle.setAdobeConsent`), the S10 differential's third arm, the docs.
+
+Out of scope: Launch container loading, a package split, freezing the library under ADR-0017, any `core/` change, any ADR-0063 allowlist change.
+
+## 2. Decomposition
+
+| Slice | One line |
+|---|---|
+| [069-01](slice-01-handle-results.md) | The handle returns what stock returns: `sendEvent` result, the hook's `xdm`, a throwing hook, `applyPropositions({ viewName })`, a settling `setAdobeConsent` |
+| [069-02](slice-02-martech-library.md) | `adapters/eds/martech.js`: the 14 `aem-martech` exports on the handle, no page global, proven against the recording and the stock run |
+
+Order: 069-01, then 069-02.
+
+## 3. Boundaries
+
+- Slice 064-31 (wrapper parity) was re-scoped against ADR-0065: AC2, AC3, AC5 and AC8 moved to 069-01, AC6 and AC7 to 069-02, AC1 dropped. See its file.
+- Slices 064-32 and 064-33 are untouched.

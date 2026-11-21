@@ -52,6 +52,7 @@
 - [ADR-0061: Definition of done for vendor compatibility work](adr-0061-definition-of-done-vendor-compatibility.md) — Fixtures prove each slice, one live check per release, and each vendor's parity inventory is frozen per pinned version. (2026-11-12, Accepted)
 - [ADR-0062: Stock-default parity on every vendor track](adr-0062-stock-default-parity.md) — Airlock matches the stock vendor tag's default behaviour on every track; privacy controls are opt-in, with two privacy-first exceptions: the consent hold and the credentials denylist. (2026-11-13, Accepted)
 - [ADR-0064: Stock Adobe consent path](adr-0064-stock-adobe-consent-path.md) — `handle.setAdobeConsent(object)` passes the page's Adobe 2.0 consent object to Alloy while the seal decides from the derived vector; a `thirdPartyCookiesEnabled` boot option. (2026-11-20, Accepted)
+- [ADR-0065: Airlock martech library](adr-0065-airlock-martech-library.md) — a new Airlock-native `aem-martech`-shaped module (`adapters/eds/martech.js`) that calls the `bootAlloy` handle directly, with no page `window.alloy` (Proposed).
 - [ADR-0063: Host command entry on the bootAlloy handle](adr-0063-host-command-entry.md) — a mediated, allowlisted, promise-returning `handle.command(name, options)` for five Alloy commands; `evaluateRulesets` stays rig-only. (2026-11-20, Accepted)
 
 ADR-0031 to ADR-0037 belong to the personalization branch, and the other vendor-specific ADRs (0041-0043, 0048, 0052-0058) live on their vendor branches. See [renumbering-2026-11.md](renumbering-2026-11.md) for the full old-to-new map.
