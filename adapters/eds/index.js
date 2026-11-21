@@ -50,7 +50,7 @@ import { htmlOfDecision } from "../../connectors/alloy/decisions.js";
 import { createPropositionExposureReporter, PROPOSITION_EXPOSURE_EVENT } from "./decisions-exposure.js";
 import { VIEW_SCOPE, firstDuplicateScope } from "./placements.js";
 import { createHostCommandEntry } from "./host-command.js";
-import { createPropositionRenderer, createViewCache, createDeliveryTracker, isViewProposition, displayNotificationXdm, applyPrehidingStyle } from "./personalization-render.js";
+import { REDIRECT_DISPLAY_WAIT_MS, createPropositionRenderer, createViewCache, createDeliveryTracker, isViewProposition, displayNotificationXdm, applyPrehidingStyle } from "./personalization-render.js";
 import { installLinkClickCollection } from "./link-click.js";
 import { sourceGa4Ctx, writeGa4SessionState } from "../../connectors/ga4/cookies.js";
 import { shapeMpConsent } from "../../connectors/ga4/consent.js";
@@ -1590,7 +1590,7 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer,
     // The fetch answer renders the named view too (stock's first request); a warm cache was handled before the send.
     if (render && ctx && ctx.viewName && !ctx.warm && !ctx.viewHandled) {
       ctx.viewHandled = true;
-      const out = await renderer.render(viewCache.get(ctx.viewName));
+      const out = await renderer.render(viewCache.getLatest(ctx.viewName));
       noteAttempts(ctx, out.propositions);
       displayed.push(...out.displayed);
     }
@@ -1877,10 +1877,13 @@ export async function bootAlloy(opts = {}) {
   };
   // 064-28: stock's `applyResponse` runs the personalization `onBeforeEvent`, so an applied response warms the view cache
   // (and initializes it, even with nothing view-scoped in it) exactly as a fetched one does.
+  // 064-29: it merges into the cache but is not the "latest" fetched storage a named view is answered from.
   const cacheAppliedResponse = (responseBody) => {
-    if (personalizationConfigured) viewCache.store(viewPropositionsOf(responseBody && responseBody.handle));
+    viewCache.store(viewPropositionsOf(responseBody && responseBody.handle), { fetched: false });
   };
-  const commands = createHostCommandEntry({ worker, renderer, onApplyResponse: cacheAppliedResponse });
+  const commands = createHostCommandEntry({ worker, renderer, onApplyResponse: cacheAppliedResponse, diagnose });
+  // 064-29: stock runs its commands in call order, so a push enqueued while an `applyResponse` is still in flight waits for it.
+  const applyInFlight = new Set();
   const rulesetSubscribers = new Set();
   const deliveries = createDeliveryTracker();
   let notifyDisplayed = () => {};
@@ -2026,9 +2029,17 @@ export async function bootAlloy(opts = {}) {
     return {
       viewName: typeof name === "string" && name ? name : undefined,
       render: typeof prm.renderDecisions === "boolean" ? prm.renderDecisions : opts.renderDecisions !== false,
-      warm: viewCache.isInitialized(),
+      // A push that carries a personalization query fetches, and stock answers its named view from that fetch alone (064-29).
+      warm: viewCache.isInitialized() && !carriesQuery(prm),
+      fetches: viewCache.fetchCount(),
       viewHandled: false,
     };
+  };
+  /** Would stock's `sendEvent` for these params send a personalization query on a warm cache? (Per-call scopes, surfaces, or an explicit default.) */
+  const carriesQuery = (prm) => {
+    const pzn = prm.personalization && typeof prm.personalization === "object" && !Array.isArray(prm.personalization) ? prm.personalization : {};
+    const scopes = [...(Array.isArray(prm.decisionScopes) ? prm.decisionScopes : []), ...(Array.isArray(pzn.decisionScopes) ? pzn.decisionScopes : [])];
+    return scopes.some((x) => typeof x === "string" && x) || (Array.isArray(pzn.surfaces) && pzn.surfaces.some((x) => typeof x === "string" && x)) || pzn.defaultPersonalizationEnabled === true;
   };
   const withViewDisplay = async (event, viewName) => {
     const out = await renderer.render(viewCache.get(viewName));
@@ -2044,32 +2055,57 @@ export async function bootAlloy(opts = {}) {
   /** After an event settles: an answer that carried no decisions still gets the named view's display; a page view warms the cache. */
   const finishEvent = async (ctx) => {
     if (!ctx) return;
-    if (ctx.render && ctx.viewName && !ctx.warm && !ctx.viewHandled && viewCache.isInitialized()) {
-      const out = await renderer.render(viewCache.get(ctx.viewName));
+    if (ctx.render && ctx.viewName && !ctx.warm && !ctx.viewHandled && viewCache.fetchCount() > ctx.fetches) {
+      const out = await renderer.render(viewCache.getLatest(ctx.viewName));
       if (out.displayed.length) notifyDisplayed(out.displayed, ctx.viewName);
     }
   };
   const consentOpen = () => resolveConsent(consentRef, "analytics_storage") === "granted";
+  /** Tells the connector (in the chamber) the host view cache is warm, so it adds no declared scopes: stock sends none for a call that passes none (064-29). */
+  const withCacheHint = (event) => {
+    if (!event || isNotificationDescriptor(event)) return event;
+    const { viewCacheWarm: _ignored, ...params } = event.params || {};
+    return { ...event, params: viewCache.isInitialized() ? { ...params, viewCacheWarm: true } : params };
+  };
+  let wake = null;
+  const runEntry = async ({ event, resolve, reject, gate }) => {
+    const notification = isNotificationDescriptor(event);
+    if (gate) await gate;
+    currentEvent = personalizationConfigured ? eventContext(event) : null;
+    const ctx = currentEvent;
+    try {
+      sendStockContext();
+      let toSend = withCacheHint(event);
+      // A warm view cache answers a push naming a view without a request: render it and fold its display
+      // notification into this event, as stock does.
+      if (ctx && ctx.warm && ctx.viewName && ctx.render) toSend = await withViewDisplay(toSend, ctx.viewName);
+      resolve(toSend ? await host.driveEvent(toSend) : undefined);
+    } catch (e) {
+      reject(e);
+    } finally {
+      if (!notification) { await settleDeliveries(ctx); await finishEvent(ctx); endPrehiding(); }
+      currentEvent = null;
+    }
+  };
+  // Wait for the event's deliveries. A redirect display is tracked as a delivery (064-29) and queued behind this
+  // event, so while waiting the pump sends any display queued at the front itself, or the wait could never end.
+  const settleDeliveries = async (ctx) => {
+    let done = false;
+    const all = deliveries.settled().then(() => { done = true; });
+    while (!done) {
+      if (waiting.length && waiting[0].display) {
+        await runEntry(waiting.shift());
+        currentEvent = ctx;
+        continue;
+      }
+      await Promise.race([all, new Promise((r) => { wake = r; })]);
+      wake = null;
+    }
+  };
   const pump = async () => {
     if (running) return;
     running = true;
-    while (waiting.length) {
-      const { event, resolve, reject } = waiting.shift();
-      currentEvent = personalizationConfigured ? eventContext(event) : null;
-      try {
-        sendStockContext();
-        let toSend = event;
-        // A warm view cache answers a push naming a view without a request: render it and fold its display
-        // notification into this event, as stock does.
-        if (currentEvent && currentEvent.warm && currentEvent.viewName && currentEvent.render) toSend = await withViewDisplay(event, currentEvent.viewName);
-        resolve(toSend ? await host.driveEvent(toSend) : undefined);
-      } catch (e) {
-        reject(e);
-      } finally {
-        if (!isNotificationDescriptor(event)) { await deliveries.settled(); await finishEvent(currentEvent); endPrehiding(); }
-        currentEvent = null;
-      }
-    }
+    while (waiting.length) await runEntry(waiting.shift());
     running = false;
   };
   // Stock Alloy remembers the last page name (`webPageDetails.name`) and reuses it as the link-click `activitymap.page`.
@@ -2086,18 +2122,22 @@ export async function bootAlloy(opts = {}) {
       });
     }
   };
-  const enqueue = (event, { front = false } = {}) => {
+  const enqueue = (event, { front = false, onDrop } = {}) => {
     const prm = event && event.params;
     const nm = prm && ((prm.xdm && prm.xdm.web && prm.xdm.web.webPageDetails && prm.xdm.web.webPageDetails.name) || prm.page_title);
     if (nm && !(prm.xdm && /^web\.webinteraction\./.test(prm.xdm.eventType || ""))) lastPageName = nm;
     warnNoConsentInput();
     const run = new Promise((resolve, reject) => {
-      if (front) waiting.unshift({ event, resolve, reject }); else waiting.push({ event, resolve, reject });
+      const entry = { event, resolve, reject, display: front, onDrop, gate: !front && !isNotificationDescriptor(event) && applyInFlight.size ? Promise.all([...applyInFlight]) : null };
+      if (front) waiting.unshift(entry); else waiting.push(entry);
+      if (wake) wake();
       if (consentRef && !consentOpen()) {
         while (waiting.length > MAX_HELD_BEACONS) {
-          // A redirect display queued at the front is the newest entry; drop the oldest held event instead.
-          const dropped = front && waiting.length > 1 ? waiting.splice(1, 1)[0] : waiting.shift();
+          // A redirect display (always at the front) is kept: the oldest held event goes instead (064-29); with only displays held, the oldest display.
+          const at = waiting.findIndex((w) => !w.display);
+          const dropped = waiting.splice(at < 0 ? waiting.length - 1 : at, 1)[0];
           dropped.resolve(undefined);
+          if (typeof dropped.onDrop === "function") dropped.onDrop();
           warnDiagnostic({
             level: "warn",
             kind: "consent",
@@ -2123,7 +2163,7 @@ export async function bootAlloy(opts = {}) {
     return { type: event, params };
   };
 
-  redirectDisplay = (displayed) => new Promise((resolve) => {
+  const sendRedirectDisplay = (displayed) => new Promise((resolve) => {
     const ids = displayed.map((d) => JSON.stringify(d.id));
     let issued = false;
     const watch = {
@@ -2139,10 +2179,24 @@ export async function bootAlloy(opts = {}) {
     // A display that never leaves (held at the seal, dropped) must not leave its watch behind.
     // The request is issued after its event settles, so only this timer (not the event) may retire the watch.
     setTimeout(() => redirectWatches.delete(watch), 60000);
-    const run = enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed), documentUnloading: true } }, { front: true });
+    const run = enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed), documentUnloading: true } }, {
+      front: true,
+      // A display the consent ring drops never leaves: settle the caller now rather than leaving it to the renderer's timer.
+      onDrop: () => { redirectWatches.delete(watch); resolve({ sent: false, reason: "dropped by the consent hold ring" }); },
+    });
     run.catch((e) => resolve({ sent: false, reason: String((e && e.message) || e) }));
     // Queued ahead of every waiting page event, so the pump (one event at a time) sends it before any of them.
   });
+  // 064-29: the display's send is part of the delivery that started the redirect, so `track` waits until it has been issued.
+  redirectDisplay = (displayed) => {
+    const sent = sendRedirectDisplay(displayed);
+    // Bounded like the renderer's own wait, so a display that never matches its watch cannot stall the pump.
+    deliveries.track(new Promise((resolve) => {
+      const timer = setTimeout(resolve, opts.redirectDisplayTimeoutMs ?? REDIRECT_DISPLAY_WAIT_MS);
+      sent.then(() => { clearTimeout(timer); resolve(); });
+    }));
+    return sent;
+  };
   notifyDisplayed = (displayed, viewName) => { enqueue({ type: "page_view", params: { xdm: displayNotificationXdm(displayed, viewName) } }); };
   // Stock attaches its click listener whatever `clickCollectionEnabled` says; the flag only drops the link details, not the proposition interact.
   const uninstallClicks = typeof document !== "undefined"
@@ -2179,7 +2233,13 @@ export async function bootAlloy(opts = {}) {
     command: (name, options) => {
       // getIdentity is the one command that can park under the hold: say why, once, as `push` does.
       if (name === "getIdentity") warnNoConsentInput();
-      return commands.command(name, options);
+      const run = commands.command(name, options);
+      if (name === "applyResponse") {
+        const settled = run.then(() => {}, () => {});
+        applyInFlight.add(settled);
+        settled.then(() => applyInFlight.delete(settled));
+      }
+      return run;
     },
     /** 064-20 M3: ruleset items arrive as data through `decisions`; returns the unsubscribe. */
     subscribeRulesetItems: ({ surfaces, schemas, callback } = {}) => {

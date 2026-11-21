@@ -15,10 +15,11 @@ const REDIRECT = { id: "rp", scope: "__view__", scopeDetails: { decisionProvider
 const CART = { id: "vc", scope: "cart", scopeDetails: { decisionProvider: "TGT", activity: { id: "b" }, characteristics: { scopeType: "view" } }, items: [{ id: "c1", schema: `${NS}html-content-item`, data: { content: "<b>cart</b>" } }] };
 
 class Worker {
-  constructor() { this.handlers = []; this.messages = []; this.queue = []; this.vector = null; this.n = 0; Worker.last = this; }
+  constructor() { this.handlers = []; this.messages = []; this.queue = []; this.vector = null; this.n = 0; this.held = []; Worker.last = this; }
   addEventListener(t, fn) { if (t === "message") this.handlers.push(fn); }
   removeEventListener() {}
   terminate() {}
+  release() { for (const e of this.held.splice(0)) this.fire(Worker.body(e)); }
   emit(msg) { for (const h of this.handlers.slice()) h({ data: msg }); }
   fire(body) {
     this.n += 1;
@@ -31,7 +32,13 @@ class Worker {
       setTimeout(() => { this.emit({ type: "phase", name: "install" }); this.emit({ type: "phase", name: "configured" }); }, 0);
     } else if (m.type === "event") {
       if (shapeAlloyBoot(this.vector).defaultConsent === "pending") this.queue.push(m.event);
-      else setTimeout(() => this.fire(Worker.body(m.event)), 0);
+      else if (Worker.holdDisplays && m.event.params && m.event.params.documentUnloading) this.held.push(m.event);
+      else {
+        setTimeout(() => {
+          this.fire(Worker.body(m.event));
+          if (Worker.decide && !(m.event.params && m.event.params.documentUnloading)) this.emit({ type: "decisions", decisions: Worker.decide });
+        }, 0);
+      }
     } else if (m.type === "setConsent") {
       this.vector = { ...(this.vector || {}), ...m.consent };
       if (shapeAlloyBoot(this.vector).setConsentOptions?.consent[0].value.collect.val === "y") {
@@ -42,7 +49,8 @@ class Worker {
     }
   }
 }
-Worker.body = () => "{}";
+const defaultBody = (event) => (event && event.params && event.params.documentUnloading ? JSON.stringify(event.params.xdm) : "{}");
+Worker.body = defaultBody;
 
 const tick = (ms = 40) => new Promise((r) => setTimeout(r, ms));
 const view = (name) => ({ event: "page_view", page_location: "https://site/p", xdm: { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name, viewName: name } } } });
@@ -54,7 +62,9 @@ let replaced;
 beforeEach(() => {
   replaced = [];
   responseBody = "{}";
-  Worker.body = () => "{}";
+  Worker.body = defaultBody;
+  Worker.holdDisplays = false;
+  Worker.decide = null;
   vi.stubGlobal("Worker", Worker);
   vi.stubGlobal("window", { location: { replace: (u) => replaced.push(u) } });
   vi.stubGlobal("document", { cookie: "", querySelectorAll: () => [], addEventListener() {}, removeEventListener() {}, documentElement: { appendChild() {} }, createElement: () => ({ remove() {} }) });
@@ -103,4 +113,57 @@ describe("064-28 pump ordering (hermetic)", () => {
     expect(sentEvents(worker).length).toBeGreaterThan(before);
     expect(sentEvents(worker).some((e) => !isDisplay(e) && e.params.xdm.web.webPageDetails.name === "cart")).toBe(true);
   });
+});
+
+describe("064-29 redirect display: track and the consent ring (hermetic)", () => {
+  const stubPrehiding = () => {
+    const styles = new Map();
+    vi.stubGlobal("document", {
+      cookie: "", querySelectorAll: () => [], addEventListener() {}, removeEventListener() {}, documentElement: { appendChild() {} }, head: { appendChild: (el) => styles.set(el.id, el) },
+      createElement: () => { const el = { remove() { styles.delete(el.id); } }; return el; }, getElementById: (id) => styles.get(id) || null,
+    });
+    return styles;
+  };
+
+  it("AC3: an answer that starts a redirect keeps its delivery pending until the display's send is issued", async () => {
+    const styles = stubPrehiding();
+    Worker.holdDisplays = true;
+    Worker.decide = [{ scope: "__view__", content: REDIRECT }];
+    const { handle, worker } = await boot({ consent: GRANTED, prehidingStyle: "body{opacity:0}" });
+    handle.push(view("a"));
+    await tick(150);
+    expect(worker.held).toHaveLength(1);
+    // The event is answered, but its delivery (the redirect's display) has not left, so the pump has not finished it.
+    expect(styles.has("alloy-prehiding")).toBe(true);
+    worker.release();
+    await tick(150);
+    expect(styles.has("alloy-prehiding")).toBe(false);
+  });
+
+  it("AC4: a later enqueue drops the oldest held page event, not the redirect display queued at the front", async () => {
+    const { handle, diags, worker } = await boot();
+    for (let i = 0; i <= MAX_HELD_BEACONS; i++) handle.push(view(`p${i}`));
+    await handle.applyPropositions({ propositions: [REDIRECT] });
+    handle.push(view("late"));
+    expect(diags.filter((d) => d.kind === "consent" && d.disposition === "dropped")).toHaveLength(2);
+    handle.setConsent(GRANTED);
+    const namesNow = () => sentEvents(worker).map((e) => (isDisplay(e) ? "display" : e.params.xdm.web.webPageDetails.name));
+    await vi.waitFor(() => expect(namesNow()).toContain("late"), { timeout: 8000 });
+    const names = namesNow();
+    expect(names).toContain("display");
+    expect(names).not.toContain("p1");
+    expect(names).not.toContain("p2");
+  });
+
+  it("AC4: a redirect display the ring drops settles redirectDisplay, not only the renderer timer", async () => {
+    vi.stubGlobal("window", { location: { replace: () => { throw new Error("blocked"); } } });
+    const { handle, diags } = await boot({ redirectDisplayTimeoutMs: 1 });
+    handle.push(view("p0"));
+    for (let i = 0; i <= MAX_HELD_BEACONS; i++) {
+      await handle.applyPropositions({ propositions: [{ ...REDIRECT, id: `rp${i}` }] });
+      await tick(3);
+    }
+    const dropped = diags.filter((d) => d.disposition === "redirect-display-failed" && /dropped by the consent hold ring/.test(d.reason));
+    expect(dropped.length).toBeGreaterThan(0);
+  }, 20000);
 });

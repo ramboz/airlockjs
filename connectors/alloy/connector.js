@@ -405,6 +405,9 @@ export function createAlloyConnector(config = {}) {
       const params = (event && event.params) || {};
       const callScopes = mergeDecisionScopes(params.decisionScopes, params.personalization);
       const callPzn = perCallPersonalization(params.personalization);
+      // 064-29: the host says its view cache is already warm (an applied response). Stock sends declared scopes only on a
+      // call that passes them, so this call carries none of the configured ones, and they are spent.
+      if (params.viewCacheWarm === true) scopesSent = true;
       const bootScopes = configuredScopes.length && !scopesSent ? configuredScopes : [];
       const scopes = mergeDecisionScopes([...bootScopes, ...callScopes], null);
       if (scopes.length) options.decisionScopes = scopes;

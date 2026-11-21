@@ -182,6 +182,19 @@ describe("064-26 the main-thread entry (hermetic)", () => {
     await expect(entry.command("getLibraryInfo")).rejects.toThrow(/disposed/);
   });
 
+  it("064-29 AC6: a failure while applyResponse stores its view propositions is a warn diagnostic and never fails the command", async () => {
+    const w = fakeWorker();
+    const diags = [];
+    const { command } = createHostCommandEntry({ worker: w, renderer: rendererStub(), onApplyResponse: () => { throw new Error("store exploded"); }, diagnose: (d) => diags.push(d) });
+    configured(w);
+    const p = command("applyResponse", { responseBody: {} });
+    w.emit("message", { type: "command-result", id: w.sent[0].id, result: { propositions: [{ id: "p" }] } });
+    expect(await p).toEqual({ propositions: [{ id: "p" }] });
+    expect(diags).toHaveLength(1);
+    expect(diags[0]).toMatchObject({ level: "warn", kind: "decisions", disposition: "view-cache-failed" });
+    expect(diags[0].reason).toMatch(/store exploded/);
+  });
+
   it("applyResponse renders on the main thread only when renderDecisions is true", async () => {
     const w = fakeWorker();
     const renderer = rendererStub();

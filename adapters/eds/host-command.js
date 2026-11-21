@@ -6,10 +6,10 @@
 import { COMMAND_MESSAGE, COMMAND_RESULT_MESSAGE, errorFromEnvelope, isAllowedCommand, plainDataProblem, refusalMessage } from "../../connectors/alloy/host-commands.js";
 
 /**
- * @param {{ worker: { postMessage: Function, addEventListener: Function }, renderer: { render: Function }, onApplyResponse?: (responseBody: unknown) => void }} deps
+ * @param {{ worker: { postMessage: Function, addEventListener: Function }, renderer: { render: Function }, onApplyResponse?: (responseBody: unknown) => void, diagnose?: (d: object) => void }} deps
  * @returns {{ command: (name: string, options?: object) => Promise<unknown>, dispose: () => void }}
  */
-export function createHostCommandEntry({ worker, renderer, onApplyResponse }) {
+export function createHostCommandEntry({ worker, renderer, onApplyResponse, diagnose }) {
   let state = "booting"; // booting -> ready | failed (a terminal reason sits in `failure`)
   let failure = null;
   let seq = 0;
@@ -79,7 +79,10 @@ export function createHostCommandEntry({ worker, renderer, onApplyResponse }) {
       }).then((result) => {
         // 064-28: stock stores an applied response's view propositions in its view cache, rendering or not.
         if (name === "applyResponse" && typeof onApplyResponse === "function") {
-          try { onApplyResponse(options && options.responseBody); } catch (e) { /* a cache failure never fails the command */ }
+          try { onApplyResponse(options && options.responseBody); } catch (e) {
+            // A cache failure never fails the command, but it is reported (064-29).
+            try { if (typeof diagnose === "function") diagnose({ level: "warn", kind: "decisions", disposition: "view-cache-failed", reason: `storing the applyResponse view propositions failed (${(e && e.message) || e})` }); } catch (_) { /* the sink failed */ }
+          }
         }
         return finish(name, wantsRender, result);
       });

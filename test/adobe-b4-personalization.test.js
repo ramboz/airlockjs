@@ -707,7 +707,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     const body = (payload) => ({ requestId: "00000000-0000-0000-0000-000000000028", handle: [{ type: "personalization:decisions", payload }] });
     const empty = (req) => (req.method() === "POST" ? { status: 200, headers: { "content-type": "application/json", ...cors(req) }, body: edgeBody([]) } : { status: 204, headers: cors(req), body: "" });
     /** Stock queue stub plus the library, configured; `applyResponse` first, then each push. Records what each step did. */
-    const stockArm = (page, options, steps) => page.evaluate(async ({ options, steps, datastreamId }) => {
+    const stockArm = (page, options, steps, awaitApply = true) => page.evaluate(async ({ options, steps, datastreamId, awaitApply }) => {
       window.__alloyNS = ["stockAlloy"];
       window.stockAlloy = function () { const a = arguments; return new Promise((res, rej) => window.stockAlloy.q.push([res, rej, a])); };
       window.stockAlloy.q = [];
@@ -715,7 +715,8 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       window.stockAlloy("configure", { datastreamId, orgId: "908936ED5D35CC220A495CD4@AdobeOrg", defaultConsent: "in", debugEnabled: false });
       const dom = [];
       const returned = [];
-      await window.stockAlloy("applyResponse", options);
+      const applied = window.stockAlloy("applyResponse", options);
+      if (awaitApply) await applied;
       for (const s of steps) {
         const r = await window.stockAlloy("sendEvent", s);
         returned.push(JSON.parse(JSON.stringify(r.propositions)).map((p) => [p.scope, p.renderAttempted]));
@@ -723,9 +724,10 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
         dom.push(document.getElementById("z").outerHTML);
       }
       return { dom, returned };
-    }, { options, steps, datastreamId: DATASTREAM });
-    const ourArm = (page, options, steps) => page.evaluate(async ({ options, steps }) => {
-      await window.__handle.command("applyResponse", options);
+    }, { options, steps, datastreamId: DATASTREAM, awaitApply });
+    const ourArm = (page, options, steps, awaitApply = true) => page.evaluate(async ({ options, steps, awaitApply }) => {
+      const applied = window.__handle.command("applyResponse", options);
+      if (awaitApply) await applied;
       const dom = [];
       for (const s of steps) {
         await window.__handle.push({ event: "page_view", ...s });
@@ -733,7 +735,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
         dom.push(document.getElementById("z").outerHTML);
       }
       return { dom, decided: window.__decided };
-    }, { options, steps });
+    }, { options, steps, awaitApply });
     const posts = (r) => r.network.filter((n) => n.method === "POST").map((n) => {
       const e = JSON.parse(n.body).events[0];
       return { type: e.xdm.eventType, query: !!(e.query && e.query.personalization), propositions: ((e.xdm._experience && e.xdm._experience.decisioning && e.xdm._experience.decisioning.propositions) || []).map((p) => p.scope) };
@@ -748,7 +750,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     const SINK = '<script>window.__decided = []; (() => { const real = AirlockEds; const b = real.bootAlloy; window.AirlockEds = { ...real, bootAlloy: (o) => b({ ...o, onDecisions: (p) => window.__decided.push(JSON.parse(JSON.stringify(p)).map((x) => [x.scope, x.renderAttempted])) }) }; })();</script>';
     const CART = view("vc", "cart", [domAction("vc1", "setHtml", "#b", "<b>cart</b>")]);
     // The first push is the page's own (it carries the declared scopes, so it fetches); the applied views must survive its merge.
-    const FIRST = { xdm: PV_XDM, renderDecisions: false };
+    const FIRST = { xdm: PV_XDM, renderDecisions: false, decisionScopes: ["__view__"] };
     const HOME = view("vh", "home", [domAction("vh1", "setHtml", "#a", "<b>home</b>")]);
 
     it("AC1: a push naming a view applied by applyResponse renders it and sends its display once, folded into that one event, as stock", async () => {
@@ -809,7 +811,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       const second = view("vc2", "cart", [domAction("vc2a", "setHtml", "#b", "<b>cart2</b>")]);
       const stockOpts = { responseBody: body([HOME, CART]) };
       const run = async (who) => {
-        const steps = [{ ...FIRST, ...(who === "stock" ? { decisionScopes: ["__view__"] } : {}) }, { xdm: viewXdm("home"), renderDecisions: true }, { xdm: viewXdm("cart"), renderDecisions: true }];
+        const steps = [FIRST, { xdm: viewXdm("home"), renderDecisions: true }, { xdm: viewXdm("cart"), renderDecisions: true }];
         if (who === "stock") {
           return replayFixture(browser, "s4-base", { event: null, bodyHtml: ZONE, respond: empty, run: async (page) => {
             await page.evaluate(() => { window.__alloyNS = ["stockAlloy"]; window.stockAlloy = function () { const a = arguments; return new Promise((res, rej) => window.stockAlloy.q.push([res, rej, a])); }; window.stockAlloy.q = []; });
@@ -838,6 +840,72 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       expect(ours.results.run.dom).toEqual(stock.results.run.dom);
       expect(ours.results.run.dom[1]).toContain("<b>home</b>");
       expect(ours.results.run.dom[2]).toContain("<b>cart2</b>");
+    }, T);
+  });
+
+  describe("064-29 the first push after applyResponse vs pinned stock Alloy 2.31.1 (SYNTHETIC responses, no capture)", () => {
+    const view = (id, scope, items) => ({ id, scope, scopeDetails: { decisionProvider: "TGT", activity: { id: `act-${id}` }, characteristics: { scopeType: "view" } }, items });
+    const viewXdm = (name) => ({ eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name, viewName: name } } });
+    const body = (payload) => ({ requestId: "00000000-0000-0000-0000-000000000029", handle: [{ type: "personalization:decisions", payload }] });
+    const empty = (req) => (req.method() === "POST" ? { status: 200, headers: { "content-type": "application/json", ...cors(req) }, body: edgeBody([]) } : { status: 204, headers: cors(req), body: "" });
+    const posts = (r) => r.network.filter((n) => n.method === "POST").map((n) => {
+      const e = JSON.parse(n.body).events[0];
+      return { type: e.xdm.eventType, query: !!(e.query && e.query.personalization), scopes: (e.query && e.query.personalization && e.query.personalization.decisionScopes) || [], propositions: ((e.xdm._experience && e.xdm._experience.decisioning && e.xdm._experience.decisioning.propositions) || []).map((p) => p.scope) };
+    });
+    const HOME = view("vh", "home", [domAction("vh1", "setHtml", "#a", "<b>home</b>")]);
+    const CART = view("vc", "cart", [domAction("vc1", "setHtml", "#b", "<b>cart</b>")]);
+    /** Stock and ours get the same applied response and the same pushes (ours also declares `__view__`); `awaitApply:false` leaves the apply in flight. */
+    const differential = async (steps, { awaitApply = true } = {}) => {
+      const options = { responseBody: body([HOME, CART]) };
+      const stock = await replayFixture(browser, "s4-base", { event: null, bodyHtml: ZONE, respond: empty, run: (page) => page.evaluate(async ({ options, steps, datastreamId, awaitApply }) => {
+        window.__alloyNS = ["stockAlloy"];
+        window.stockAlloy = function () { const a = arguments; return new Promise((res, rej) => window.stockAlloy.q.push([res, rej, a])); };
+        window.stockAlloy.q = [];
+        await new Promise((res, rej) => { const s = document.createElement("script"); s.src = "/rig/alloy.min.js"; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+        window.stockAlloy("configure", { datastreamId, orgId: "908936ED5D35CC220A495CD4@AdobeOrg", defaultConsent: "in", debugEnabled: false });
+        const applied = window.stockAlloy("applyResponse", options);
+        if (awaitApply) await applied;
+        const dom = [];
+        for (const s of steps) { await window.stockAlloy("sendEvent", s); await new Promise((r) => setTimeout(r, 700)); dom.push(document.getElementById("z").outerHTML); }
+        return { dom };
+      }, { options, steps, datastreamId: DATASTREAM, awaitApply }) });
+      const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + ZONE, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] }, respond: empty, run: (page) => page.evaluate(async ({ options, steps, awaitApply }) => {
+        const applied = window.__handle.command("applyResponse", options);
+        if (awaitApply) await applied;
+        const dom = [];
+        for (const s of steps) { await window.__handle.push({ event: "page_view", ...s }); await new Promise((r) => setTimeout(r, 900)); dom.push(document.getElementById("z").outerHTML); }
+        return { dom };
+      }, { options, steps, awaitApply }) });
+      return { stock, ours };
+    };
+
+    it("AC1: the first push after applyResponse carries no declared scopes when the call passes none, and the scopes are spent, as stock", async () => {
+      const { stock, ours } = await differential([{ xdm: PV_XDM, renderDecisions: false }, { xdm: PV_XDM, renderDecisions: false }]);
+      expect(posts(stock)).toEqual([{ type: "web.webpagedetails.pageViews", query: false, scopes: [], propositions: [] }, { type: "web.webpagedetails.pageViews", query: false, scopes: [], propositions: [] }]);
+      expect(posts(ours)).toEqual(posts(stock));
+    }, T);
+
+    it("AC1: a first push after applyResponse that passes decisionScopes still carries them, as stock", async () => {
+      const { stock, ours } = await differential([{ xdm: PV_XDM, renderDecisions: false, decisionScopes: ["__view__"] }]);
+      expect(posts(stock)[0].query).toBe(true);
+      expect(posts(ours)).toEqual(posts(stock));
+    }, T);
+
+    it("AC2: a scoped first push naming a view the fetch answer lacks ends in the empty-view state stock reaches", async () => {
+      const { stock, ours } = await differential([{ xdm: viewXdm("cart"), renderDecisions: true, decisionScopes: ["__view__"] }]);
+      expect(posts(stock)).toHaveLength(2);
+      expect(posts(stock)[0].query).toBe(true);
+      expect(posts(ours)).toEqual(posts(stock));
+      expect(ours.results.run.dom).toEqual(stock.results.run.dom);
+      expect(ours.results.run.dom[0]).not.toContain("<b>cart</b>");
+    }, T);
+
+    it("AC5: a push enqueued before an applyResponse finishes sees the warmed cache, as stock runs its commands in order", async () => {
+      const { stock, ours } = await differential([{ xdm: viewXdm("cart"), renderDecisions: true }], { awaitApply: false });
+      expect(posts(stock)).toEqual([{ type: "web.webpagedetails.pageViews", query: false, scopes: [], propositions: ["cart"] }]);
+      expect(posts(ours)).toEqual(posts(stock));
+      expect(ours.results.run.dom).toEqual(stock.results.run.dom);
+      expect(ours.results.run.dom[0]).toContain("<b>cart</b>");
     }, T);
   });
 

@@ -30,7 +30,7 @@ export const SCHEMA = Object.freeze({
 export const VIEW_SCOPE = "__view__";
 export const PREHIDING_ID = "alloy-prehiding";
 const SELECTOR_WAIT_MS = 3000;
-const REDIRECT_DISPLAY_WAIT_MS = 1500;
+export const REDIRECT_DISPLAY_WAIT_MS = 1500;
 
 const isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 const IDS_ATTR = "data-adobe-proposition-ids";
@@ -50,13 +50,24 @@ export function isViewProposition(p) {
  */
 export function createViewCache() {
   let initialized = false;
+  let fetches = 0;
+  let latest = new Map();
   const views = new Map();
   const placeholder = (name) => ({ scope: name, scopeDetails: { characteristics: { scopeType: "view" } }, items: [{ schema: SCHEMA.DEFAULT }] });
+  const pick = (map, name) => {
+    const list = typeof name === "string" ? map.get(name.toLowerCase()) : null;
+    return list && list.length ? list : [placeholder(name)];
+  };
   return {
     isInitialized: () => initialized,
     markInitialized: () => { initialized = true; },
-    /** Store a response's view-scoped propositions (replacing per view name); returns them. */
-    store(propositions) {
+    /** How many fetched responses were stored; an event compares it to the count when it started. */
+    fetchCount: () => fetches,
+    /**
+     * Store a response's view-scoped propositions (replacing per view name); returns them. A fetched response
+     * also becomes the "latest" storage (064-29); an applied one only merges into the cache, as stock's does.
+     */
+    store(propositions, { fetched = true } = {}) {
       initialized = true;
       const byName = new Map();
       for (const p of propositions) {
@@ -64,12 +75,12 @@ export function createViewCache() {
         byName.set(key, [...(byName.get(key) || []), p]);
       }
       for (const [key, list] of byName) views.set(key, list);
+      if (fetched) { latest = byName; fetches += 1; }
     },
     /** The cached propositions for a view name, or the placeholder. */
-    get(name) {
-      const list = typeof name === "string" ? views.get(name.toLowerCase()) : null;
-      return list && list.length ? list : [placeholder(name)];
-    },
+    get: (name) => pick(views, name),
+    /** The named view of the most recent fetched response only (stock's `update()` on a fetch), or the placeholder. */
+    getLatest: (name) => pick(latest, name),
   };
 }
 
