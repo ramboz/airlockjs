@@ -110,7 +110,7 @@ const DEFAULT_ENDPOINTS = ["https://www.google-analytics.com/mp/collect"];
  * `consent ? … : []` back-compat gate `bootMetaPixel` uses.
  */
 export { META_EGRESS_PURPOSES, LINKEDIN_EGRESS_PURPOSES, BING_EGRESS_PURPOSES };
-export { attachAlloyBridge, createAlloyCommandBridge, consentToVector } from "./alloy-bridge.js";
+export { createAlloyCommandBridge, consentToVector } from "./alloy-bridge.js";
 
 /**
  * The DISTINCT GA4 event names the UC-2 interaction wiring emits (slice 004-04).

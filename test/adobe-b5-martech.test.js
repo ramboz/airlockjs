@@ -7,7 +7,8 @@
 // order of two collect POSTs, but NOT the collect bodies. Collect bodies (and the whole journey) are therefore compared
 // stock-versus-airlock on the same edge answers; that comparison is SYNTHETIC in the 064-20 sense: no capture was taken.
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
-import { attachAlloyBridge, consentToVector, createAlloyCommandBridge } from "../adapters/eds/alloy-bridge.js";
+import { consentToVector, createAlloyCommandBridge } from "../adapters/eds/alloy-bridge.js";
+import { attachQueueShim } from "../rig/alloy-queue-shim.mjs";
 import { chromium } from "playwright";
 import { diffBodies, ensureAlloyBundle, loadFixture, replayFixture, splitRequestUrl } from "../rig/adobe-b1-replay.mjs";
 import { ensureMartechAsset } from "../rig/adobe-b5-martech.mjs";
@@ -48,7 +49,11 @@ const journey = (page) => page.evaluate(async ({ orgId, datastreamId, scope, lin
 
 /** The shim the site serves where aem-martech imports `./alloy.min.js`: it hands aem-martech's queue stub to the wrapper. */
 const SHIM = "window.__attachAlloyBridge();";
-const ATTACH = (page) => page.evaluate(() => { window.__attachAlloyBridge = () => globalThis.AirlockEds.attachAlloyBridge({ handle: window.__handle, onDiagnostic: (d) => window.__bridgeDiag.push(d) }); window.__bridgeDiag = []; });
+const ATTACH = (page) => page.evaluate(([src]) => {
+  const attach = (0, eval)(`(${src})`);
+  window.__bridgeDiag = [];
+  window.__attachAlloyBridge = () => attach(globalThis.AirlockEds.createAlloyCommandBridge(window.__handle, { onDiagnostic: (d) => window.__bridgeDiag.push(d) }), window, "alloy");
+}, [attachQueueShim.toString()]);
 
 
 const AIRLOCK_BOOT = { consent: {}, context: ["web", "device", "environment"], edgeDomain: "edge.adobedc.net" };
@@ -192,14 +197,20 @@ describe("spec 064-21: the alloy command wrapper (hermetic)", () => {
     expect(h.command).toHaveBeenCalledWith("getLibraryInfo", {});
   });
 
-  it("attachAlloyBridge drains the loader's queue stub in order and replaces it", async () => {
+  it("the test-only queue shim drains the loader's queue stub in order and replaces it", async () => {
     const h = fakeHandle();
     const out = [];
     const g = { alloy: Object.assign(() => {}, { q: [[(v) => out.push(["a", v]), () => {}, ["sendEvent", { xdm: { n: 1 } }]], [(v) => out.push(["b", v]), () => {}, ["sendEvent", { xdm: { n: 2 } }]]] }) };
-    const bridge = attachAlloyBridge({ handle: h, global: g });
+    const bridge = attachQueueShim(createAlloyCommandBridge(h, { onDiagnostic: () => {} }), g, "alloy");
     expect(g.alloy).toBe(bridge);
     await new Promise((r) => setTimeout(r, 0));
     expect(h.push.mock.calls.map((c) => c[0].xdm.n)).toEqual([1, 2]);
     expect(out.map((x) => x[0])).toEqual(["a", "b"]);
+  });
+
+  it("creating the bridge leaves no page global: globalThis.alloy stays undefined", () => {
+    expect(globalThis.alloy).toBeUndefined();
+    createAlloyCommandBridge(fakeHandle(), { onDiagnostic: () => {} });
+    expect(globalThis.alloy).toBeUndefined();
   });
 });

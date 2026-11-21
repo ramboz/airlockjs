@@ -1,7 +1,7 @@
 // Spec 064-21 (ADR-0063): the site-side wrapper that lets a page written against stock `alloy(command, options)`,
 // such as the `aem-martech` library, run on a `bootAlloy` handle. It is site code in the adapter: it maps each stock
 // command onto the handle's own entry points and adds no capability, no page-global `alloy` of its own making
-// (`attachAlloyBridge` installs the page's own `alloy` name only when the site calls it; the loader's queue stub is normally already there) and no
+// and it neither reads nor writes any page global: a site that needs a global `alloy` (the stock `aem-martech` library) installs it in its own code, as the test-only rig/alloy-queue-shim.mjs does and no
 // command beyond the ADR-0063 allowlist. It is meant for a `bootAlloy` handle (every stock `sendEvent` is pushed as
 // `page_view`, which that handle ignores; a handle that routes by event name would not be a fit). `configure` options
 // other than function callbacks are fixed at boot and left inert here (064-31 AC6 and AC7).
@@ -92,24 +92,4 @@ export function createAlloyCommandBridge(handle, opts = {}) {
       default: return handle.command(command, options);
     }
   };
-}
-
-/**
- * Take over the queue stub a stock-style loader left on `global[instanceName]` (`aem-martech` leaves one with `.q`
- * holding `[resolve, reject, args]`): replace it with the bridge and drain the queue through it, as the real library does
- * when it loads. Later calls reach the bridge directly.
- * @param {{ handle: object, global?: object, instanceName?: string, onDiagnostic?: Function }} args
- * @returns {Function} the installed `alloy` function
- */
-export function attachAlloyBridge({ handle, global = globalThis, instanceName = "alloy", onDiagnostic }) {
-  const bridge = createAlloyCommandBridge(handle, { onDiagnostic });
-  const stub = global[instanceName];
-  const queued = stub && Array.isArray(stub.q) ? stub.q.splice(0) : [];
-  global[instanceName] = bridge;
-  for (const [resolve, reject, args] of queued) {
-    let result;
-    try { result = bridge(...args); } catch (e) { reject(e); continue; }
-    Promise.resolve(result).then(resolve, reject);
-  }
-  return bridge;
 }
