@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { bootAlloy, createAlloyCommandBridge } from "../adapters/eds/index.js";
 import { runBeforeEventSend, stockContextXdm } from "../adapters/eds/before-event-send.js";
+import { MAX_HELD_BEACONS } from "../core/airlock.js";
 
 // Slice 069-01: the handle returns what stock returns. HERMETIC tests (a fake Worker records what the adapter posts and
 // plays back chamber messages); the real-Chromium differentials against pinned stock Alloy 2.31.1 are in
@@ -13,13 +14,12 @@ const adobe = (value) => ({ standard: "Adobe", version: "2.0", value });
 const GRANT = adobe({ collect: { val: "y" }, personalize: { content: { val: "y" } } });
 const REFUSAL = adobe({ collect: { val: "n" }, personalize: { content: { val: "n" } } });
 const OPEN = { analytics_storage: "granted", personalization: "granted" };
-const view = (id, scope) => ({ id, scope, scopeDetails: { decisionProvider: "TGT", activity: { id: `act-${id}` }, characteristics: { scopeType: "view" } }, items: [{ id: `${id}-i`, schema: `${NS}dom-action`, data: { type: "setHtml", selector: "#b", content: "<b>x</b>" } }] });
 const json = (id, scope) => ({ id, scope, scopeDetails: { decisionProvider: "TGT", activity: { id: `act-${id}` } }, items: [{ id: `${id}-i`, schema: `${NS}json-content-item`, data: { content: { a: 1 } } }] });
 
 class Worker {
   constructor() { this.handlers = []; this.messages = []; this.n = 0; this.answers = []; Worker.last = this; }
   addEventListener(t, fn) { if (t === "message") this.handlers.push(fn); }
-  removeEventListener() {}
+  removeEventListener(t, fn) { this.handlers = this.handlers.filter((h) => h !== fn); }
   terminate() { this.terminated = true; }
   emit(msg) { for (const h of this.handlers.slice()) h({ data: msg }); }
   fire() {
@@ -119,7 +119,7 @@ describe("069-01 AC1: handle.sendEvent resolves the interact result", () => {
   it("an event the ring drops resolves {} and a dispose settles every pending send with {}", async () => {
     const { handle, worker } = await boot({ ...BOX, onDecisions: () => {} });
     worker.answers.push({ gate: true });
-    const all = Array.from({ length: 205 }, () => handle.sendEvent({ xdm: {} }));
+    const all = Array.from({ length: MAX_HELD_BEACONS + 5 }, () => handle.sendEvent({ xdm: {} }));
     await tick(20);
     // The first is in flight (held at the seal); the oldest waiting ones were dropped by the ring.
     expect(await all[1]).toEqual({});
@@ -130,19 +130,70 @@ describe("069-01 AC1: handle.sendEvent resolves the interact result", () => {
   });
 });
 
-describe("069-01 AC4: handle.applyPropositions({ viewName })", () => {
-  const warm = async (handle, worker) => {
-    await handle.command("applyResponse", { responseBody: { handle: [{ type: "personalization:decisions", payload: [view("v1", "home")] }] } }).catch(() => {});
-    return worker;
-  };
+// A fake page element and document: setText rendering needs only these.
+const fakeDom = () => {
+  const el = { nodeType: 1, tagName: "DIV", textContent: "orig", parentNode: null, getAttribute: () => null, setAttribute() {} };
+  const document = { querySelectorAll: (sel) => (sel === "#t" ? [el] : []), documentElement: { appendChild() {} }, createElement: () => ({ remove() {} }), getElementById: () => null };
+  return { el, document };
+};
+const textView = (id, scope, text) => ({ id, scope, scopeDetails: { decisionProvider: "TGT", activity: { id: `act-${id}` }, characteristics: { scopeType: "view" } }, items: [{ id: `${id}-i`, schema: `${NS}dom-action`, data: { type: "setText", selector: "#t", content: text } }] });
 
+describe("069-01 AC1: a grant inside stock's eager timeout renders the propositions", () => {
+  it("a held sendEvent sends and renders nothing until consent is granted, then renders and resolves the propositions", async () => {
+    const { el, document } = fakeDom();
+    vi.stubGlobal("document", document);
+    const { handle, worker } = await boot({ onDecisions: () => {} });
+    const pageWide = { id: "pw", scope: "__view__", scopeDetails: { decisionProvider: "TGT", activity: { id: "act-pw" }, characteristics: { eventToken: "t" } }, items: [{ id: "pw-i", schema: `${NS}dom-action`, data: { type: "setText", selector: "#t", content: "personalized" } }] };
+    worker.answers.push({ gate: true, decisions: [{ scope: "__view__", content: pageWide }] });
+    const p = handle.sendEvent({ xdm: {} });
+    await tick(60); // well inside the 1000 ms stock waits
+    expect(fetch).not.toHaveBeenCalled();
+    expect(el.textContent).toBe("orig");
+    handle.setConsent(OPEN);
+    const r = await p;
+    expect(el.textContent).toBe("personalized");
+    expect(r.propositions.map((x) => [x.id, x.renderAttempted])).toEqual([["pw", true]]);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("069-01 settle: the sendEvent promise always settles", () => {
+  it("a failure while finishing the event rejects the promise instead of hanging it, and the queue keeps going", async () => {
+    let armed = false;
+    vi.stubGlobal("document", { getElementById: () => { if (armed) throw new Error("settle boom"); return null; }, createElement: () => ({}), documentElement: { appendChild() {} } });
+    const { handle, worker } = await boot({ consent: OPEN, prehidingStyle: "body{opacity:0}", prehidingTimeoutMs: 600000 });
+    worker.answers.push({}, {});
+    armed = true;
+    const err = await Promise.race([handle.sendEvent({ xdm: {} }).then(() => null, (e) => e), tick(1500).then(() => "hung")]);
+    expect(err).toBeInstanceOf(Error);
+    expect(err.message).toBe("settle boom");
+    expect(await Promise.race([handle.sendEvent({ xdm: {} }).then(() => "settled", () => "settled"), tick(1500).then(() => "hung")])).toBe("settled");
+  });
+});
+
+describe("069-01 AC4: handle.applyPropositions({ viewName })", () => {
   it("an unknown view resolves no propositions and sends no request", async () => {
     const { handle, worker } = await boot({ consent: OPEN, ...BOX, onDecisions: () => {} });
     const before = worker.messages.length;
     expect(await handle.applyPropositions({ viewName: "nope" })).toEqual({ propositions: [] });
     expect(worker.messages.length).toBe(before);
     expect(fetch).not.toHaveBeenCalled();
-    void warm;
+  });
+
+  it("the bare { viewName } on a warm view cache renders that view and resolves { propositions } without a request", async () => {
+    const { el, document } = fakeDom();
+    vi.stubGlobal("document", document);
+    fetch.mockImplementation(() => Promise.resolve({ status: 200, statusText: "OK", headers: { get: () => "application/json" }, text: async () => JSON.stringify({ handle: [{ type: "personalization:decisions", payload: [textView("v-home", "home", "home view")] }] }) }));
+    const { handle, worker } = await boot({ consent: OPEN, ...BOX, onDecisions: () => {} });
+    // A personalization fetch warms the cache (its answer carries the view proposition).
+    worker.emit({ type: "intercepted-fetch", id: "w1", url: `${INTERACT}?configId=${DS}`, method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ events: [{ query: { personalization: { decisionScopes: [] } } }] }) });
+    await tick(60);
+    expect(el.textContent).toBe("orig");
+    const calls = fetch.mock.calls.length;
+    const out = await handle.applyPropositions({ viewName: "home" });
+    expect(el.textContent).toBe("home view");
+    expect(out.propositions.map((p) => [p.id, p.renderAttempted])).toEqual([["v-home", true]]);
+    expect(fetch.mock.calls.length).toBe(calls);
   });
 
   it("keeps the { propositions, metadata } form working", async () => {
@@ -201,10 +252,15 @@ describe("069-01 AC5: handle.setAdobeConsent returns Alloy's outcome", () => {
   });
 
   it("a dispose settles it (rejects) and the entry is gone", async () => {
-    const { handle } = await boot();
+    const { handle, worker } = await boot();
+    const listeners = worker.handlers.length;
     const p = handle.setAdobeConsent([GRANT]);
+    const id = worker.messages.find((m) => m.type === "adobeConsent").id;
     handle.dispose();
     await expect(p).rejects.toThrow(/disposed/);
+    expect(worker.handlers.length).toBe(listeners - 1);
+    expect(() => worker.emit({ type: "consent-outcome", id, ok: true })).not.toThrow();
+    await expect(handle.setAdobeConsent([GRANT])).rejects.toThrow(/disposed/);
   });
 
   it("with no consent ref (consentHold:false, no consent) resolves with no Alloy call and posts nothing", async () => {
@@ -264,6 +320,23 @@ describe("069-01 AC5: the chamber's outcome message (real worker file)", () => {
     await tick(10);
     expect(alloy).not.toHaveBeenCalled();
     expect(outcomes()).toEqual([{ type: "consent-outcome", id: 9, ok: false, message: expect.stringMatching(/still pending/) }]);
+  });
+
+  it("says Alloy is not loaded (not that consent is pending) when the vector is resolved but Alloy is absent", async () => {
+    delete fakeSelf.alloy;
+    send({ type: "adobeConsent", id: 10, consent: [GRANT] });
+    send({ type: "setConsent", consent: OPEN });
+    await tick(10);
+    expect(outcomes()).toEqual([{ type: "consent-outcome", id: 10, ok: false, message: expect.stringMatching(/Alloy is not loaded/) }]);
+  });
+
+  it("reports the object's own rejection, not the retry's, when the vector retry also fails", async () => {
+    alloy.mockImplementation((_c, o) => Promise.reject(new Error(o.consent ? "object rejected" : "retry rejected")));
+    send({ type: "adobeConsent", id: 11, consent: [GRANT] });
+    send({ type: "setConsent", consent: OPEN });
+    await tick(10);
+    expect(alloy).toHaveBeenCalledTimes(2);
+    expect(outcomes()).toEqual([{ type: "consent-outcome", id: 11, ok: false, message: "object rejected" }]);
   });
 
   it("a vector-only message reports nothing", async () => {
@@ -369,6 +442,28 @@ describe("069-01 AC2/AC3: the shared onBeforeEventSend helper", () => {
     await expect(alloy("sendEvent", { xdm: {} })).rejects.toThrow(/Caused by: boom/);
     expect(handle.sendEvent).not.toHaveBeenCalled();
     expect(diags.some((d) => d.kind === "hook-threw")).toBe(true);
+  });
+
+  it("a hook that throws a non-Error value rejects with that value's text, not 'undefined'", async () => {
+    const handle = { push: vi.fn(), sendEvent: vi.fn(), setConsent: vi.fn(), applyPropositions: vi.fn(), command: vi.fn() };
+    const diags = [];
+    const alloy = createAlloyCommandBridge(handle, { onDiagnostic: (d) => diags.push(d), getContext: () => CONTEXT });
+    await alloy("configure", { onBeforeEventSend: () => { throw "plain string"; } });
+    await expect(alloy("sendEvent", { xdm: {} })).rejects.toThrow(/Caused by: plain string$/);
+    expect(diags.find((d) => d.kind === "hook-threw").reason).toContain("plain string");
+  });
+
+  it("honours Alloy's context option: a group left out is not in the hook's argument (stock's default reduced list shows no placeContext)", async () => {
+    expect(stockContextXdm(CONTEXT, ["web", "device", "environment"]).placeContext).toBeUndefined();
+    expect(stockContextXdm(CONTEXT, ["web"]).device).toBeUndefined();
+    expect(stockContextXdm(CONTEXT).placeContext).toBeDefined();
+    const handle = { push: vi.fn(), sendEvent: vi.fn(() => Promise.resolve({})), setConsent: vi.fn(), applyPropositions: vi.fn(), command: vi.fn() };
+    let seen;
+    const alloy = createAlloyCommandBridge(handle, { onDiagnostic: () => {}, getContext: () => CONTEXT });
+    await alloy("configure", { context: ["web", "device", "environment"], onBeforeEventSend: (c) => { seen = JSON.parse(JSON.stringify(c)); } });
+    await alloy("sendEvent", { xdm: {} });
+    expect(seen.xdm.placeContext).toBeUndefined();
+    expect(seen.xdm.web).toBeDefined();
   });
 });
 

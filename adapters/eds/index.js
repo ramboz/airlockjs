@@ -1600,9 +1600,10 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer,
     }
     // 064-28: stock's returned view propositions say whether a render was attempted; the sink's headless copies do too.
     const attempted = (ctx && ctx.attempts) || new Map();
-    const marked = sink.map((p) => (isViewProposition(p) && attempted.has(p.scope.toLowerCase()) ? { ...p, renderAttempted: attempted.get(p.scope.toLowerCase()) } : p));
+    const viewAttempt = (p) => isViewProposition(p) && attempted.has(p.scope.toLowerCase());
+    const marked = sink.map((p) => (viewAttempt(p) ? { ...p, renderAttempted: attempted.get(p.scope.toLowerCase()) } : p));
     // 069-01: what this event's sendEvent promise carries, built from the same deliveries (never from the chamber's word).
-    if (ctx) ctx.collected = [...(ctx.collected || []), ...sink.map((p) => ({ ...p, renderAttempted: isViewProposition(p) && attempted.has(p.scope.toLowerCase()) ? attempted.get(p.scope.toLowerCase()) : rendered.has(p.id) }))];
+    if (ctx) ctx.collected = [...(ctx.collected || []), ...marked.map((p, i) => (viewAttempt(sink[i]) ? p : { ...p, renderAttempted: rendered.has(p.id) }))];
     personalization.decided(marked, displayed, ctx && ctx.render ? ctx.viewName : undefined);
   };
   caps.decisions = {
@@ -2124,9 +2125,17 @@ export async function bootAlloy(opts = {}) {
       failure = e;
       reject(e);
     } finally {
-      if (!notification) { await settleDeliveries(ctx); await finishEvent(ctx); endPrehiding(); }
-      currentEvent = null;
-      if (onSettled) onSettled(failure, driven, ctx);
+      // The page's sendEvent promise must settle even when finishing the event throws.
+      try {
+        if (!notification) { await settleDeliveries(ctx); await finishEvent(ctx); endPrehiding(); }
+      } catch (e) {
+        // Rethrowing would end the pump and park every later event; the failure goes to the page's promise and a diagnostic.
+        failure = failure || e;
+        warnDiagnostic({ level: "warn", kind: "settle-failed", reason: `finishing an event failed (${String((e && e.message) || e)})` });
+      } finally {
+        currentEvent = null;
+        if (onSettled) onSettled(failure, driven, ctx);
+      }
     }
   };
   // Wait for the event's deliveries. A redirect display is tracked as a delivery (064-29) and queued behind this
@@ -2260,17 +2269,16 @@ export async function bootAlloy(opts = {}) {
   let consentCallId = 0;
   const consentOutcomes = new Map();
   // The chamber's answer is untrusted data: it can only settle the page's promise for a call id still waiting; it never touches the consent ref or the seal.
-  if (worker && typeof worker.addEventListener === "function") {
-    worker.addEventListener("message", (e) => {
-      const m = e && e.data;
-      if (!m || m.type !== "consent-outcome" || typeof m.id !== "number") return;
-      const o = consentOutcomes.get(m.id);
-      if (!o) return;
-      consentOutcomes.delete(m.id);
-      clearTimeout(o.timer);
-      if (m.ok === true) o.resolve({}); else o.reject(new Error(typeof m.message === "string" ? m.message : "Alloy rejected setConsent"));
-    });
-  }
+  const onConsentOutcome = (e) => {
+    const m = e && e.data;
+    if (!m || m.type !== "consent-outcome" || typeof m.id !== "number") return;
+    const o = consentOutcomes.get(m.id);
+    if (!o) return;
+    consentOutcomes.delete(m.id);
+    clearTimeout(o.timer);
+    if (m.ok === true) o.resolve({}); else o.reject(new Error(typeof m.message === "string" ? m.message : "Alloy rejected setConsent"));
+  };
+  if (worker && typeof worker.addEventListener === "function") worker.addEventListener("message", onConsentOutcome);
   const pendingSends = new Set();
   /** A promise for one event's settled result: an event the ring drops, or one pending at dispose, resolves `{}`. */
   const sendOne = (options) => new Promise((resolve, reject) => {
@@ -2281,10 +2289,12 @@ export async function bootAlloy(opts = {}) {
     enqueue(toDescriptor({ event: "page_view", ...prm }), {
       onDrop: () => finish(() => resolve({})),
       onSettled: (failure, driven, ctx) => finish(() => {
-        const dropped = driven && driven.summary && Array.isArray(driven.summary.dropped) ? driven.summary.dropped : [];
-        if (failure) reject(new Error(String((failure && failure.message) || failure)));
-        else if (dropped.length) reject(new Error(String(dropped[0].reason || "sendEvent was dropped")));
-        else resolve(sendResult(ctx));
+        try {
+          const dropped = driven && driven.summary && Array.isArray(driven.summary.dropped) ? driven.summary.dropped : [];
+          if (failure) reject(new Error(String((failure && failure.message) || failure)));
+          else if (dropped.length) reject(new Error(String(dropped[0].reason || "sendEvent was dropped")));
+          else resolve(sendResult(ctx));
+        } catch (e) { reject(new Error(String((e && e.message) || e))); }
       }),
     });
   });
@@ -2401,6 +2411,7 @@ export async function bootAlloy(opts = {}) {
       disposed = true;
       for (const send of [...pendingSends]) send.done();
       for (const [id, o] of [...consentOutcomes]) { clearTimeout(o.timer); consentOutcomes.delete(id); o.reject(new Error("airlock: the handle was disposed before Alloy answered setConsent")); }
+      if (worker && typeof worker.removeEventListener === "function") worker.removeEventListener("message", onConsentOutcome);
       commands.dispose();
       host.dispose(); // parked consent holds have no later decision to flush to (068-01)
       uninstallClicks();

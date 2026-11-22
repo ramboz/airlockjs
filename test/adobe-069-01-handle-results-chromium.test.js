@@ -3,6 +3,7 @@
 // chamber, seam and renderer) and compares what the promise resolved or rejected with. The hermetic tests are in
 // test/adobe-069-01-handle-results.test.js. Gated like the other real-browser tests: `AIRLOCK_REAL_CHROMIUM=1`.
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { readFileSync } from "node:fs";
 import { chromium } from "playwright";
 import { replayFixture } from "../rig/adobe-b1-replay.mjs";
 
@@ -22,6 +23,10 @@ const answer = (payload, { failInteract, failConsent } = {}) => (req) => {
   if ((consent && failConsent) || (!consent && failInteract)) return { status: 400, headers: { "content-type": "application/json", ...cors(req) }, body: JSON.stringify({ errors: [{ status: 400, title: "bad" }], requestId: "r" }) };
   return { status: 200, headers: { "content-type": "application/json", ...cors(req) }, body: consent ? JSON.stringify({ requestId: "r", handle: [] }) : JSON.stringify({ requestId: "r", handle: [{ type: "personalization:decisions", payload }] }) };
 };
+// The recorded S10 interact answer (its recorded response body); it carries an empty personalization:decisions payload.
+const S10 = JSON.parse(readFileSync(new URL("./fixtures/adobe-capture/s10-base.json", import.meta.url), "utf8"));
+const S10_ANSWER = S10.requests.find((r) => r.method === "POST" && /\/interact\?/.test(r.url)).response_body;
+const recordedInteract = (req) => (req.method() !== "POST" ? { status: 204, headers: cors(req), body: "" } : { status: 200, headers: { "content-type": "application/json", ...cors(req) }, body: S10_ANSWER });
 const posts = (r) => r.network.filter((n) => n.method === "POST");
 const ZONE = '<div id="z">orig</div>';
 const PV = { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name: "p" } } };
@@ -46,8 +51,8 @@ const stockCall = (page, name, o) => page.evaluate(async ({ name, o }) => {
 }, { name, o });
 
 /** The airlock arm: the page talks to the handle (`window.__handle`) or through the wrapper bridge. */
-const ours = (browser, respond, run, { boot = {}, body = ZONE, extraCookies = [] } = {}) => replayFixture(browser, "s4-base", { event: null, extraCookies, bodyHtml: body, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }], ...boot }, respond, run });
-const stock = (browser, respond, run, body = ZONE) => replayFixture(browser, "s4-base", { event: null, bodyHtml: body, respond, run });
+const ours = (browser, respond, run, { boot = {}, body = ZONE, extraCookies = [], fixture = "s4-base" } = {}) => replayFixture(browser, fixture, { event: null, extraCookies, bodyHtml: body, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }], ...boot }, respond, run });
+const stock = (browser, respond, run, body = ZONE, fixture = "s4-base") => replayFixture(browser, fixture, { event: null, bodyHtml: body, respond, run });
 const handleCall = (page, fn, arg) => page.evaluate(async ({ fn, arg }) => {
   const h = window.__handle;
   try { return { ok: JSON.parse(JSON.stringify((await new Function("h", "arg", `return (${fn})(h, arg)`)(h, arg)) ?? null)) }; } catch (e) { return { err: String(e && e.message), plain: Object.getPrototypeOf(e) === Error.prototype }; }
@@ -69,6 +74,18 @@ describe.runIf(real)("069-01 the handle vs pinned stock Alloy 2.31.1 (real Chrom
     expect(s.results.run[0].ok.decisions.map((p) => p.id)).toEqual(["p-banner"]);
     expect(s.results.run[1].ok.propositions.map((p) => [p.id, p.renderAttempted])).toEqual([["v-home", false]]);
     expect(s.results.run[2].ok.propositions.map((p) => [p.id, p.renderAttempted])).toEqual([["v-cart", true]]);
+  }, T);
+
+  it("AC1: the recorded S10 interact answer resolves identically in both arms (it carries no propositions or decisions: an empty personalization:decisions payload)", async () => {
+    expect(JSON.parse(S10_ANSWER).handle.find((h) => h.type === "personalization:decisions").payload).toEqual([]);
+    // One event per run: the recorded answer's location hint moves the next request to a hint path on the default host, which the seal's endpoint ceiling does not list.
+    for (const x of [OPTS, { renderDecisions: true, xdm: PV }]) {
+      const s = await stock(browser, recordedInteract, async (page) => { await stockSetup(page); return noDest(await stockCall(page, "sendEvent", x)); }, ZONE, "s10-base");
+      const o = await ours(browser, recordedInteract, async (page) => noDest(await handleCall(page, "(h, x) => h.sendEvent(x)", x)), { fixture: "s10-base" });
+      expect(o.results.run).toEqual(s.results.run);
+      expect(s.results.run.ok.propositions).toEqual([]);
+      expect(s.results.run.ok.decisions ?? []).toEqual([]);
+    }
   }, T);
 
   it("AC1: a rejected command rejects with a plain Error carrying stock's message", async () => {
@@ -166,8 +183,9 @@ describe.runIf(real)("069-01 the handle vs pinned stock Alloy 2.31.1 (real Chrom
     const oursRun = (respond) => ours(browser, respond, (page) => handleCall(page, "(h, c) => h.setAdobeConsent(c)", consent), { boot: { consentHold: null } });
     const sOk = await stockRun(answer(PAYLOAD));
     const oOk = await oursRun(answer(PAYLOAD));
-    expect(sOk.results.run.ok).toBeDefined();
-    expect(oOk.results.run.ok).not.toBeUndefined();
+    // Stock and the handle both resolve {} here; the known difference elsewhere is that stock's other results carry destinations etc.
+    expect(sOk.results.run.ok).toEqual({});
+    expect(oOk.results.run.ok).toEqual({});
     const sBad = await stockRun(answer(PAYLOAD, { failConsent: true }));
     const oBad = await oursRun(answer(PAYLOAD, { failConsent: true }));
     expect(sBad.results.run.err).toBeTruthy();

@@ -627,7 +627,7 @@ function applyConsent(vector) {
   // (granted→"y" flush; denied→"n" suppress).
   const options = shapeAlloyBoot(consentVector).setConsentOptions;
   if (!options || typeof self.alloy !== "function") {
-    postConsentOutcome(outcomeId, false, "consent is still pending: Alloy's setConsent was not called");
+    postConsentOutcome(outcomeId, false, !options ? "consent is still pending: Alloy's setConsent was not called" : "Alloy is not loaded: setConsent was not called");
     return;
   }
   let objectFailure = null;
@@ -643,7 +643,7 @@ function applyConsent(vector) {
     })
     .then(
       () => { summary.consentDriven = "fulfilled"; postConsentOutcome(outcomeId, objectFailure === null, objectFailure); },
-      (e) => { summary.consentDriven = "rejected: " + (e && e.message); postConsentOutcome(outcomeId, false, String((e && e.message) || e)); },
+      (e) => { summary.consentDriven = "rejected: " + (e && e.message); postConsentOutcome(outcomeId, false, objectFailure !== null ? objectFailure : String((e && e.message) || e)); },
     );
 }
 

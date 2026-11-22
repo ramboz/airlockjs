@@ -8,28 +8,31 @@
 // without one, and a context field the hook did change reaches Alloy as page-supplied xdm, which Alloy keeps.
 import { collectStockContext } from "../../core/stock-context.js";
 
+// The pinned stock Alloy version (the same pin as connectors/alloy/connector.js and the adobe-stock-wire tests).
 const ALLOY_VERSION = "2.31.1";
+const DEFAULT_GROUPS = ["web", "device", "environment", "placeContext"];
 const isObject = (v) => !!v && typeof v === "object" && !Array.isArray(v);
 const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
 
-/** The xdm Alloy's default context components produce, from the collected page context. */
-export function stockContextXdm(context) {
+/** The xdm Alloy's context components produce, from the collected page context; `groups` is Alloy's `context` option (default: all four). */
+export function stockContextXdm(context, groups = DEFAULT_GROUPS) {
+  const on = (g) => !Array.isArray(groups) || groups.includes(g);
   const { web = {}, device = {}, environment = {}, placeContext = {} } = context || {};
   const xdm = {};
   const webXdm = {};
   if (web.url !== undefined) webXdm.webPageDetails = { URL: web.url };
   if (typeof web.referrer === "string") webXdm.webReferrer = { URL: web.referrer };
-  if (Object.keys(webXdm).length) xdm.web = webXdm;
+  if (on("web") && Object.keys(webXdm).length) xdm.web = webXdm;
   const dev = {};
   if (device.screenWidth !== undefined) dev.screenWidth = device.screenWidth;
   if (device.screenHeight !== undefined) dev.screenHeight = device.screenHeight;
   if (device.screenOrientation) dev.screenOrientation = String(device.screenOrientation).startsWith("portrait") ? "portrait" : "landscape";
-  if (Object.keys(dev).length) xdm.device = dev;
+  if (on("device") && Object.keys(dev).length) xdm.device = dev;
   const browserDetails = {};
   if (environment.viewportWidth !== undefined) browserDetails.viewportWidth = environment.viewportWidth;
   if (environment.viewportHeight !== undefined) browserDetails.viewportHeight = environment.viewportHeight;
-  if (Object.keys(browserDetails).length) xdm.environment = { type: "browser", browserDetails };
-  if (placeContext.localTime !== undefined) xdm.placeContext = { localTime: placeContext.localTime, localTimezoneOffset: placeContext.timezoneOffset };
+  if (on("environment") && Object.keys(browserDetails).length) xdm.environment = { type: "browser", browserDetails };
+  if (on("placeContext") && placeContext.localTime !== undefined) xdm.placeContext = { localTime: placeContext.localTime, localTimezoneOffset: placeContext.timezoneOffset };
   xdm.timestamp = new Date().toISOString();
   xdm.implementationDetails = { name: "https://ns.adobe.com/experience/alloy", version: ALLOY_VERSION, environment: "browser" };
   return xdm;
@@ -41,19 +44,6 @@ function merge(base, over) {
   const out = { ...clone(base) };
   for (const [k, v] of Object.entries(over)) out[k] = isObject(v) && isObject(out[k]) ? merge(out[k], v) : clone(v);
   return out;
-}
-
-/** What is in `edited` that differs from `reference`, as a tree; undefined when nothing differs. */
-function changed(edited, reference) {
-  if (isObject(edited) && isObject(reference)) {
-    const out = {};
-    for (const [k, v] of Object.entries(edited)) {
-      const d = changed(v, reference[k]);
-      if (d !== undefined) out[k] = d;
-    }
-    return Object.keys(out).length ? out : undefined;
-  }
-  return JSON.stringify(edited) === JSON.stringify(reference) ? undefined : clone(edited);
 }
 
 /** `edited` without the fields that equal the context's and that the page did not supply itself. */
@@ -75,26 +65,26 @@ function withoutUntouchedContext(edited, contextXdm, pageXdm) {
 /**
  * Run the hook for one event.
  * @param {{ xdm?: object, data?: object }} content the page's xdm and data (not changed)
- * @param {{ hook?: Function | null, context?: object, diagnose?: (r: object) => void }} deps `context` is the collected stock context
+ * @param {{ hook?: Function | null, context?: object, contextGroups?: string[], diagnose?: (r: object) => void }} deps `context` is the collected stock context
  * @returns {{ dropped: boolean, xdm: object, data?: object, error?: unknown }} `error` is what a throwing hook threw
  */
-export function runBeforeEventSend(content, { hook, context, diagnose = () => {} } = {}) {
+export function runBeforeEventSend(content, { hook, context, contextGroups, diagnose = () => {} } = {}) {
   const xdm = clone(content.xdm) || {};
   const data = clone(content.data);
   if (typeof hook !== "function") return { dropped: false, xdm, ...(data === undefined ? {} : { data }) };
-  const contextXdm = stockContextXdm(context);
+  const contextXdm = stockContextXdm(context, contextGroups);
   const seen = { xdm: merge(contextXdm, xdm), data: data === undefined ? {} : data };
   const given = clone(seen);
   let verdict;
   try {
     verdict = hook(seen);
   } catch (e) {
-    diagnose({ level: "warn", kind: "hook-threw", option: "onBeforeEventSend", reason: `onBeforeEventSend threw (${e && e.message}); the event is dropped` });
+    diagnose({ level: "warn", kind: "hook-threw", option: "onBeforeEventSend", reason: `onBeforeEventSend threw (${String((e && e.message) || e)}); the event is dropped` });
     return { dropped: true, xdm, error: e };
   }
   if (verdict === false) return { dropped: true, xdm };
   const out = { xdm: withoutUntouchedContext(isObject(seen.xdm) ? seen.xdm : {}, contextXdm, xdm) };
-  if (changed(seen.data, given.data) !== undefined) out.data = clone(seen.data);
+  if (JSON.stringify(seen.data) !== JSON.stringify(given.data)) out.data = clone(seen.data);
   else if (data !== undefined) out.data = data;
   return { dropped: false, ...out };
 }

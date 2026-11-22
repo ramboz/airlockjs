@@ -80,7 +80,10 @@ export function createAlloyCommandBridge(handle, opts = {}) {
   const getContext = typeof opts.getContext === "function" ? opts.getContext : () => collectStockContext();
   const diagnose = typeof opts.onDiagnostic === "function" ? opts.onDiagnostic : (r) => console.warn(r);
 
+  // Alloy's `context` option (which groups its default context adds); undefined means all four.
+  let contextGroups;
   const configure = (options = {}) => {
+    if (Array.isArray(options.context)) contextGroups = options.context.filter((g) => typeof g === "string");
     for (const [name, value] of Object.entries(options)) {
       if (typeof value !== "function") continue;
       if (name === "onBeforeEventSend") onBeforeEventSend = value;
@@ -97,10 +100,10 @@ export function createAlloyCommandBridge(handle, opts = {}) {
     }
     const content = { xdm: clone(xdm) || {}, ...(data === undefined ? {} : { data: clone(data) }) };
     if (typeof type === "string" && type && !content.xdm.eventType) content.xdm.eventType = type;
-    const ran = runBeforeEventSend(content, { hook: onBeforeEventSend, context: onBeforeEventSend ? getContext() : undefined, diagnose });
+    const ran = runBeforeEventSend(content, { hook: onBeforeEventSend, context: onBeforeEventSend ? getContext() : undefined, contextGroups, diagnose });
     if (ran.dropped) {
       // Stock rejects the sendEvent promise with the hook's error wrapped like any command failure; `false` resolves empty.
-      if (ran.error !== undefined) throw new Error(`[alloy] [DataCollector] An error occurred while executing the sendEvent command.\nCaused by: ${ran.error && ran.error.message}`);
+      if (ran.error !== undefined) throw new Error(`[alloy] [DataCollector] An error occurred while executing the sendEvent command.\nCaused by: ${String((ran.error && ran.error.message) || ran.error)}`);
       return {};
     }
     const event = {
