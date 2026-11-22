@@ -256,6 +256,8 @@ describe.runIf(real)("spec 069-03: the Airlock martech library in the S10 differ
     const [s, l] = await Promise.all([flow(extra, false), flow(extra, true)]);
     const refilled = (r) => posts(r.network).map((p) => (JSON.parse(p.body).events || []).map((e) => Boolean(e.xdm && e.xdm.implementationDetails)));
     // Observed deviation: stock lets the page hook delete the field; the chamber refills it (069-03 Findings).
+    expect(refilled(s).flat().length).toBeGreaterThanOrEqual(1);
+    expect(refilled(l).flat().length).toBeGreaterThanOrEqual(1);
     expect(refilled(s).flat().every((v) => v === false)).toBe(true);
     expect(refilled(l).flat().every((v) => v === true)).toBe(true);
     const a = posts(l.network);

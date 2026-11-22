@@ -38,6 +38,10 @@
 //   - Under `defaultConsent: "out"` a send made right after an unawaited `updateUserConsent` waits for it; a send with no
 //     grant is dropped (`consent-out-event-dropped`). Data-layer events are checked against the consent call pending when
 //     they drain (not when they were pushed). With overlapping consent calls the last call made decides the grant.
+//     Events between two calls are checked against the last call's grant (stock uses an in-order queue); a last call
+//     whose `setAdobeConsent` rejects leaves the grant unchanged; a grant/send/revoke sequence drops the send.
+//   - A failed boot rethrows from `martechLazy` after restoring body visibility; stock catches it inside its
+//     personalization fetch and goes on to schedule the page view (accepted).
 //   - Any `webSDKConfig` option the library cannot carry is diagnosed `unsupported-option`. These options stay inert and
 //     are not diagnosed: `debugEnabled`, `targetMigrationEnabled`, `autoCollectPropositionInteractions`.
 //

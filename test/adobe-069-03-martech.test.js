@@ -686,8 +686,6 @@ describe("069-03 AC4: every export", () => {
     });
 
     it("(1) a failed boot still restores the body when performanceOptimized:false hid it", async () => {
-      const m = createMartech(undefined, { boot: async () => { throw new Error("boot failed"); }, onDiagnostic() {} });
-      await m.initMartech(CFG, { airlock: AIRLOCK, personalization: false }).catch(() => {});
       const m2 = createMartech(undefined, { boot: async () => { throw new Error("boot failed"); }, onDiagnostic() {} });
       const init = m2.initMartech(CFG, { airlock: AIRLOCK, performanceOptimized: false });
       await init.catch(() => {});

@@ -9,7 +9,7 @@ scope: compliance of slice 069-03 against its ACs, ADR-0065 and the hard rules
 
 # Slice 069-03 compliance review (round 2)
 
-The author saved this text from the reviewer's output. The reviewer returned `changes-requested`. "This commit" is the round-2 fix commit that carries this file.
+The author saved this text from the reviewer's output. The reviewer returned `changes-requested`. "This commit" is the round-2 fix commit that carries this file. Round 3 approved (see `slice-03-martech-library-compliance-round-3.md`).
 
 | # | Sev | Finding | Disposition |
 |---|---|---|---|
