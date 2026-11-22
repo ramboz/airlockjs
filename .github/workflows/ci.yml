@@ -147,6 +147,12 @@ jobs:
         env:
           AIRLOCK_REAL_CHROMIUM: "1"
 
+      - name: GATING — 069-02 generic data layer vs ACDL 3.0.1 and aem-martech (real Chromium)
+        # SYNTHETIC pushes: getState corpus against real ACDL, event mapping/blocks/eager phase against the pinned aem-martech 1aa3dee3, the opt-in proxy on a real page.
+        run: npx vitest run test/adobe-069-02-datalayer-chromium.test.js
+        env:
+          AIRLOCK_REAL_CHROMIUM: "1"
+
       - name: GATING — real-Worker isolation invariant (07-02)
         run: npm run rig:isolation
 

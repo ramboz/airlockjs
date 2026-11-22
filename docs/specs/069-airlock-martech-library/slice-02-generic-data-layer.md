@@ -1,7 +1,7 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: IN_PROGRESS
 dependencies: [064-21, ADR-0065]
-last_verified: 2026-11-21
+last_verified: 2026-11-22
 ---
 
 ## Slice 069-02 — Airlock's generic data layer, plus an opt-in `adobeDataLayer` migration proxy
@@ -15,7 +15,7 @@ last_verified: 2026-11-21
 **Acceptance Criteria:**
 
 1. **The generic mechanism, no global.** `createDataLayer({ onEvent, shouldProcessEvent, diagnose, airlock? })` returns `push` and `getState`. Creating it, pushing and reading state touch no `window.adobeDataLayer`, `window.alloy`, `__alloyNS` or `acdl` (hermetic global-proxy test), and a real-Chromium page that uses the library's data layer has `window.adobeDataLayer === undefined` and makes no `acdl.min.js` request. The envelope matches core: a push whose `event` is present must be a non-empty string; a malformed or non-object push is dropped with a `console.warn` and a `datalayer-bad-push` diagnostic, never thrown. A push with no `event` key is a state push (the gap with core, which drops it): it changes state and maps no event.
-2. **Capture is O(1) and runs no page code.** `push(object)` validates a plain data object (own data properties only; a `Proxy`, an accessor or a non-plain prototype is dropped with `datalayer-bad-push`; a cyclic or over-deep object, past a documented depth bound, is dropped the same way), appends it to the queue and returns. It does no merge and no mapping: the cost depends on the pushed object's depth-bounded validation walk, not on the state size (hermetic: a visit counter shows the same count for a state of 10 keys and of 10,000). Hermetic tests: a getter on a pushed object is never invoked; a `Proxy` trap is never hit; a cycle does not overflow the stack. `shouldProcessEvent` and `onBeforeEventSend` are not called before `push` returns (hermetic). The drain runs in a separate task (`setTimeout(0)` or `scheduler.postTask`, not a microtask), tested with a task-boundary probe. The drain and a direct `sendEvent` keep call order (one queue shared with the library's pre-boot queue, tested).
+2. **Capture is O(1) and runs no page code.** `push(object)` validates a plain data object (own data properties only; a `Proxy`, an accessor or a non-plain prototype is dropped with `datalayer-bad-push`; a cyclic or over-deep object, past a documented depth bound, is dropped the same way), appends it to the queue and returns. It does no merge and no mapping: the cost depends on the pushed object's depth-bounded validation walk, not on the state size (hermetic: a visit counter shows the same count for a state of 10 keys and of 10,000). Hermetic tests: a getter on a pushed object is never invoked; a `Proxy`'s value-reading traps (`get`, `set`, `has`, `apply`, `defineProperty`, `deleteProperty`) are never hit, except that its `getPrototypeOf`, `ownKeys` and `getOwnPropertyDescriptor` traps may run once, because no JS primitive tells a `Proxy` apart without them -> 069-04; a cycle does not overflow the stack. `shouldProcessEvent` and `onBeforeEventSend` are not called before `push` returns (hermetic). The drain runs in a separate task (`setTimeout(0)` or `scheduler.postTask`, not a microtask), tested with a task-boundary probe. The drain and a direct `sendEvent` keep call order (one queue shared with the library's pre-boot queue, tested).
 3. **State equals ACDL's, folded lazily.** The state folds from the queue at `getState()`, at send when `includeDataLayerState` needs it, or in the drain, and is cached until the next push; the fold updates one state object in place, so a reference taken from `getState()` stays live and shows later pushes after the next read (hermetic: a reference taken before a push reflects it after the next read; a page that mutates the returned object outside `push` is unsupported and not detected, noted in the module header; also `push` does not fold; the reducer's visit counter is zero after a thousand pushes). `getState()` and `getState(path)` equal real ACDL 3.0.1's `getState()` on a corpus of pushes (nested objects, arrays, `null`, event items carrying data, the `event` and `eventInfo` keys, repeated keys), shown in real Chromium with both side by side. Every difference the corpus finds is fixed, or listed in the Findings as a dropped semantic with a diagnostic and a test of the difference. Against core's per-event projection (last write per type, `core/airlock.js`), the difference is named and tested: the data layer's `getState()` is a deep merge, core's projection stays unchanged. `getState` is a synchronous main-thread read of the live state by reference, per `contracts/push-api.md`. The reducer copies what it stores and skips `__proto__`, `constructor` and `prototype`, so no push can pollute `Object.prototype` (hermetic, revert-checked). The send-time merge hands the hook a copy (`structuredClone`), so a hook editing `payload.xdm.a.b` does not change the state (hermetic, matching stock's clone). Stated honestly: `push` is O(1), and each state-carrying send is O(state size); the Findings record the measured cost on the S10 state.
 4. **Event mapping and timing.** A push with a non-empty string `event` produces, in the drain, `onEvent({ eventType: event, ...xdm }, data, configOverrides)` exactly as `aem-martech`'s listener builds its `sendAnalyticsEvent` arguments, taking only `event`, `xdm`, `data` and `configOverrides` (any other key, such as `renderDecisions`, `decisionScopes` or a consent field, is ignored; tested), without mutating the pushed payload. Order is preserved. The consumer attaches when the library's lazy phase starts and only when `analytics` is true, as stock registers its listener: events captured before attach are held and replayed in order, so none goes out before the page view; with `analytics: false` state is kept and no event is mapped (both tested against the stock run in real Chromium). `shouldProcessEvent` returning false drops the event; one that throws drops it with a `hook-threw` diagnostic, matching the stock run (recorded in the real-Chromium arm). A data-layer event under pending or denied consent sends nothing until the seal allows it: the data layer only calls `onEvent`, and the handle's `sendEvent` and the seal decide (069-03 AC3).
 5. **What ACDL gave that cannot cross, each with a diagnostic and a test (proxy surface).** Function push: never executed (asserted), `datalayer-function-push-dropped`. `addEventListener`, `removeEventListener`, `on`, `off`: present, register nothing, do not throw, `datalayer-listener-not-supported`. `adobeDataLayer:change` and `adobeDataLayer:event` notifications: not emitted. ACDL's cloning `getState`: the live state is returned (a test shows the live reference). Stock's eager-phase fallback (a shallow merge of non-event entries before ACDL loads): not reproduced; a real-Chromium test compares an eager-phase `sendEvent` body with the stock run's for a nested-state push, shows the difference (deep versus shallow, event items excluded versus included), owns it here and lists it in the Findings. `shouldProcessEvent` and `onBeforeEventSend` stay on the main thread and run in the drain (AC2).
@@ -37,3 +37,40 @@ last_verified: 2026-11-21
 Written under ADR-0065 after the owner's 2026-11-21 direction: no ACDL as is, Option A (a pure main-thread module), and Airlock's generic data layer as the standard with `adobeDataLayer` only as an opt-in migration proxy.
 - Deliberate differences from stock to record in this slice's Findings at DONE: `getState` returns a live reference where ACDL returns a clone; the eager phase deep-merges where stock shallow-merges; the Alloy path still lacks denylist coverage (AC8, owned by the existing refinement-todo item); no `adobeDataLayer:*` notifications. Each is owned by an AC above.
 - 064-31 depends on 069-02 only through 069-03, which depends on 069-02.
+
+## Findings (2026-11-22)
+
+Built `adapters/eds/martech-datalayer.js` (pure, no imports; `createDataLayer`, `FORWARD_SKIP_EVENTS`, `MAX_DEPTH`). No `core/` change; the ADR-0063 allowlist files are untouched. **Not DONE**: AC2's Proxy-trap clause is reworded and moved to 069-04 (`slice-04-proxy-trap-free-detection.md`).
+
+**Tests per AC** (H = hermetic, `test/adobe-069-02-datalayer.test.js`, 41 tests; C = real Chromium, `test/adobe-069-02-datalayer-chromium.test.js`, 9 tests, gated by `AIRLOCK_REAL_CHROMIUM=1`, GATING step in `browser-oracle`; the stock arm is the real ACDL 3.0.1 and the pinned `aem-martech` source with a recording `alloy` stub):
+- AC1: H "AC1" (3 tests: no global, bad push, state push); C no window global and no `acdl.min.js` request.
+- AC2: H "AC2" (6 tests: getter, Proxy value traps, prototype/cycle/depth, 10 vs 10,000 visit counts, no hook before return and drain in a separate task, shared queue order).
+- AC3: H "AC3" (8 tests incl. live reference, pollution, core projection difference, hook copy); C corpus of 13 groups, `getState()` and `getState(path)` equal ACDL's.
+- AC4: H "AC4" (5 tests); C `analytics` true and false bodies vs stock, `shouldProcessEvent` false and throwing.
+- AC5/AC6 (proxy and what cannot cross): H "AC5/AC6" (11 tests); C proxy on a default-name array with entries, custom name `myLayer`, late ACDL replacing `push`, eager-phase deep vs shallow.
+- AC7: H "AC7"; C `scanBlocks` blocks state and DOM ids vs stock.
+- AC8: H "AC8" (5 tests, real `createAirlock`, skip list read from `createAlloyConnector({}).manifest.events`).
+- AC9: H "AC9"; the proxy global test is in "AC5/AC6". `dataLayer: false` and `pushToDataLayer`'s error belong to 069-03 AC5.
+
+**Revert-checks** (break, see red, restore):
+- Pollution: `UNSAFE` emptied -> "no push pollutes Object.prototype" red.
+- Function push: calling the function -> "a function push is never executed" red.
+- O(1)/no page code: folding and calling the hook inside `push` -> 4 tests red (no hook before return, visit counter, event data fold, `shouldProcessEvent`); a state-size-dependent walk -> "10 keys and of 10,000" red.
+- No-global: proxy writing `adobeDataLayer` by default -> custom-name test red; `createDataLayer` writing a global -> AC1 test red.
+- Denylist/forward: forwarding the whole payload -> "only xdm and data ... strips a denylisted key" red; removing the skip list -> "page_view is sent to Alloy once" red.
+
+**Core denylist depth (AC8):** core strips top-level `params` keys and dotted host paths (e.g. `data.promo_secret`); default names nested under `data`/`xdm` are not stripped today. The test pins this, not a copy of the list.
+
+**Stock-vs-airlock deviation log** (owner AC):
+- Live `getState` vs ACDL's clone (AC5).
+- A hook sees the state after every push so far (async drain); ACDL's listener sees per-push state (AC2/AC4).
+- A throwing `shouldProcessEvent` is a `hook-threw` diagnostic; stock throws out of the page's `push` (AC4).
+- Eager phase deep-merges and folds `xdm`/`data` of event items; stock shallow-merges non-event entries (AC5).
+- A push with a non-string or empty `event` is dropped whole; ACDL folds the rest (AC1).
+- Non-plain, accessor, Proxy, cyclic or over-deep pushes are dropped (AC2).
+- `getState(path)` is dotted only, as in ACDL; ACDL's `Object.prototype` pollution is not reproduced (AC3).
+- No `adobeDataLayer:*` notifications and no listeners (AC5).
+- A late `push` replacement is detected at assignment, stricter than "next drain" (AC6).
+- `scanBlocks` null-guards `data`; block-id collisions merge as in stock (AC7).
+- A pushed Proxy's `getPrototypeOf`/`ownKeys`/`getOwnPropertyDescriptor` traps may run once (AC2, -> 069-04).
+- The Alloy path has no denylist coverage (AC8, refinement-todo).

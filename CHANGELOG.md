@@ -15,6 +15,7 @@ Two tag families:
 
 - `feat(adobe)`: stock Adobe consent path (ADR-0064, 064-30): `handle.setAdobeConsent`, `thirdPartyCookiesEnabled` boot option.
 - `feat(adobe)`: the `bootAlloy` handle returns what stock Alloy returns (ADR-0065, 069-01): `handle.sendEvent` resolves `{ propositions, decisions }`, `applyPropositions({ viewName })`, a settling `handle.setAdobeConsent`, and a shared `onBeforeEventSend` helper (a throwing hook rejects like stock). `applyPropositions({ viewName })` differs from stock 2.31.1, which is a no-op for the bare form (the handle renders the cached view).
+- `feat(adobe)`: Airlock's generic data layer and an opt-in `adobeDataLayer` migration proxy (ADR-0065, 069-02): `adapters/eds/martech-datalayer.js` (`createDataLayer`, O(1) `push`, lazy deep-merge `getState`, no page global by default, functions never executed, optional forward to core); no `core/` change.
 
 ## [0.8.0] — 2026-09-14 — MVP8 (Ad-Conversion Offloading)
 
