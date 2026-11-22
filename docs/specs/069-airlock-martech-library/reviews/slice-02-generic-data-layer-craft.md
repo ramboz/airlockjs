@@ -9,7 +9,7 @@ scope: code craft of slice 069-02 (adapters/eds/martech-datalayer.js, its hermet
 
 # Slice 069-02 craft review (round 1)
 
-The author saved this text from the reviewer's output. The reviewer returned `needs-changes`, recorded here as `changes-requested`. "This commit" is the round-1 fix commit that carries this file. No round-2 re-review has run.
+The author saved this text from the reviewer's output. The reviewer returned `needs-changes`, recorded here as `changes-requested`. "This commit" is the round-1 fix commit that carries this file. Round 2 ran (see `slice-02-generic-data-layer-craft-round-2.md`).
 
 | # | Sev | Finding | Disposition |
 |---|---|---|---|

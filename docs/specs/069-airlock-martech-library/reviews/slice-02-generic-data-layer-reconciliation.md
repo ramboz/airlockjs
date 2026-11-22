@@ -9,7 +9,7 @@ scope: reconciliation of slice 069-02 (spec, ADR-0065, slices 069-03 and 069-04,
 
 # Slice 069-02 reconciliation review (round 1)
 
-The author saved this text from the reviewer's output. The reviewer returned `needs-changes`, recorded here as `changes-requested`. "This commit" is the round-1 fix commit that carries this file. No round-2 re-review has run.
+The author saved this text from the reviewer's output. The reviewer returned `needs-changes`, recorded here as `changes-requested`. "This commit" is the round-1 fix commit that carries this file. Round 2 ran (see `slice-02-generic-data-layer-reconciliation-round-2.md`).
 
 | # | Sev | Finding | Disposition |
 |---|---|---|---|

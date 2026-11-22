@@ -314,7 +314,7 @@ describe.runIf(real)("spec 069-02: generic data layer vs real ACDL 3.0.1 and rea
     await oursPage.context().close();
   }, T);
 
-  it("AC3: the state-carrying send costs O(state): measured on the recorded S10 state and on a 100x copy (push + fold + snapshot + drain)", async () => {
+  it("AC3: push, fold, snapshot and drain scale with state: measured on the recorded S10 state and on a 100x copy (push + fold + snapshot + drain)", async () => {
     const s10 = JSON.parse(await readFile(new URL("./fixtures/adobe-capture/s10-base.json", import.meta.url), "utf8"));
     const pushes = s10.requests
       .filter((r) => r.method === "POST" && /\/(interact|collect)\?/.test(r.url) && r.request_body)
@@ -351,7 +351,7 @@ describe.runIf(real)("spec 069-02: generic data layer vs real ACDL 3.0.1 and rea
     await page.context().close();
   }, T);
 
-  it("AC7: a block class that is not a valid bare selector (`md:hero`) is escaped and indexed, where stock's literal selector would throw", async () => {
+  it("AC7: a block class that is not a valid bare selector (`md:hero`) is escaped and indexed", async () => {
     const html = `<!doctype html><html><body>
       <div class="md:hero" data-block-data-layer='{"a":1}'></div>
       <div class="md:hero" data-block-data-layer='{"b":2}'></div></body></html>`;
