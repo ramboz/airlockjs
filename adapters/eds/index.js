@@ -1541,6 +1541,7 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer,
   const deliver = async (decisions) => {
     const displayed = [];
     const sink = [];
+    const rendered = new Set();
     // 064-23: the event in flight decides whether this answer renders (stock's per-call `renderDecisions`) and
     // which view it names; outside an event the boot default applies.
     const ctx = getContext();
@@ -1562,6 +1563,7 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer,
         // 064-20: no reserved box to fill (or nothing html for it) -> the main-thread renderer
         // (default-content, dom-action, redirect).
         const out = await renderer.render([decision && decision.content]);
+        for (const q of out.propositions) if (q && q.renderAttempted) rendered.add(q.id);
         if (out.displayed.length) { displayed.push(...out.displayed); continue; }
         if (out.redirected) continue; // the redirect sends its own display notification and navigates
         if (handlePromise) {
@@ -1584,6 +1586,7 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer,
         continue;
       }
       handle.fill(html); // the pre-reserved box, filled via the 018 sanitizer boundary (never raw)
+      if (decision.content) rendered.add(decision.content.id);
       exposureReporter.report(decision); // then the proposition_display exposure (AC4)
       // A reserved-box fill keeps its own proposition_display exposure; no Edge display notification (the recorded
       // S4 notification likewise omits the readiness proposition the airlock fills itself).
@@ -1598,6 +1601,8 @@ function wireAlloyDecisions({ caps, reserved, diagnose, compositeEmit, renderer,
     // 064-28: stock's returned view propositions say whether a render was attempted; the sink's headless copies do too.
     const attempted = (ctx && ctx.attempts) || new Map();
     const marked = sink.map((p) => (isViewProposition(p) && attempted.has(p.scope.toLowerCase()) ? { ...p, renderAttempted: attempted.get(p.scope.toLowerCase()) } : p));
+    // 069-01: what this event's sendEvent promise carries, built from the same deliveries (never from the chamber's word).
+    if (ctx) ctx.collected = [...(ctx.collected || []), ...sink.map((p) => ({ ...p, renderAttempted: isViewProposition(p) && attempted.has(p.scope.toLowerCase()) ? attempted.get(p.scope.toLowerCase()) : rendered.has(p.id) }))];
     personalization.decided(marked, displayed, ctx && ctx.render ? ctx.viewName : undefined);
   };
   caps.decisions = {
@@ -2062,6 +2067,7 @@ export async function bootAlloy(opts = {}) {
   const withViewDisplay = async (event, viewName) => {
     const out = await renderer.render(viewCache.get(viewName));
     noteAttempts(currentEvent, out.propositions);
+    if (currentEvent) currentEvent.warmResult = out.propositions;
     // A cached redirect leaves the page, so stock never sends the event that named the view (only the redirect's display).
     if (out.redirected) return null;
     if (!out.displayed.length) return event;
@@ -2075,8 +2081,19 @@ export async function bootAlloy(opts = {}) {
     if (!ctx) return;
     if (ctx.render && ctx.viewName && !ctx.warm && !ctx.viewHandled && viewCache.fetchCount() > ctx.fetches) {
       const out = await renderer.render(viewCache.getLatest(ctx.viewName));
+      ctx.collected = [...(ctx.collected || []), ...out.propositions];
       if (out.displayed.length) notifyDisplayed(out.displayed, ctx.viewName);
     }
+  };
+  /** 069-01: stock's sendEvent value for one settled event, from what its deliveries and the view cache produced on this thread. */
+  const sendResult = (ctx) => {
+    if (!ctx) return { propositions: [], decisions: [] };
+    const seen = new Set();
+    let list = [...(ctx.warmResult || []), ...(ctx.collected || [])];
+    if (ctx.warm && ctx.viewName && !ctx.render) list = [...list, ...viewCache.get(ctx.viewName).map((p) => ({ ...p, renderAttempted: false }))];
+    const propositions = list.filter((p) => { if (!p.id) return false; const k = `${p.id}|${p.scope}`; if (seen.has(k)) return false; seen.add(k); return true; });
+    const decisions = propositions.filter((p) => p.renderAttempted === false).map(({ renderAttempted: _r, ...rest }) => rest);
+    return { propositions, decisions };
   };
   const consentOpen = () => resolveConsent(consentRef, "analytics_storage") === "granted";
   /** Tells the connector (in the chamber) the host view cache is warm, so it adds no declared scopes: stock sends none for a call that passes none (064-29). */
@@ -2088,23 +2105,28 @@ export async function bootAlloy(opts = {}) {
     return { ...event, params: viewCache.isInitialized() ? { ...params, viewCacheWarm: true } : params };
   };
   let wake = null;
-  const runEntry = async ({ event, resolve, reject, gate }) => {
+  const runEntry = async ({ event, resolve, reject, gate, onSettled }) => {
     const notification = isNotificationDescriptor(event);
     if (gate) await drainDisplaysUntil(gate);
     currentEvent = personalizationConfigured ? eventContext(event) : null;
     const ctx = currentEvent;
+    let failure;
+    let driven;
     try {
       sendStockContext();
       let toSend = withCacheHint(event);
       // A warm view cache answers a push naming a view without a request: render it and fold its display
       // notification into this event, as stock does.
       if (ctx && ctx.warm && ctx.viewName && ctx.render) toSend = await withViewDisplay(toSend, ctx.viewName);
-      resolve(toSend ? await host.driveEvent(toSend) : undefined);
+      driven = toSend ? await host.driveEvent(toSend) : undefined;
+      resolve(driven);
     } catch (e) {
+      failure = e;
       reject(e);
     } finally {
       if (!notification) { await settleDeliveries(ctx); await finishEvent(ctx); endPrehiding(); }
       currentEvent = null;
+      if (onSettled) onSettled(failure, driven, ctx);
     }
   };
   // Wait for the event's deliveries. A redirect display is tracked as a delivery (064-29) and queued behind this
@@ -2145,13 +2167,13 @@ export async function bootAlloy(opts = {}) {
       });
     }
   };
-  const enqueue = (event, { front = false, onDrop } = {}) => {
+  const enqueue = (event, { front = false, onDrop, onSettled } = {}) => {
     const prm = event && event.params;
     const nm = prm && ((prm.xdm && prm.xdm.web && prm.xdm.web.webPageDetails && prm.xdm.web.webPageDetails.name) || prm.page_title);
     if (nm && !(prm.xdm && /^web\.webinteraction\./.test(prm.xdm.eventType || ""))) lastPageName = nm;
     warnNoConsentInput();
     const run = new Promise((resolve, reject) => {
-      const entry = { event, resolve, reject, display: front, onDrop, gate: !front && !isNotificationDescriptor(event) && applyInFlight.size ? Promise.all([...applyInFlight]) : null };
+      const entry = { event, resolve, reject, display: front, onDrop, onSettled, gate: !front && !isNotificationDescriptor(event) && applyInFlight.size ? Promise.all([...applyInFlight]) : null };
       if (front) waiting.unshift(entry); else waiting.push(entry);
       if (wake) wake();
       if (consentRef && !consentOpen()) {
@@ -2234,13 +2256,61 @@ export async function bootAlloy(opts = {}) {
     : () => {};
 
   let disposed = false;
+  const CONSENT_OUTCOME_TIMEOUT_MS = 10000;
+  let consentCallId = 0;
+  const consentOutcomes = new Map();
+  // The chamber's answer is untrusted data: it can only settle the page's promise for a call id still waiting; it never touches the consent ref or the seal.
+  if (worker && typeof worker.addEventListener === "function") {
+    worker.addEventListener("message", (e) => {
+      const m = e && e.data;
+      if (!m || m.type !== "consent-outcome" || typeof m.id !== "number") return;
+      const o = consentOutcomes.get(m.id);
+      if (!o) return;
+      consentOutcomes.delete(m.id);
+      clearTimeout(o.timer);
+      if (m.ok === true) o.resolve({}); else o.reject(new Error(typeof m.message === "string" ? m.message : "Alloy rejected setConsent"));
+    });
+  }
+  const pendingSends = new Set();
+  /** A promise for one event's settled result: an event the ring drops, or one pending at dispose, resolves `{}`. */
+  const sendOne = (options) => new Promise((resolve, reject) => {
+    const send = { done: () => { pendingSends.delete(send); resolve({}); } };
+    pendingSends.add(send);
+    const finish = (fn) => { if (!pendingSends.delete(send)) return; fn(); };
+    const prm = options && typeof options === "object" && !Array.isArray(options) ? options : {};
+    enqueue(toDescriptor({ event: "page_view", ...prm }), {
+      onDrop: () => finish(() => resolve({})),
+      onSettled: (failure, driven, ctx) => finish(() => {
+        const dropped = driven && driven.summary && Array.isArray(driven.summary.dropped) ? driven.summary.dropped : [];
+        if (failure) reject(new Error(String((failure && failure.message) || failure)));
+        else if (dropped.length) reject(new Error(String(dropped[0].reason || "sendEvent was dropped")));
+        else resolve(sendResult(ctx));
+      }),
+    });
+  });
   return {
+    /**
+     * 069-01: stock `sendEvent` — the same queue, order, seal and consent hold as `push`; resolves with the interact
+     * result `{ propositions, decisions }` once the event's deliveries settle. The propositions are collected on the main
+     * thread from what the event delivered (so `renderAttempted` is the host's), and need personalization configured
+     * (`placements`, `reservedPlacements` or `onDecisions`); otherwise both arrays are empty.
+     */
+    sendEvent: (options) => (disposed ? Promise.resolve({}) : sendOne(options)),
     /**
      * 064-20: stock `applyPropositions` — render propositions the site holds (returned by a prior
      * response / `onDecisions`) on the main thread. Like stock it sends NO notification of its own; the
      * site reports them with `push` (stock folds them into the next event only on request).
      */
-    applyPropositions: async ({ propositions, metadata } = {}) => {
+    applyPropositions: async ({ propositions, metadata, viewName } = {}) => {
+      // 069-01: `viewName` adds that view's cached propositions (stock does the same, but only alongside non-empty
+      // `propositions`: alone it is rejected by stock's validator). An unknown view renders nothing and sends nothing.
+      if (typeof viewName === "string") {
+        if (disposed) return {};
+        const cached = viewCache.has(viewName) ? viewCache.get(viewName) : [];
+        if (propositions === undefined && !cached.length) return { propositions: [] };
+        const both = await renderer.render([...(propositions || []), ...cached], { metadata });
+        return { propositions: both.propositions };
+      }
       const out = await renderer.render(propositions, { metadata });
       return { propositions: out.propositions };
     },
@@ -2291,24 +2361,46 @@ export async function bootAlloy(opts = {}) {
     // (it waits there for the very next vector message), then apply the vector DERIVED FROM THE SAME OBJECT, which
     // updates the seam's ref and posts the vector message. The object is never a seal signal: only the vector is.
     setAdobeConsent: (consent) => {
-      if (!consentRef) return;
+      // A caller that ignores the promise (the old fire-and-forget use) must not raise an unhandled rejection.
+      const refuse = (message) => { const p = Promise.reject(new Error(message)); p.catch(() => {}); return p; };
+      if (disposed) return refuse("airlock: the handle is disposed");
+      // No consent vector in this boot: nothing to apply and no Alloy call to wait for.
+      if (!consentRef) return Promise.resolve({});
       const r = classifyAdobeConsent(consent);
       if (r.kind === "none") {
         warnDiagnostic({ level: "warn", kind: "unsupported-consent", reason: "setAdobeConsent carried no Adobe collect/personalize value; nothing was applied" });
-        return;
+        return refuse("setAdobeConsent carried no Adobe collect/personalize value");
+      }
+      // Only a call whose object is posted has an Alloy outcome to wait for; the vector-shaped fallback (ADR-0064 point 5) drives a different Alloy call than stock's and settles on return.
+      let id = null;
+      let outcome = Promise.resolve({});
+      if (r.kind === "send") {
+        id = (consentCallId += 1);
+        const waitId = id;
+        outcome = new Promise((resolve, reject) => {
+          const timer = setTimeout(() => { consentOutcomes.delete(waitId); reject(new Error(`the Alloy chamber did not answer setConsent within ${CONSENT_OUTCOME_TIMEOUT_MS} ms`)); }, CONSENT_OUTCOME_TIMEOUT_MS);
+          consentOutcomes.set(waitId, { resolve, reject, timer });
+        });
+        outcome.catch(() => {});
       }
       let sent = false;
       if (r.kind === "send") {
-        try { worker.postMessage({ type: "adobeConsent", consent: r.consent }); sent = true; } catch (e) { r.reason = `the consent object could not be posted (${e && e.message})`; }
+        try { worker.postMessage({ type: "adobeConsent", id, consent: r.consent }); sent = true; } catch (e) { r.reason = `the consent object could not be posted (${e && e.message})`; }
       }
-      if (!sent) warnDiagnostic({ level: "warn", kind: "consent-object-fallback", reason: `${r.reason}; the chamber drives Alloy's setConsent from the consent vector instead` });
+      if (!sent) {
+        warnDiagnostic({ level: "warn", kind: "consent-object-fallback", reason: `${r.reason}; the chamber drives Alloy's setConsent from the consent vector instead` });
+        if (id !== null) { const o = consentOutcomes.get(id); consentOutcomes.delete(id); if (o) { clearTimeout(o.timer); o.resolve({}); } }
+      }
       applyVector(r.vector);
+      return outcome;
     },
     getState: () => host.getState(),
     stats: () => host.getState(),
     dispose: () => {
       if (disposed) return; // idempotent (021-01 AC1)
       disposed = true;
+      for (const send of [...pendingSends]) send.done();
+      for (const [id, o] of [...consentOutcomes]) { clearTimeout(o.timer); consentOutcomes.delete(id); o.reject(new Error("airlock: the handle was disposed before Alloy answered setConsent")); }
       commands.dispose();
       host.dispose(); // parked consent holds have no later decision to flush to (068-01)
       uninstallClicks();

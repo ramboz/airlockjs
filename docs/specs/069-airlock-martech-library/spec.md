@@ -36,6 +36,8 @@ Out of scope: Launch container loading, a package split, freezing the library un
 
 Order: 069-01, 069-02, then 069-03 (the library uses both).
 
+Status: 069-01 DONE (2026-11-22); 069-02 and 069-03 READY_FOR_IMPLEMENTATION.
+
 ## 3. Boundaries
 
 - Slice 064-31 (wrapper parity) was re-scoped against ADR-0065: AC2, AC3, AC5 and AC8 moved to 069-01, AC6 and AC7 to 069-03, AC1 dropped. See its file.

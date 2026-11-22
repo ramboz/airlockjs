@@ -165,7 +165,7 @@ describe("spec 064-21: the alloy command wrapper (hermetic)", () => {
     const diag = [];
     const alloy = createAlloyCommandBridge(h, { onDiagnostic: (d) => diag.push(d) });
     await alloy("configure", { onBeforeEventSend: () => { throw new Error("boom"); } });
-    await alloy("sendEvent", { xdm: {}, datasetId: "d", edgeConfigOverrides: { a: 1 } });
+    await expect(alloy("sendEvent", { xdm: {}, datasetId: "d", edgeConfigOverrides: { a: 1 } })).rejects.toThrow("boom");
     await alloy("setConsent", { consent: [{ standard: "TCF", version: "2.0", value: "x" }] });
     expect(diag.map((d) => d.kind)).toEqual(["unsupported-option", "unsupported-option", "hook-threw", "unsupported-consent"]);
     expect(h.push).not.toHaveBeenCalled();

@@ -77,6 +77,8 @@ export function createViewCache() {
       for (const [key, list] of byName) views.set(key, list);
       if (fetched) { latest = byName; fetches += 1; }
     },
+    /** Is there a cached entry for this view name (the placeholder `get` returns does not count)? */
+    has: (name) => typeof name === "string" && !!(views.get(name.toLowerCase()) || []).length,
     /** The cached propositions for a view name, or the placeholder. */
     get: (name) => pick(views, name),
     /** The named view of the most recent fetched response only (stock's `update()` on a fetch), or the placeholder. */

@@ -141,6 +141,12 @@ jobs:
         env:
           AIRLOCK_REAL_CHROMIUM: "1"
 
+      - name: GATING — 069-01 handle results vs stock Alloy (real Chromium, pinned Alloy 2.31.1)
+        # SYNTHETIC answers: sendEvent/setAdobeConsent/applyPropositions/onBeforeEventSend outcomes against the stock tag.
+        run: npx vitest run test/adobe-069-01-handle-results-chromium.test.js
+        env:
+          AIRLOCK_REAL_CHROMIUM: "1"
+
       - name: GATING — real-Worker isolation invariant (07-02)
         run: npm run rig:isolation
 

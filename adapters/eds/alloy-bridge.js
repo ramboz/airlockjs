@@ -7,7 +7,8 @@
 // `page_view`, which that handle ignores; a handle that routes by event name would not be a fit). `configure` options
 // other than function callbacks are fixed at boot and left inert here (064-31 AC6 and AC7).
 //
-//   sendEvent         -> handle.push     (after the page's onBeforeEventSend, run here on the main thread)
+//   sendEvent         -> handle.sendEvent (else handle.push and `{}`), after the page's onBeforeEventSend, run here on the main
+//                        thread by adapters/eds/before-event-send.js
 //   setConsent        -> handle.setAdobeConsent (the page's Adobe 2.0 object; the handle derives the seal's vector from it,
 //                        ADR-0064), else handle.setConsent(vector) on a handle that has no such method
 //   configure         -> boot options are fixed at `bootAlloy`; only `onBeforeEventSend` is taken from it
@@ -15,6 +16,7 @@
 //   anything else     -> handle.command   (it rejects a name outside the allowlist with a plain Error)
 
 import { plainDataProblem } from "../../connectors/alloy/host-commands.js";
+import { collectStockContext, runBeforeEventSend } from "./before-event-send.js";
 
 /**
  * `consent` (Adobe 2.0) -> the host consent vector. `collect` and `personalize.content` are the two purposes the seam
@@ -70,11 +72,12 @@ const clone = (x) => (x === undefined ? undefined : JSON.parse(JSON.stringify(x)
 
 /**
  * @param {{ push: Function, setConsent: Function, setAdobeConsent?: Function, applyPropositions: Function, command: Function }} handle a `bootAlloy` handle
- * @param {{ onDiagnostic?: (record: object) => void }} [opts]
+ * @param {{ onDiagnostic?: (record: object) => void, getContext?: () => object }} [opts] `getContext` returns the collected stock context the `onBeforeEventSend` hook sees merged in (default: the page's)
  * @returns {(command: string, options?: object) => Promise<unknown>} a stock-shaped `alloy(command, options)`
  */
 export function createAlloyCommandBridge(handle, opts = {}) {
   let onBeforeEventSend = null;
+  const getContext = typeof opts.getContext === "function" ? opts.getContext : () => collectStockContext();
   const diagnose = typeof opts.onDiagnostic === "function" ? opts.onDiagnostic : (r) => console.warn(r);
 
   const configure = (options = {}) => {
@@ -94,20 +97,23 @@ export function createAlloyCommandBridge(handle, opts = {}) {
     }
     const content = { xdm: clone(xdm) || {}, ...(data === undefined ? {} : { data: clone(data) }) };
     if (typeof type === "string" && type && !content.xdm.eventType) content.xdm.eventType = type;
-    if (onBeforeEventSend) {
-      let verdict;
-      try { verdict = onBeforeEventSend(content); } catch (e) { diagnose({ level: "warn", kind: "hook-threw", option: "onBeforeEventSend", reason: `onBeforeEventSend threw (${e && e.message}); the event is dropped` }); verdict = false; }
-      if (verdict === false) return {};
+    const ran = runBeforeEventSend(content, { hook: onBeforeEventSend, context: onBeforeEventSend ? getContext() : undefined, diagnose });
+    if (ran.dropped) {
+      // Stock rejects the sendEvent promise with the hook's error wrapped like any command failure; `false` resolves empty.
+      if (ran.error !== undefined) throw new Error(`[alloy] [DataCollector] An error occurred while executing the sendEvent command.\nCaused by: ${ran.error && ran.error.message}`);
+      return {};
     }
-    handle.push({
+    const event = {
       event: "page_view",
-      xdm: content.xdm,
-      ...(content.data === undefined ? {} : { data: content.data }),
+      xdm: ran.xdm,
+      ...(ran.data === undefined ? {} : { data: ran.data }),
       ...(documentUnloading === true ? { documentUnloading: true } : {}),
       ...(Array.isArray(decisionScopes) ? { decisionScopes: clone(decisionScopes) } : {}),
       ...(personalization && typeof personalization === "object" ? { personalization: clone(personalization) } : {}),
       renderDecisions: renderDecisions === true, // stock defaults to false; the host default would render
-    });
+    };
+    if (typeof handle.sendEvent === "function") return handle.sendEvent(event);
+    handle.push(event);
     return {};
   };
 
@@ -115,7 +121,7 @@ export function createAlloyCommandBridge(handle, opts = {}) {
     let vector;
     try { vector = consentToVector(options.consent); } catch { vector = null; }
     if (!vector) diagnose({ level: "warn", kind: "unsupported-consent", reason: "setConsent carried no Adobe 2.0 collect/personalize value; nothing was applied" });
-    else if (typeof handle.setAdobeConsent === "function") handle.setAdobeConsent(options.consent);
+    else if (typeof handle.setAdobeConsent === "function") await handle.setAdobeConsent(options.consent);
     else handle.setConsent(vector);
     return {};
   };
