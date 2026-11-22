@@ -10,7 +10,8 @@ last_verified: 2026-11-21
 
 **DoR:**
 - ✅ 064-21, 064-29, 064-30 done.
-- ⬜ ADR-0065 Accepted by the owner; 069-01 and 069-02 done.
+- ✅ ADR-0065 Accepted by the owner (2026-11-22).
+- ⬜ 069-01 and 069-02 done.
 
 **Acceptance Criteria:**
 

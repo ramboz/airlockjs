@@ -10,7 +10,7 @@ last_verified: 2026-11-21
 
 **DoR:**
 - ✅ 064-21, 064-29 and 064-30 done.
-- ⬜ ADR-0065 Accepted by the owner (this slice is not built before).
+- ✅ ADR-0065 Accepted by the owner (2026-11-22).
 
 **Acceptance Criteria:**
 

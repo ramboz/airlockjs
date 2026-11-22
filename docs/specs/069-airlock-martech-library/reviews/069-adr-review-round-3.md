@@ -3,7 +3,7 @@ round: 3
 verdict: changes-requested
 reviewer: Opus 5.5 jig:reviewer (fresh, read-only)
 reviewed_at: 2026-11-22T00:56:13Z
-prompt_source: ADR-0065 and slices 069-01 to 069-03, the re-scoped 064-31 and spec 069 as drafted after 84499749 on vendor-adobe (squashed into the commit that adds this file). The reviewer read the files from disk, not a diff.
+prompt_source: ADR-0065 and slices 069-01 to 069-03, the re-scoped 064-31 and spec 069 as drafted after 84499749 on vendor-adobe (squashed into f1f2c685, which adds this file). The reviewer read the files from disk, not a diff.
 scope: ADR-0065 with the generic data layer and the opt-in proxy, slices 069-01 to 069-03, 064-31
 ---
 

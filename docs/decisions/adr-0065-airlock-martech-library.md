@@ -1,8 +1,8 @@
 ---
-status: Proposed
+status: Accepted
 dependencies: [ADR-0007, ADR-0061, ADR-0062, ADR-0063, ADR-0064, 064-21, 064-29, 064-30]
 see_also: [064-31]
-last_verified: 2026-11-21
+last_verified: 2026-11-22
 frame_review: true
 ---
 
@@ -10,7 +10,7 @@ frame_review: true
 
 ## Status
 
-Proposed (2026-11-21), revised twice the same day on the owner's direction on the data layer (no ACDL; then no `adobeDataLayer` object by default). The owner has not accepted a draft yet.
+Accepted (2026-11-22), as revised at f1f2c685 (Proposed 2026-11-21, revised twice the same day on the owner's direction on the data layer). Asked "Accept ADR-0065?" with the choices as written, a config flag, the data layer in core, or not yet, the owner answered, verbatim: "Accept as written (Recommended)". So the proxy is the explicit `installAdobeDataLayerProxy()` method, the data layer is adapter-level, and there is no `core/` change.
 
 The owner decision this implements (2026-11-20). Asked about the page-global `window.alloy` the 064-21 wrapper installed, the owner said: "we don't have to use the aem-martech here, it's fine if we had to create a new version that is tailored towards airlock usage. or maybe airlock with the alloy chamber even becomes the new aem-martech library version somehow". The follow-up answer: "Yes: no shipped global, rig-only shim, new Airlock martech library (ADR + slice) (Recommended)".
 
