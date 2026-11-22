@@ -9,7 +9,7 @@ scope: reconciliation of slice 069-03 with the spec, the board, ADR-0065, the 06
 
 # Slice 069-03 reconciliation review (round 1)
 
-The author saved this text from the reviewer's output. The reviewer returned `changes-requested`. "This commit" is the round-1 fix commit that carries this file.
+The author saved this text from the reviewer's output. The reviewer returned `changes-requested`. "This commit" is the round-1 fix commit that carries this file. Round 2 ran (see `slice-03-martech-library-reconciliation-round-2.md`).
 
 | # | Sev | Finding | Disposition |
 |---|---|---|---|

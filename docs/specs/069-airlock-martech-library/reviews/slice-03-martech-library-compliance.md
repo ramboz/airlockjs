@@ -9,7 +9,7 @@ scope: spec compliance of slice 069-03 (adapters/eds/martech.js, THIRD_PARTY_NOT
 
 # Slice 069-03 compliance review (round 1)
 
-The author saved this text from the reviewer's output. The reviewer returned `changes-requested`. "This commit" is the round-1 fix commit that carries this file.
+The author saved this text from the reviewer's output. The reviewer returned `changes-requested`. "This commit" is the round-1 fix commit that carries this file. Round 2 ran (see `slice-03-martech-library-compliance-round-2.md`).
 
 | # | Sev | Finding | Disposition |
 |---|---|---|---|

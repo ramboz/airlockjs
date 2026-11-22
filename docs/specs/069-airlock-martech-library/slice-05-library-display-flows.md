@@ -6,7 +6,7 @@ last_verified: 2026-11-22
 
 ## Slice 069-05 — Real-Chromium display flows of the martech library (overflow of 069-03 AC6)
 
-**Goal:** Overflow from 069-03 AC6. The library arm already matches the stock run's requests for the default path (`martechEager`, `martechLazy`, `martechDelayed`), `trackPageView` on and off, `performanceOptimized: false` with the body style changes, and the `martechConfig.airlock` boot path. This slice adds the flows that need a new rig scenario: personalization off, a late display after the timeout, and a synthetic offer answer that renders and sends `propositionDisplay` (also `trackPageView: false` with an offer).
+**Goal:** Overflow from 069-03 AC6. The library arm already matches the stock run's requests for the default path (`martechEager`, `martechLazy`, `martechDelayed`), `trackPageView` on and off, `performanceOptimized: false` with the body style changes, and the `martechConfig.airlock` boot path. This slice adds the flows that need a new rig scenario: personalization off, a late display after the timeout, and a synthetic offer answer that renders and sends `propositionDisplay` (also `trackPageView: false` with an offer, AC3).
 
 **Definition of Ready:**
 - ✅ 069-03 DONE (except this AC6 remainder).
@@ -19,8 +19,9 @@ last_verified: 2026-11-22
 
 1. Personalization off in real Chromium: a journey that calls `martechLazy` before awaiting `sendEvent` (the 069-03 journey awaits `sendEvent` first, which cannot settle while personalization is off, in the stock run too) sends the stock run's requests.
 2. A late display after `personalizationTimeout` sends the stock run's `decisioning.propositionDisplay` requests.
-3. A SYNTHETIC offer answer (the 064-20 sense, no new live capture) renders with `renderDecisions: true` and reports the same displays as the stock run.
-4. No `core/` change; the 064-21 and 069-03 tests stay green.
+3. A SYNTHETIC offer answer (the 064-20 sense, no new live capture) renders with `renderDecisions: true` and reports the same displays as the stock run, including with `trackPageView: false` (the display event is sent with an offer).
+4. With personalization off, the order of the event versus the page view equals the stock run's.
+5. No `core/` change; the 064-21 and 069-03 tests stay green.
 
 ## Notes
 

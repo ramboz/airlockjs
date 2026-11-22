@@ -659,10 +659,42 @@ describe("069-03 AC4: every export", () => {
     it("(f) timestamp and placeContext.localTime are sampled on the main thread: the page hook sees them", async () => {
       let seen;
       const { m, init } = setup();
-      await init({ onBeforeEventSend: (p) => { seen = p; } });
+      await init({ context: ["web", "device", "environment", "placeContext"], onBeforeEventSend: (p) => { seen = p; } });
       await m.sendEvent({ xdm: { eventType: "x" } });
       expect(typeof seen.xdm.timestamp).toBe("string");
+      expect(seen.xdm.placeContext).toBeDefined();
+      expect(typeof seen.xdm.placeContext.localTime).toBe("string");
       expect(seen.xdm.implementationDetails.name).toBe("https://ns.adobe.com/experience/alloy");
+    });
+
+    it("(2) overlapping consent calls: the last call made decides the grant, whatever order they settle in", async () => {
+      const releases = [];
+      const handle = mockHandle({ setAdobeConsent: vi.fn(() => new Promise((res) => releases.push(() => res({})))) });
+      const { m, init } = setup({ handle });
+      await init({ defaultConsent: "out" });
+      const revoke = m.updateUserConsent({ collect: false });
+      const grant = m.updateUserConsent({ collect: true });
+      await advance();
+      releases[1](); // the grant settles first, the revoke last
+      await advance();
+      releases[0]();
+      await Promise.all([revoke, grant]);
+      const sent = m.sendEvent({ xdm: { eventType: "after" } });
+      await advance();
+      await sent;
+      expect(handle.sendEvent).toHaveBeenCalledTimes(1);
+    });
+
+    it("(1) a failed boot still restores the body when performanceOptimized:false hid it", async () => {
+      const m = createMartech(undefined, { boot: async () => { throw new Error("boot failed"); }, onDiagnostic() {} });
+      await m.initMartech(CFG, { airlock: AIRLOCK, personalization: false }).catch(() => {});
+      const m2 = createMartech(undefined, { boot: async () => { throw new Error("boot failed"); }, onDiagnostic() {} });
+      const init = m2.initMartech(CFG, { airlock: AIRLOCK, performanceOptimized: false });
+      await init.catch(() => {});
+      await m2.martechEager();
+      expect(body.style.visibility).toBe("hidden");
+      await expect(m2.martechLazy()).rejects.toThrow("boot failed");
+      expect(body.style.visibility).toBeNull();
     });
 
     it("(g) a field the page hook deletes is absent from what the library sends (the refill is the chamber's context merge, outside this hermetic test)", async () => {

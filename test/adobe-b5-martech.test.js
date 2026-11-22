@@ -65,18 +65,21 @@ const AIRLOCK_BOOT = { consent: {}, context: ["web", "device", "environment"], e
 /** The eager, lazy and delayed phases (no manual sendEvent): the default page-view path, with the body's style changes recorded. */
 const flowJourney = (page, extra = {}) => page.evaluate(async ({ orgId, datastreamId, scope, extra: more, delayGrant }) => {
   const styles = [];
+  const edgeStarts = () => performance.getEntriesByType("resource").filter((e) => /edge\.adobedc\.net|demdex/.test(e.name)).map((e) => e.startTime);
+  let grantAt = null;
   new MutationObserver(() => styles.push(document.body.getAttribute("style") || "")).observe(document.body, { attributes: true, attributeFilter: ["style"] });
   const m = await (0, eval)('import("/martech/index.js")');
   m.initMartech({
     orgId, datastreamId, edgeDomain: "edge.adobedc.net", defaultConsent: more.defaultConsent || "pending", debugEnabled: false, thirdPartyCookiesEnabled: false,
     idMigrationEnabled: false, targetMigrationEnabled: false, clickCollectionEnabled: false, autoCollectPropositionInteractions: { AJO: "never", TGT: "never" },
+    ...(more.deleteImplementationDetails ? { onBeforeEventSend: (p) => { delete p.xdm.implementationDetails; } } : {}),
   }, {
     analytics: true, personalization: true, performanceOptimized: true, personalizationTimeout: 1000, trackPageView: true, dataLayer: true,
     includeDataLayerState: false, launchUrls: [], alloyInstanceName: "alloy", dataLayerInstanceName: "adobeDataLayer", decisionScopes: [scope],
     ...more, ...(more.useHandle ? { handle: window.__handle } : {}),
     ...(more.useAirlock ? { airlock: { bundleUrl: "/rig/alloy.min.js", workerUrl: "/rig/chamber.js" } } : {}),
   });
-  const consent = () => m.updateUserConsent({ collect: true, personalize: true, marketing: false, share: false });
+  const consent = () => { grantAt = performance.now(); return m.updateUserConsent({ collect: true, personalize: true, marketing: false, share: false }); };
   if (!delayGrant) await consent();
   const eager = m.martechEager();
   if (delayGrant) { await new Promise((r) => setTimeout(r, 1500)); await consent(); }
@@ -84,10 +87,9 @@ const flowJourney = (page, extra = {}) => page.evaluate(async ({ orgId, datastre
   await m.martechLazy();
   await m.martechDelayed();
   const deadline = Date.now() + 8000;
-  const edgeCalls = () => performance.getEntriesByType("resource").filter((e) => /edge\.adobedc\.net|demdex/.test(e.name)).length;
-  while (edgeCalls() < 3 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
-  await new Promise((r) => setTimeout(r, 500));
-  return { styles, finalStyle: document.body.getAttribute("style") || "", globals: { alloy: typeof window.alloy, adobeDataLayer: typeof window.adobeDataLayer } };
+  while (edgeStarts().length < 3 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
+  await new Promise((r) => setTimeout(r, 200));
+  return { styles, finalStyle: document.body.getAttribute("style") || "", grantAt, edgeStarts: edgeStarts(), globals: { alloy: typeof window.alloy, adobeDataLayer: typeof window.adobeDataLayer } };
 }, { orgId: ORG, datastreamId: DATASTREAM, scope: SCOPE, extra, delayGrant: Boolean(extra.delayGrant) });
 /** Cookie entries arrive in jar order, which is not part of the contract; sort them before comparing. */
 const normalised = (text) => {
@@ -242,7 +244,26 @@ describe.runIf(real)("spec 069-03: the Airlock martech library in the S10 differ
   it("AC3g: with defaultConsent \"out\" and a delayed grant, nothing leaves before the grant and the requests equal stock", async () => {
     const extra = { defaultConsent: "out", delayGrant: true };
     const [s, l] = await Promise.all([flow(extra, false), flow(extra, true)]);
-    comparePosts(l, s);
+    expect(comparePosts(l, s)).toBeGreaterThanOrEqual(1);
+    for (const run of [s.results.run, l.results.run]) {
+      expect(run.edgeStarts.length).toBeGreaterThanOrEqual(1);
+      expect(Math.min(...run.edgeStarts)).toBeGreaterThanOrEqual(run.grantAt);
+    }
+  }, T);
+
+  it("AC4g: a page hook that deletes implementationDetails gets it refilled by the chamber; the bodies are compared with stock", async () => {
+    const extra = { deleteImplementationDetails: true };
+    const [s, l] = await Promise.all([flow(extra, false), flow(extra, true)]);
+    const refilled = (r) => posts(r.network).map((p) => (JSON.parse(p.body).events || []).map((e) => Boolean(e.xdm && e.xdm.implementationDetails)));
+    // Observed deviation: stock lets the page hook delete the field; the chamber refills it (069-03 Findings).
+    expect(refilled(s).flat().every((v) => v === false)).toBe(true);
+    expect(refilled(l).flat().every((v) => v === true)).toBe(true);
+    const a = posts(l.network);
+    const b = posts(s.network);
+    expect(a.map(pathOf)).toEqual(b.map(pathOf));
+    for (let k = 0; k < b.length; k += 1) {
+      expect(diffBodies(normalised(a[k].body), normalised(b[k].body)).filter((d) => !/implementationDetails/.test(d))).toEqual([]);
+    }
   }, T);
 
   it("AC1 (boot path): martechConfig.airlock (no pre-booted handle) boots the chamber and sends the stock run's requests", async () => {
@@ -258,7 +279,7 @@ describe.runIf(real)("spec 069-03: the Airlock martech library in the S10 differ
         const m = await (0, eval)('import("/martech/index.js")');
         m.initMartech({ orgId: "x", datastreamId: "y", defaultConsent: "pending" }, { personalization: true });
         await m.updateUserConsent({ collect: true, personalize: true, marketing: false, share: false });
-        return window.alloy("applyPropositions", { propositions: [], viewName: "home" }).then((r) => `ok:${JSON.stringify(Object.keys(r || {}).sort())}`, (e) => `err:${String(e.message).split("\n")[0]}`);
+        return window.alloy("applyPropositions", { propositions: [], viewName: "home" }).then((r) => `ok:${JSON.stringify(r)}`, (e) => `err:${String(e.message).split("\n")[0]}`);
       }),
     });
     const libRun = replayFixture(browser, "s10-base", {
@@ -267,7 +288,7 @@ describe.runIf(real)("spec 069-03: the Airlock martech library in the S10 differ
         const m = await (0, eval)('import("/martech/index.js")');
         m.initMartech({ orgId: "x", datastreamId: "y", defaultConsent: "pending" }, { handle: window.__handle, personalization: true });
         await m.updateUserConsent({ collect: true, personalize: true, marketing: false, share: false });
-        return m.getAirlockHandle().applyPropositions({ propositions: [], viewName: "home" }).then((r) => `ok:${JSON.stringify(Object.keys(r || {}).sort())}`, (e) => `err:${String(e.message).split("\n")[0]}`);
+        return m.getAirlockHandle().applyPropositions({ propositions: [], viewName: "home" }).then((r) => `ok:${JSON.stringify(r)}`, (e) => `err:${String(e.message).split("\n")[0]}`);
       }),
     });
     const [s, l] = await Promise.all([stockRun, libRun]);

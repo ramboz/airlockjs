@@ -36,7 +36,7 @@ Out of scope: Launch container loading, a package split, freezing the library un
 | [069-04](slice-04-proxy-trap-free-detection.md) | Overflow of 069-02 AC2: trap-free rejection of a pushed `Proxy`, or the residual three-trap exposure accepted with its threat model |
 | [069-05](slice-05-library-display-flows.md) | Overflow of 069-03 AC6: real-Chromium personalization-off, late-display and synthetic-offer flows of the library |
 
-Order: 069-01, 069-02, then 069-03 (the library uses both). 069-04 is an overflow of 069-02 and does not block 069-03.
+Order: 069-01, 069-02, then 069-03 (the library uses both). 069-04 is an overflow of 069-02 and does not block 069-03. 069-05 follows 069-03 (display flows the library's journey does not cover).
 
 Status: 069-01 DONE (2026-11-22); 069-02 DONE (2026-11-22, AC2's Proxy-trap clause moved to 069-04); 069-03 DONE (2026-11-22, AC6's personalization-off, late-display and synthetic-offer flows moved to 069-05); 069-04 and 069-05 READY_FOR_IMPLEMENTATION.
 

@@ -34,6 +34,8 @@ Adobe's EDS sites run Adobe Experience Platform Web SDK (Alloy) through the `aem
 
 **Amendment (2026-11-22, slice 069-02 build).** Point 5's "push validates ... no Proxy ... so no page code runs" and the Constraints line "no page function runs inside `push`" are not fully true. Validation cannot tell a pushed `Proxy` apart without running its `getPrototypeOf`, `ownKeys` and `getOwnPropertyDescriptor` traps, so those may run during one validation walk (the push is then dropped). No getter, function or value-reading trap runs. Without `structuredClone` the backstop is absent and a Proxy whose traps return plain data is accepted, which contradicts point 5's "no Proxy". A live Proxy array on the instance name also passes the foreign check, and its traps run in `slice()`/`defineProperty` during install. Closing these, or accepting them with a threat model, is slice 069-04. The opt-in proxy's replacement of `push` is detected at assignment as well as at the next drain. The decision itself is unchanged.
 
+**Amendment (2026-11-22, slice 069-03 build and review).** Two statements in this ADR are corrected. (1) Point 4: a throwing page `onBeforeEventSend` is caught at the library level, as the pinned `aem-martech` does: a `hook-threw` diagnostic, the event is dropped and `sendEvent` resolves `{}`. Only the bridge wrapper (`createAlloyCommandBridge`) rejects, as stock's `alloy("sendEvent")` does. (2) The `martechLazy` row (about line 102): the display flows with personalization off, `trackPageView: false` display, and a late display are not proven in 069-03; they moved to slice 069-05. The owner's sign-off on these amendments is carried to the coordinator.
+
 ## Decision Options Considered
 
 ### Where the library lives

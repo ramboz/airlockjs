@@ -36,7 +36,8 @@
 //   - A throwing page `onBeforeEventSend` is caught (diagnostic `hook-threw`) and the event is dropped, so `sendEvent`
 //     resolves: the pinned aem-martech catches it and logs to the console. The lower-level bridge wrapper still rejects.
 //   - Under `defaultConsent: "out"` a send made right after an unawaited `updateUserConsent` waits for it; a send with no
-//     grant is dropped (`consent-out-event-dropped`).
+//     grant is dropped (`consent-out-event-dropped`). Data-layer events are checked against the consent call pending when
+//     they drain (not when they were pushed). With overlapping consent calls the last call made decides the grant.
 //   - Any `webSDKConfig` option the library cannot carry is diagnosed `unsupported-option`. These options stay inert and
 //     are not diagnosed: `debugEnabled`, `targetMigrationEnabled`, `autoCollectPropositionInteractions`.
 //
@@ -152,6 +153,7 @@ export function createMartech(handle, opts = {}) {
   const direct = [];
   let consentOut = false;
   let granted = false;
+  let consentSeq = 0;
   // The latest `updateUserConsent` call, set the moment it is made so a send made right after it waits for it.
   let pendingConsent = null;
   let viewScopesWarned = false;
@@ -436,9 +438,11 @@ export function createMartech(handle, opts = {}) {
     assertInitialized("updateUserConsent");
     const object = buildConsentObject(consent);
     const wantsGrant = consent.collect === true;
+    const mine = ++consentSeq;
     const result = whenReady(async () => {
       await theHandle.setAdobeConsent(object);
-      granted = wantsGrant;
+      // overlapping calls settle in any order: only the last call made decides `granted`
+      if (mine === consentSeq) granted = wantsGrant;
       return {};
     });
     // Set at once (before any await) so a send made right after it, unawaited, waits for it.
@@ -510,7 +514,11 @@ export function createMartech(handle, opts = {}) {
       }
       return;
     }
-    await ensureBooted();
+    try { await ensureBooted(); } catch (err) {
+      // stock's finally: a failed boot must not leave the body hidden
+      if (!config.performanceOptimized) document.body.style.visibility = null;
+      throw err;
+    }
     if (dl) dl.attach({ analytics: config.analytics });
     if (!config.performanceOptimized) {
       try {

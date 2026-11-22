@@ -21,6 +21,7 @@ last_verified: 2026-11-22
 1. A decision is recorded (Findings or an ADR note): either a validation order that provably runs no `Proxy` trap of any kind, or the residual three-trap exposure accepted with its threat model (page code that pushes a `Proxy` already runs on the main thread).
 2. If a trap-free path exists, a hermetic test shows no trap of any kind runs for a pushed `Proxy` (all thirteen handler traps counted), and it fails against the current walk.
 3. `adapters/eds/martech-datalayer.js` keeps its O(1) push, and the 069-02 tests stay green. No `core/` change.
+4. Decide whether the generic data layer needs an `uninstallAdobeDataLayerProxy` (069-02 carried this; no spec needs it today): add it with a test, or record that it is not provided and why.
 
 ## Notes
 

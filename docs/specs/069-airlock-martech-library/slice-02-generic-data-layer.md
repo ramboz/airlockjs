@@ -67,7 +67,7 @@ Built `adapters/eds/martech-datalayer.js` (pure, no imports; `createDataLayer`, 
 - (g) Each event is copied up to three times (Info, accepted by design).
 - A live Proxy array on the instance name passes the foreign check and its traps run in `slice()`/`defineProperty` during install (ADR-0065 amendment; owner: 069-04).
 
-**Carried:** the owner's approval of the AC2 rewrite goes to the coordinator (owner: coordinator). No `uninstallAdobeDataLayerProxy`: the spec does not require one (owner: 069-03, or a later slice if the library needs it).
+**Carried:** the owner's approval of the AC2 rewrite goes to the coordinator (owner: coordinator). No `uninstallAdobeDataLayerProxy`: the spec does not require one (owner: 069-04, which decides whether the proxy gets an uninstall).
 
 **Revert-checks, round 1** (break, see red, restore): node budget off -> the DAG test hangs; drain loop on the live length -> the re-entrant test hangs; unguarded proxy check, held cap off, hook copies removed, `Array.isArray` outside the `try`, idempotent early return removed, `scanBlocks` escape removed, the checks list reset on install -> the revoked, proxy-getter, held-cap, copy, second-name, idempotent and `scanBlocks` tests red.
 
