@@ -18,11 +18,11 @@ use_cases: [UC-2, UC-7]
 
 **Main tradeoff.** Source-compatible at the export level, not a drop-in for code that calls `window.alloy` directly. `martechDelayed` does not load Launch containers.
 
-**What needs you.** The ADR's one question (where the data-layer behavior lives: core to the library, or through a chamber) and its acceptance. Nothing else.
+**What needs you.** Acceptance of the ADR. The owner already picked Option A for the data layer; the one open choice (an explicit `installAdobeDataLayerProxy()` method, not a config flag) is stated in the ADR.
 
 ## 1. Scope
 
-In scope: the library, the data-layer capture bridge (Airlock's own, no ACDL), the three handle additions it needs (`handle.sendEvent`, `handle.applyPropositions({ viewName })`, a settling `handle.setAdobeConsent`), the S10 differential's third arm, the docs.
+In scope: the library, Airlock's generic data layer (no ACDL, no `adobeDataLayer` by default) with an opt-in `adobeDataLayer` migration proxy, the three handle additions it needs (`handle.sendEvent`, `handle.applyPropositions({ viewName })`, a settling `handle.setAdobeConsent`), the S10 differential's third arm, the docs.
 
 Out of scope: Launch container loading, a package split, freezing the library under ADR-0017, any `core/` change, any ADR-0063 allowlist change.
 
@@ -31,7 +31,7 @@ Out of scope: Launch container loading, a package split, freezing the library un
 | Slice | One line |
 |---|---|
 | [069-01](slice-01-handle-results.md) | The handle returns what stock returns: `sendEvent` result, the hook's `xdm`, a throwing hook, `applyPropositions({ viewName })`, a settling `setAdobeConsent` |
-| [069-02](slice-02-data-layer-bridge.md) | The data layer without ACDL: `window.adobeDataLayer` as a narrow capture bridge (object pushes, O(1) validate-and-append), Airlock's own state merge and event mapping, the dispositions for what ACDL gave that cannot cross the airlock |
+| [069-02](slice-02-generic-data-layer.md) | Airlock's generic data layer, no ACDL and no `adobeDataLayer` by default (`push({ event, ...params })`, `getState`, state pushes; O(1) validate-and-append), plus an opt-in `adobeDataLayer` migration proxy and the dispositions for what ACDL gave that cannot cross the airlock |
 | [069-03](slice-03-martech-library.md) | `adapters/eds/martech.js`: the 14 `aem-martech` exports on the handle, no page global, proven against the recording and the stock run |
 
 Order: 069-01, 069-02, then 069-03 (the library uses both).

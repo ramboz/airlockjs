@@ -2,8 +2,8 @@
 round: 2
 verdict: changes-requested
 reviewer: Opus 5.5 jig:reviewer (fresh, read-only)
-reviewed_at: 2026-11-21T20:05:33Z
-prompt_source: ADR-0065 and slices 069-01, 069-02 (new, the data-layer bridge), 069-03 (the library, formerly 069-02) and the re-scoped 064-31 as drafted before the commit that adds this file (squashed into the docs(adobe) ADR-0065 revision commit on vendor-adobe, after 1abe1670). The reviewer read the files from disk, not a diff.
+reviewed_at: 2026-11-21T20:04:45Z
+prompt_source: ADR-0065 and slices 069-01, 069-02 (then the data-layer bridge, now the generic data layer), 069-03 (the library, formerly 069-02) and the re-scoped 064-31 as drafted before commit 84499749 on vendor-adobe (squashed into 84499749, which adds this file; after 1abe1670). The reviewer read the files from disk, not a diff.
 scope: ADR-0065 revised for no ACDL, slices 069-01 to 069-03, 064-31 re-scope
 ---
 
