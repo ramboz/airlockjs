@@ -296,7 +296,7 @@ describe("069-02 AC4: event mapping and timing", () => {
 
   it("only calls onEvent: it holds no handle (a consent gate is the library's sendEvent and the seal)", async () => {
     const dl = make();
-    expect(Object.keys(dl).sort()).toEqual(["attach", "enqueue", "getState", "getStateSnapshot", "installAdobeDataLayerProxy", "push", "scanBlocks", "stats"]);
+    expect(Object.keys(dl).sort()).toEqual(["attach", "enqueue", "flushCalls", "getState", "getStateSnapshot", "installAdobeDataLayerProxy", "push", "scanBlocks", "stats"]);
   });
 });
 
@@ -528,7 +528,7 @@ describe("069-02 AC8: forward to core and the denylist", () => {
 describe("069-02 AC9: no capability", () => {
   it("holds nothing but the callbacks it was given and has no handle, chamber or command surface", () => {
     const dl = make();
-    expect(Object.keys(dl).sort()).toEqual(["attach", "enqueue", "getState", "getStateSnapshot", "installAdobeDataLayerProxy", "push", "scanBlocks", "stats"]);
+    expect(Object.keys(dl).sort()).toEqual(["attach", "enqueue", "flushCalls", "getState", "getStateSnapshot", "installAdobeDataLayerProxy", "push", "scanBlocks", "stats"]);
     for (const k of Object.keys(dl)) expect(["command", "sendEvent", "setConsent", "handle", "chamber"]).not.toContain(k);
   });
 });

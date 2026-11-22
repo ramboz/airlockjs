@@ -303,6 +303,17 @@ export function createDataLayer({ onEvent = () => {}, shouldProcessEvent = () =>
     schedule();
   }
 
+  /** Run the queued calls now, in order, while events stay held until `attach` (a call that enqueues another runs it too). */
+  function flushCalls() {
+    if (attached) return;
+    for (;;) {
+      const at = sendQueue.findIndex((entry) => entry.call);
+      if (at < 0) return;
+      const [{ call }] = sendQueue.splice(at, 1);
+      try { call(); } catch (e) { say({ kind: "datalayer-call-threw", reason: String((e && e.message) || e) }); }
+    }
+  }
+
   function scanBlocks(doc = globalThis.document) {
     const ids = [];
     if (!doc || typeof doc.querySelectorAll !== "function") return ids;
@@ -377,6 +388,7 @@ export function createDataLayer({ onEvent = () => {}, shouldProcessEvent = () =>
     getStateSnapshot,
     attach,
     enqueue,
+    flushCalls,
     scanBlocks,
     installAdobeDataLayerProxy,
     stats: () => ({ pushVisits: pushCounter.visits, foldVisits: foldCounter.visits }),

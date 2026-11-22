@@ -38,7 +38,7 @@ Out of scope: Launch container loading, a package split, freezing the library un
 
 Order: 069-01, 069-02, then 069-03 (the library uses both). 069-04 is an overflow of 069-02 and does not block 069-03.
 
-Status: 069-01 DONE (2026-11-22); 069-02 DONE (2026-11-22, AC2's Proxy-trap clause moved to 069-04); 069-03 DONE (2026-11-22, AC6's three Chromium flows moved to 069-05); 069-04 and 069-05 READY_FOR_IMPLEMENTATION.
+Status: 069-01 DONE (2026-11-22); 069-02 DONE (2026-11-22, AC2's Proxy-trap clause moved to 069-04); 069-03 DONE (2026-11-22, AC6's personalization-off, late-display and synthetic-offer flows moved to 069-05); 069-04 and 069-05 READY_FOR_IMPLEMENTATION.
 
 ## 3. Boundaries
 

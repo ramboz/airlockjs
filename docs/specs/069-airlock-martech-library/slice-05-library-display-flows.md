@@ -6,7 +6,7 @@ last_verified: 2026-11-22
 
 ## Slice 069-05 — Real-Chromium display flows of the martech library (overflow of 069-03 AC6)
 
-**Goal:** Overflow from 069-03 AC6. The library arm already matches the stock run's requests for the default path, `trackPageView` on and off and `performanceOptimized: false`. This slice adds the flows that need a new rig scenario: personalization off, a late display after the timeout, and a synthetic offer answer that renders.
+**Goal:** Overflow from 069-03 AC6. The library arm already matches the stock run's requests for the default path (`martechEager`, `martechLazy`, `martechDelayed`), `trackPageView` on and off, `performanceOptimized: false` with the body style changes, and the `martechConfig.airlock` boot path. This slice adds the flows that need a new rig scenario: personalization off, a late display after the timeout, and a synthetic offer answer that renders and sends `propositionDisplay` (also `trackPageView: false` with an offer).
 
 **Definition of Ready:**
 - ✅ 069-03 DONE (except this AC6 remainder).

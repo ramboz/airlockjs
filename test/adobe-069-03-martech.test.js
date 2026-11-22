@@ -11,7 +11,7 @@ const DS = "12345678-1234-1234-1234-123456789012";
 const CFG = { orgId: "ORG@AdobeOrg", datastreamId: DS };
 const AIRLOCK = { bundleUrl: "https://airlock.example/alloy.js" };
 const NS = "https://ns.adobe.com/personalization/";
-const tick = (ms = 15) => new Promise((r) => setTimeout(r, ms));
+const advance = (ms = 20) => vi.advanceTimersByTimeAsync(ms);
 const deferred = () => { let resolve; let reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; };
 
 function mockHandle(over = {}) {
@@ -36,6 +36,7 @@ const kinds = (diags) => diags.map((d) => d.kind);
 let body;
 let observers;
 beforeEach(() => {
+  vi.useFakeTimers();
   body = { style: {} };
   observers = [];
   vi.stubGlobal("window", {});
@@ -71,7 +72,7 @@ describe("069-03 AC2: no page global", () => {
       await m.getPersonalizationForView("v");
       await m.applyPersonalization("v");
       m.pushToDataLayer({ event: "e", xdm: {} });
-      await tick();
+      await advance();
       await m.martechDelayed();
     } finally {
       for (const k of names) delete globalThis[k];
@@ -97,6 +98,15 @@ describe("069-03 AC2: no page global", () => {
       let err;
       try { m.installAdobeDataLayerProxy({ instanceName }); } catch (e) { err = e; }
       expect(Object.getPrototypeOf(err)).toBe(Error.prototype);
+    }
+    expect(Object.keys(window)).toEqual([]);
+  });
+
+  it("the dataLayerInstanceName config path is checked too: alloy, __alloyNS and the alloyInstanceName value are rejected", async () => {
+    for (const name of ["alloy", "__alloyNS", "myAlloy"]) {
+      const { m, init } = setup();
+      await init({}, { alloyInstanceName: "myAlloy", dataLayerInstanceName: name });
+      expect(() => m.installAdobeDataLayerProxy()).toThrow(/would write a global Alloy name/);
     }
     expect(Object.keys(window)).toEqual([]);
   });
@@ -153,24 +163,29 @@ describe("069-03 AC3: consent goes through setAdobeConsent only", () => {
     vi.stubGlobal("fetch", vi.fn(() => Promise.resolve({ status: 200, statusText: "OK", headers: { get: () => "application/json" }, text: async () => "{}" })));
     const diags = [];
     const m = createMartech(undefined, { onDiagnostic: (d) => diags.push(d) });
-    await m.initMartech(CFG, { airlock: AIRLOCK });
+    const booted = m.initMartech(CFG, { airlock: AIRLOCK });
+    await advance(5);
+    await booted;
     return { m, diags, worker: Worker.last };
   };
 
   it("(c) collect:false never yields a granted analytics_storage at the seal; collect:true does", async () => {
     const { m, worker } = await realBoot();
-    expect(await m.updateUserConsent({ collect: false, personalize: false })).toEqual({});
+    const off = m.updateUserConsent({ collect: false, personalize: false });
+    await advance(5);
+    expect(await off).toEqual({});
     worker.fire();
-    await tick(40);
+    await advance(40);
     expect(fetch).not.toHaveBeenCalled();
     const vectors = worker.messages.filter((x) => x.type === "setConsent");
     expect(vectors.length).toBeGreaterThan(0);
     for (const v of vectors) expect(JSON.stringify(v)).not.toContain('"analytics_storage":"granted"');
     expect(worker.messages.filter((x) => x.type === "adobeConsent")).toHaveLength(1);
-    await m.updateUserConsent({ collect: true, personalize: true });
+    const on = m.updateUserConsent({ collect: true, personalize: true });
+    await advance(5);
+    await on;
     worker.fire();
-    await tick(60);
-    expect(fetch).toHaveBeenCalled();
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
   });
 
   it("(d) a handle without setAdobeConsent is rejected at creation, and via martechConfig.handle, with a plain Error", async () => {
@@ -192,7 +207,7 @@ describe("069-03 AC3: consent goes through setAdobeConsent only", () => {
     handle.setAdobeConsent.mockImplementationOnce(async () => ({}));
     let settled = false;
     ok.then(() => { settled = true; });
-    await tick();
+    await advance();
     expect(settled).toBe(false);
     expect(handle.setAdobeConsent).not.toHaveBeenCalled();
     d.resolve(handle);
@@ -230,8 +245,9 @@ describe("069-03 AC3: consent goes through setAdobeConsent only", () => {
     expect(await out.m.sendEvent({ xdm: { eventType: "a" } })).toEqual({});
     out.m.pushToDataLayer({ event: "e", xdm: { a: 1 } });
     await out.m.martechLazy();
-    await tick();
+    await advance();
     expect(out.handle.sendEvent).not.toHaveBeenCalled();
+    expect(kinds(out.diags)).toContain("consent-out-event-dropped");
     await out.m.updateUserConsent({ collect: true });
     await out.m.sendEvent({ xdm: { eventType: "b" } });
     expect(out.handle.sendEvent).toHaveBeenCalledTimes(1);
@@ -244,6 +260,46 @@ describe("069-03 AC3: consent goes through setAdobeConsent only", () => {
     expect(kinds(inn.diags)).toContain("defaultConsent-in-not-honoured");
     expect(inn.handle.setAdobeConsent).not.toHaveBeenCalled();
     expect(inn.handle.setConsent).not.toHaveBeenCalled();
+  });
+
+  it('(g) "out": an unawaited grant then send delivers the event (no awaits between them), live', async () => {
+    const { m, handle, init } = setup();
+    await init({ defaultConsent: "out" });
+    const grant = m.updateUserConsent({ collect: true });
+    const sent = m.sendEvent({ xdm: { eventType: "a" } });
+    await grant;
+    await sent;
+    expect(handle.calls.map(([k]) => k)).toEqual(["setAdobeConsent", "sendEvent"]);
+  });
+
+  it('(g) "out": a grant then a send queued before the chamber exists are drained in one pass and the event is delivered', async () => {
+    const d = deferred();
+    const handle = mockHandle();
+    const m = createMartech(undefined, { boot: () => d.promise, onDiagnostic() {} });
+    const init = m.initMartech({ ...CFG, defaultConsent: "out" }, { airlock: AIRLOCK });
+    const grant = m.updateUserConsent({ collect: true });
+    const sent = m.sendEvent({ xdm: { eventType: "a" } });
+    d.resolve(handle);
+    await init;
+    await grant;
+    await sent;
+    expect(handle.calls.map(([k]) => k)).toEqual(["setAdobeConsent", "sendEvent"]);
+  });
+
+  it('(g) "out": a send queued before the grant is dropped (the order the page made them in decides)', async () => {
+    const d = deferred();
+    const handle = mockHandle();
+    const diags = [];
+    const m = createMartech(undefined, { boot: () => d.promise, onDiagnostic: (x) => diags.push(x) });
+    const init = m.initMartech({ ...CFG, defaultConsent: "out" }, { airlock: AIRLOCK });
+    const sent = m.sendEvent({ xdm: { eventType: "early" } });
+    const grant = m.updateUserConsent({ collect: true });
+    d.resolve(handle);
+    await init;
+    await grant;
+    expect(await sent).toEqual({});
+    expect(handle.calls.map(([k]) => k)).toEqual(["setAdobeConsent"]);
+    expect(kinds(diags)).toContain("consent-out-event-dropped");
   });
 });
 
@@ -299,7 +355,7 @@ describe("069-03 AC4: every export", () => {
     expect(b.getAirlockHandle()).toBeTruthy();
   });
 
-  it("pre-boot calls replay in order, interleaved with data-layer events in push order, through the shared queue", async () => {
+  it("pre-boot calls replay in call order at boot; data-layer events stay held and send, in push order, only after martechLazy attaches (no event before the eager page view)", async () => {
     const d = deferred();
     const handle = mockHandle();
     const m = createMartech(undefined, { boot: () => d.promise, onDiagnostic() {} });
@@ -312,15 +368,74 @@ describe("069-03 AC4: every export", () => {
     all.push(m.applyPersonalization("v2"));
     m.pushEventToDataLayer("ev", { n: "dl-6" }, { d: 1 });
     all.push(m.sendEvent({ xdm: { n: "send-7" } }));
-    await tick();
+    await advance();
     expect(handle.calls).toEqual([]);
     d.resolve(handle);
     await init;
     await Promise.all(all);
-    await tick();
+    await advance();
     const label = ([kind, arg]) => (kind === "sendEvent" ? (arg.xdm.n || arg.xdm.web?.webPageDetails?.viewName || "?") : kind === "applyPropositions" ? `apply:${arg.viewName}` : kind);
-    expect(handle.calls.map(label)).toEqual(["send-1", "dl-2", "setAdobeConsent", "v1", "apply:v2", "dl-6", "send-7"]);
+    // Booted, not attached: only the calls ran.
+    expect(handle.calls.map(label)).toEqual(["send-1", "setAdobeConsent", "v1", "apply:v2", "send-7"]);
+    await m.martechLazy();
+    await vi.waitFor(() => expect(handle.calls.map(label)).toEqual(["send-1", "setAdobeConsent", "v1", "apply:v2", "send-7", "dl-2", "dl-6"]));
     expect(handle.calls.find(([, a]) => a && a.xdm && a.xdm.n === "dl-6")[1].data).toEqual({ d: 1 });
+  });
+
+  it("(4) a queued pre-boot call does not attach the data layer: no data-layer event is sent before the eager page view", async () => {
+    const d = deferred();
+    const handle = mockHandle();
+    const m = createMartech(undefined, { boot: () => d.promise, onDiagnostic() {} });
+    const init = m.initMartech(CFG, { airlock: AIRLOCK, trackPageView: true });
+    m.pushToDataLayer({ event: "early", xdm: { n: "dl-early" } });
+    const call = m.sendEvent({ xdm: { n: "page-call" } });
+    d.resolve(handle);
+    await init;
+    await call;
+    await m.martechEager();
+    await advance();
+    const labels = handle.calls.map(([, a]) => a.xdm?.eventType || a.xdm?.n || a.type);
+    expect(labels).not.toContain("dl-early");
+    expect(labels).toContain("web.webpagedetails.pageViews");
+    await m.martechLazy();
+    await vi.waitFor(() => expect(handle.calls.map(([, a]) => a.xdm?.n)).toContain("dl-early"));
+    const order = handle.calls.map(([, a]) => a.xdm?.n || a.xdm?.eventType || a.type);
+    expect(order.indexOf("web.webpagedetails.pageViews")).toBeGreaterThan(-1);
+    expect(order.indexOf("web.webpagedetails.pageViews")).toBeLessThan(order.indexOf("dl-early"));
+  });
+
+  it("(2) a failed boot rejects every queued call (data-layer queue and direct queue) and every later call at once", async () => {
+    for (const dataLayer of [true, false]) {
+      const d = deferred();
+      const m = createMartech(undefined, { boot: () => d.promise, onDiagnostic() {} });
+      const init = m.initMartech(CFG, { airlock: AIRLOCK, dataLayer });
+      init.catch(() => {});
+      const queued = [m.sendEvent({ xdm: {} }), m.updateUserConsent({ collect: true }), m.getPersonalizationForView("v")];
+      const outcomes = queued.map((p) => p.then(() => "resolved", (e) => e.message));
+      d.reject(new Error("chamber failed to boot"));
+      await expect(init).rejects.toThrow("chamber failed to boot");
+      expect(await Promise.all(outcomes)).toEqual(["chamber failed to boot", "chamber failed to boot", "chamber failed to boot"]);
+      await expect(m.sendEvent({ xdm: {} })).rejects.toThrow("chamber failed to boot");
+      await expect(m.applyPersonalization("v")).rejects.toThrow("chamber failed to boot");
+      await expect(m.martechLazy()).rejects.toThrow("chamber failed to boot");
+    }
+  });
+
+  it("(5) without a data layer (dataLayer:false) the held-call cap is the same 200: the oldest call is dropped, its promise rejects, a diagnostic is said", async () => {
+    const d = deferred();
+    const handle = mockHandle();
+    const diags = [];
+    const m = createMartech(undefined, { boot: () => d.promise, onDiagnostic: (x) => diags.push(x) });
+    const init = m.initMartech(CFG, { airlock: AIRLOCK, dataLayer: false });
+    const calls = [];
+    for (let i = 0; i < MAX_HELD_EVENTS + 1; i += 1) { const p = m.sendEvent({ xdm: { n: i } }); p.catch(() => {}); calls.push(p); }
+    await expect(calls[0]).rejects.toThrow(/dropped/);
+    expect(kinds(diags)).toContain("held-call-overflow");
+    d.resolve(handle);
+    await init;
+    await Promise.all(calls.slice(1));
+    expect(handle.calls).toHaveLength(MAX_HELD_EVENTS);
+    expect(handle.calls[0][1].xdm.n).toBe(1);
   });
 
   it("the 200-entry pre-attach cap is the data layer's: the oldest held call is dropped, its promise rejects, and a datalayer-held-overflow is said", async () => {
@@ -348,6 +463,21 @@ describe("069-03 AC4: every export", () => {
     expect(handle.sendEvent.mock.calls[0][0]).toMatchObject({ decisionScopes: ["s"], renderDecisions: true, xdm: { eventType: "x" } });
   });
 
+  it("(b) sendEvent resolves the handle's result unchanged: exactly propositions and decisions (the 069-01 handle carries nothing else), {} for a dropped event", async () => {
+    const result = { propositions: [{ id: "p", items: [] }], decisions: [{ id: "p" }] };
+    const a = setup({ handle: mockHandle({ sendEvent: vi.fn(async () => result) }) });
+    await a.init();
+    const resolved = await a.m.sendEvent({ xdm: { eventType: "x" } });
+    expect(resolved).toBe(result);
+    expect(Object.keys(resolved).sort()).toEqual(["decisions", "propositions"]);
+    const dropped = setup();
+    await dropped.init({ onBeforeEventSend: () => false });
+    expect(await dropped.m.sendEvent({ xdm: { eventType: "x" } })).toEqual({});
+    const out = setup();
+    await out.init({ defaultConsent: "out" });
+    expect(await out.m.sendEvent({ xdm: { eventType: "x" } })).toEqual({});
+  });
+
   it("sendAnalyticsEvent: non-empty edgeConfigOverrides are diagnosed unsupported-option, {} is dropped silently", async () => {
     const { m, init, diags } = setup();
     await init();
@@ -363,8 +493,7 @@ describe("069-03 AC4: every export", () => {
     await m.martechLazy();
     m.pushToDataLayer({ event: "a", xdm: { k: 1 }, data: { d: 1 } });
     m.pushEventToDataLayer("b", { k: 2 });
-    await tick();
-    expect(handle.sendEvent.mock.calls.map((c) => c[0].xdm.k)).toEqual([1, 2]);
+    await vi.waitFor(() => expect(handle.sendEvent.mock.calls.map((c) => c[0].xdm.k)).toEqual([1, 2]));
     const off = setup();
     await off.init({}, { dataLayer: false });
     expect(() => off.m.pushToDataLayer({ a: 1 })).toThrow("The data layer is disabled in the martech config");
@@ -376,7 +505,8 @@ describe("069-03 AC4: every export", () => {
     await m.martechLazy();
     m.pushToDataLayer({ event: "skip", xdm: { k: 1 } });
     m.pushToDataLayer({ event: "keep", xdm: { k: 2 } });
-    await tick();
+    await vi.waitFor(() => expect(handle.sendEvent.mock.calls.map((c) => c[0].xdm.k)).toEqual([2]));
+    await advance();
     expect(handle.sendEvent.mock.calls.map((c) => c[0].xdm.k)).toEqual([2]);
   });
 
@@ -423,6 +553,10 @@ describe("069-03 AC4: every export", () => {
     await expect(m.applyPersonalization()).rejects.toThrow("The `viewName` parameter needs to be defined");
     await m.applyPersonalization("v");
     expect(handle.applyPropositions).toHaveBeenCalledWith({ viewName: "v" });
+    // The combined form is reached on the handle and goes through untouched (stock's `applyPersonalization(viewName)` rejects the bare form).
+    const combined = { propositions: [{ id: "p", items: [] }], viewName: "v" };
+    await m.getAirlockHandle().applyPropositions(combined);
+    expect(handle.applyPropositions).toHaveBeenLastCalledWith(combined);
   });
 
   it("martechEager hides the body and martechLazy scans the blocks and attaches (personalization on); the page view is sent from martechEager only", async () => {
@@ -436,7 +570,7 @@ describe("069-03 AC4: every export", () => {
     expect(first.some((e) => e.xdm.eventType === "web.webpagedetails.pageViews")).toBe(true);
     const before = handle.sendEvent.mock.calls.length;
     await m.martechLazy();
-    await tick();
+    await advance();
     expect(el.id).toBe("1");
     expect(handle.sendEvent.mock.calls.length).toBe(before);
   });
@@ -447,8 +581,7 @@ describe("069-03 AC4: every export", () => {
     await m.martechEager();
     expect(body.style.visibility).toBeUndefined();
     await m.martechLazy();
-    await tick();
-    expect(handle.sendEvent.mock.calls.map((c) => c[0].xdm.eventType)).toEqual(["web.webpagedetails.pageViews"]);
+    await vi.waitFor(() => expect(handle.sendEvent.mock.calls.map((c) => c[0].xdm.eventType)).toEqual(["web.webpagedetails.pageViews"]));
   });
 
   it("performanceOptimized:false: one __view__ fetch, body hidden then restored; trackPageView:false sends no page view", async () => {
@@ -480,17 +613,18 @@ describe("069-03 AC4: every export", () => {
   });
 
   describe("differences", () => {
-    it("(b) updateUserConsent resolves {} and sendEvent resolves the handle's result unchanged", async () => {
-      const { m, init } = setup();
+    it("(b) updateUserConsent resolves {} whatever setAdobeConsent returns", async () => {
+      const { m, init } = setup({ handle: mockHandle({ setAdobeConsent: vi.fn(async () => ({ outcome: "x" })) }) });
       await init();
       expect(await m.updateUserConsent({ collect: true })).toEqual({});
     });
 
-    it("(d) sendEvent rejects with the wrapped message when the page hook throws; the composite hook does not catch", async () => {
-      const { m, handle, init } = setup();
+    it("(d) a throwing page onBeforeEventSend is caught like the pinned aem-martech: diagnostic, event dropped, sendEvent resolves", async () => {
+      const { m, handle, init, diags } = setup();
       await init({ onBeforeEventSend: () => { throw new Error("boom"); } });
-      await expect(m.sendEvent({ xdm: { eventType: "x" } })).rejects.toThrow("[alloy] [DataCollector] An error occurred while executing the sendEvent command.\nCaused by: boom");
+      expect(await m.sendEvent({ xdm: { eventType: "x" } })).toEqual({});
       expect(handle.sendEvent).not.toHaveBeenCalled();
+      expect(diags.find((d) => d.kind === "hook-threw").reason).toContain("boom");
     });
 
     it("a hook returning false drops the event and resolves {}", async () => {
@@ -500,20 +634,26 @@ describe("069-03 AC4: every export", () => {
       expect(handle.sendEvent).not.toHaveBeenCalled();
     });
 
-    it("(e) a partly rendered proposition is marked renderAttempted as a whole and is reported once", async () => {
+    it("(e) a partly rendered proposition is marked renderAttempted as a whole: it is applied once with all its items, reported once, and not applied again", async () => {
       const prop = { id: "P", scope: "s", scopeDetails: {}, items: [{ schema: `${NS}dom-action` }, { schema: `${NS}dom-action` }] };
       vi.stubGlobal("document", { prerendering: false, body, querySelector: (sel) => (/data-block-status/.test(sel) ? {} : null), querySelectorAll: () => [], addEventListener() {} });
+      // The chamber rendered the first item only: the proposition comes back marked as a whole, items partial.
+      const partial = { ...prop, renderAttempted: true, items: [{ ...prop.items[0], renderAttempted: true }, { ...prop.items[1], renderAttempted: false }] };
       const handle = mockHandle({
         sendEvent: vi.fn(async (e) => (e.renderDecisions === false && e.personalization ? { propositions: [prop], decisions: [prop] } : { propositions: [], decisions: [] })),
-        applyPropositions: vi.fn(async () => ({ propositions: [{ ...prop, renderAttempted: true }] })),
+        applyPropositions: vi.fn(async () => ({ propositions: [partial] })),
       });
       const { m, init } = setup({ handle, trackPageView: true });
       await init();
       await m.martechEager();
-      await tick(30);
-      const shown = handle.sendEvent.mock.calls.flatMap((c) => c[0].xdm._experience?.decisioning?.propositions ?? []).filter((p) => p.id === "P");
-      expect(shown).toHaveLength(1);
+      await vi.waitFor(() => expect(handle.applyPropositions).toHaveBeenCalledTimes(1));
+      expect(handle.applyPropositions.mock.calls[0][0].propositions[0].items).toHaveLength(2);
+      // A later mutation finds nothing left to apply.
+      observers.forEach((o) => o.fn([{ target: { tagName: "BODY" } }]));
+      await advance();
       expect(handle.applyPropositions).toHaveBeenCalledTimes(1);
+      const shown = handle.sendEvent.mock.calls.flatMap((c) => c[0].xdm?._experience?.decisioning?.propositions ?? []).filter((p) => p.id === "P");
+      expect(shown).toHaveLength(1);
     });
 
     it("(f) timestamp and placeContext.localTime are sampled on the main thread: the page hook sees them", async () => {
@@ -525,7 +665,7 @@ describe("069-03 AC4: every export", () => {
       expect(seen.xdm.implementationDetails.name).toBe("https://ns.adobe.com/experience/alloy");
     });
 
-    it("(g) a page hook that deletes a context field gets it left out of the send, so the chamber's context merge refills it", async () => {
+    it("(g) a field the page hook deletes is absent from what the library sends (the refill is the chamber's context merge, outside this hermetic test)", async () => {
       const { m, handle, init } = setup();
       await init({ onBeforeEventSend: (p) => { delete p.xdm.implementationDetails; p.xdm.custom = 1; } });
       await m.sendEvent({ xdm: { eventType: "x" } });
@@ -548,6 +688,62 @@ describe("069-03 AC4: every export", () => {
       await m.sendEvent({ xdm: {}, datasetId: "d" });
       expect(diags.some((d) => d.option === "datasetId")).toBe(true);
     });
+
+    it("(AC6) xdm.eventType wins over type; type fills the event type when xdm has none", async () => {
+      const { m, handle, init } = setup();
+      await init();
+      await m.sendEvent({ type: "decisioning.propositionFetch", xdm: { eventType: "custom.event" } });
+      await m.sendEvent({ type: "decisioning.propositionFetch", xdm: {} });
+      expect(handle.sendEvent.mock.calls.map((c) => c[0].xdm.eventType)).toEqual(["custom.event", "decisioning.propositionFetch"]);
+    });
+
+    it("the __view__ plus named scopes diagnostic is said on the first call only", async () => {
+      const { m, init, diags } = setup();
+      await init({}, { decisionScopes: ["named"] });
+      await m.sendEvent({ decisionScopes: ["__view__"], xdm: {} });
+      await m.sendEvent({ decisionScopes: ["__view__"], xdm: {} });
+      expect(diags.filter((d) => d.option === "decisionScopes")).toHaveLength(1);
+    });
+  });
+});
+
+describe("069-03 diagnostics and failure paths", () => {
+  it("boot options a given handle cannot take, the airlock block and a non-function onBeforeEventSend are diagnosed", async () => {
+    const { init, diags } = setup();
+    await init({ edgeDomain: "e.example.com", thirdPartyCookiesEnabled: false, clickCollectionEnabled: false, onBeforeEventSend: "nope" }, { airlock: AIRLOCK });
+    const named = diags.filter((d) => d.kind === "unsupported-option").map((d) => d.option).sort();
+    expect(named).toEqual(["airlock", "clickCollectionEnabled", "edgeDomain", "onBeforeEventSend", "thirdPartyCookiesEnabled"]);
+  });
+
+  it("a throwing diagnostic sink never breaks boot, the bridge or the data layer", async () => {
+    const handle = mockHandle();
+    const m = createMartech(handle, { onDiagnostic() { throw new Error("sink"); } });
+    await m.initMartech({ ...CFG, defaultConsent: "in", idMigrationEnabled: false }, {});
+    await m.martechLazy();
+    await expect(m.sendEvent({ xdm: {}, datasetId: "d" })).resolves.toBeDefined();
+    m.pushToDataLayer(() => {});
+    await advance();
+  });
+
+  it("a rejected background applyPropositions run is diagnosed, not unhandled", async () => {
+    const prop = { id: "P", scope: "s", scopeDetails: {}, items: [{ schema: `${NS}dom-action` }] };
+    vi.stubGlobal("document", { prerendering: false, body, querySelector: (sel) => (/data-block-status/.test(sel) ? {} : null), querySelectorAll: () => [], addEventListener() {} });
+    const handle = mockHandle({
+      sendEvent: vi.fn(async (e) => (e.renderDecisions === false && e.personalization ? { propositions: [prop], decisions: [prop] } : { propositions: [], decisions: [] })),
+      applyPropositions: vi.fn(async () => { throw new Error("render failed"); }),
+    });
+    const unhandled = vi.fn();
+    process.on("unhandledRejection", unhandled);
+    try {
+      const { m, init, diags } = setup({ handle });
+      await init();
+      await m.martechEager();
+      await vi.waitFor(() => expect(diags.some((d) => d.kind === "apply-propositions-failed")).toBe(true));
+      await advance();
+      expect(unhandled).not.toHaveBeenCalled();
+    } finally {
+      process.off("unhandledRejection", unhandled);
+    }
   });
 });
 
@@ -585,9 +781,10 @@ describe("069-03 AC5: the data layer through the library", () => {
     await m.martechEager();
     await m.martechLazy();
     m.pushToDataLayer({ event: "e", xdm: {} });
-    await tick();
+    await advance();
     expect("adobeDataLayer" in window).toBe(false);
     expect(Object.keys(window)).toEqual([]);
+    for (const key of Object.keys(window)) delete window[key];
     const proxy = m.installAdobeDataLayerProxy();
     expect(proxy.installed).toBe(true);
     expect(Array.isArray(window.adobeDataLayer)).toBe(true);
@@ -595,6 +792,7 @@ describe("069-03 AC5: the data layer through the library", () => {
 
   it("measured cost of the S10 state-carrying send with includeDataLayerState: 1x vs 100x (ratios, no absolute bounds)", async () => {
     const s10 = JSON.parse(await readFile(new URL("./fixtures/adobe-capture/s10-base.json", import.meta.url), "utf8"));
+    vi.useRealTimers();
     const pushes = s10.requests
       .filter((r) => r.method === "POST" && /\/(interact|collect)\?/.test(r.url) && r.request_body)
       .flatMap((r) => JSON.parse(r.request_body).events ?? [])
@@ -638,7 +836,7 @@ describe("069-03 AC9: the Apache-2.0 notice", () => {
   });
 
   it("the header names the inert options and the differences (AC7)", async () => {
-    const header = (await readFile(new URL("../adapters/eds/martech.js", import.meta.url), "utf8")).split("\n").slice(0, 40).join("\n");
+    const header = (await readFile(new URL("../adapters/eds/martech.js", import.meta.url), "utf8")).split("\n").slice(0, 70).join("\n");
     for (const name of ["debugEnabled", "targetMigrationEnabled", "autoCollectPropositionInteractions"]) expect(header).toContain(name);
   });
 });

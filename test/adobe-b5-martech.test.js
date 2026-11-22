@@ -61,6 +61,34 @@ const ATTACH = (page) => page.evaluate(([src]) => {
 
 
 const AIRLOCK_BOOT = { consent: {}, context: ["web", "device", "environment"], edgeDomain: "edge.adobedc.net", thirdPartyCookiesEnabled: false };
+
+/** The eager, lazy and delayed phases (no manual sendEvent): the default page-view path, with the body's style changes recorded. */
+const flowJourney = (page, extra = {}) => page.evaluate(async ({ orgId, datastreamId, scope, extra: more, delayGrant }) => {
+  const styles = [];
+  new MutationObserver(() => styles.push(document.body.getAttribute("style") || "")).observe(document.body, { attributes: true, attributeFilter: ["style"] });
+  const m = await (0, eval)('import("/martech/index.js")');
+  m.initMartech({
+    orgId, datastreamId, edgeDomain: "edge.adobedc.net", defaultConsent: more.defaultConsent || "pending", debugEnabled: false, thirdPartyCookiesEnabled: false,
+    idMigrationEnabled: false, targetMigrationEnabled: false, clickCollectionEnabled: false, autoCollectPropositionInteractions: { AJO: "never", TGT: "never" },
+  }, {
+    analytics: true, personalization: true, performanceOptimized: true, personalizationTimeout: 1000, trackPageView: true, dataLayer: true,
+    includeDataLayerState: false, launchUrls: [], alloyInstanceName: "alloy", dataLayerInstanceName: "adobeDataLayer", decisionScopes: [scope],
+    ...more, ...(more.useHandle ? { handle: window.__handle } : {}),
+    ...(more.useAirlock ? { airlock: { bundleUrl: "/rig/alloy.min.js", workerUrl: "/rig/chamber.js" } } : {}),
+  });
+  const consent = () => m.updateUserConsent({ collect: true, personalize: true, marketing: false, share: false });
+  if (!delayGrant) await consent();
+  const eager = m.martechEager();
+  if (delayGrant) { await new Promise((r) => setTimeout(r, 1500)); await consent(); }
+  await eager;
+  await m.martechLazy();
+  await m.martechDelayed();
+  const deadline = Date.now() + 8000;
+  const edgeCalls = () => performance.getEntriesByType("resource").filter((e) => /edge\.adobedc\.net|demdex/.test(e.name)).length;
+  while (edgeCalls() < 3 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
+  await new Promise((r) => setTimeout(r, 500));
+  return { styles, finalStyle: document.body.getAttribute("style") || "", globals: { alloy: typeof window.alloy, adobeDataLayer: typeof window.adobeDataLayer } };
+}, { orgId: ORG, datastreamId: DATASTREAM, scope: SCOPE, extra, delayGrant: Boolean(extra.delayGrant) });
 /** Cookie entries arrive in jar order, which is not part of the contract; sort them before comparing. */
 const normalised = (text) => {
   const b = JSON.parse(text);
@@ -192,6 +220,60 @@ describe.runIf(real)("spec 069-03: the Airlock martech library in the S10 differ
       for (let k = 0; k < b.length; k += 1) expect(diffBodies(normalised(a[k].body), normalised(b[k].body))).toEqual([]);
     }, T);
   }
+
+  const flow = (extra, library) => replayFixture(browser, "s10-base", { event: null, skipSteps: true, serve: library ? serveLib : serveStock, bootOptions: library ? AIRLOCK_BOOT : {}, run: (page) => flowJourney(page, library ? { useHandle: true, ...extra } : extra) });
+  const comparePosts = (l, s) => {
+    const a = posts(l.network);
+    const b = posts(s.network);
+    expect(a.map(pathOf)).toEqual(b.map(pathOf));
+    for (let k = 0; k < b.length; k += 1) expect(diffBodies(normalised(a[k].body), normalised(b[k].body))).toEqual([]);
+    return b.length;
+  };
+  for (const [name, extra] of [["default path (martechEager page view, martechLazy none, martechDelayed)", {}], ["trackPageView:false (no offer, so no display event)", { trackPageView: false }], ["performanceOptimized:false (the __view__ fetch, body hidden then restored)", { performanceOptimized: false }]]) {
+    it(`AC6 (SYNTHETIC, no capture): martechEager/Lazy/Delayed, ${name}: requests and body styles equal stock`, async () => {
+      const [s, l] = await Promise.all([flow(extra, false), flow(extra, true)]);
+      expect(comparePosts(l, s)).toBeGreaterThan(1);
+      expect(l.results.run.styles).toEqual(s.results.run.styles);
+      expect(l.results.run.finalStyle).toBe(s.results.run.finalStyle);
+      expect(l.results.run.globals.alloy).toBe("undefined");
+    }, T);
+  }
+
+  it("AC3g: with defaultConsent \"out\" and a delayed grant, nothing leaves before the grant and the requests equal stock", async () => {
+    const extra = { defaultConsent: "out", delayGrant: true };
+    const [s, l] = await Promise.all([flow(extra, false), flow(extra, true)]);
+    comparePosts(l, s);
+  }, T);
+
+  it("AC1 (boot path): martechConfig.airlock (no pre-booted handle) boots the chamber and sends the stock run's requests", async () => {
+    const [s, l] = await Promise.all([flow({}, false), replayFixture(browser, "s10-base", { event: null, skipSteps: true, serve: serveLib, bootOptions: AIRLOCK_BOOT, run: (page) => flowJourney(page, { useAirlock: true }) })]);
+    expect(comparePosts(l, s)).toBeGreaterThan(1);
+    expect(l.results.run.globals.alloy).toBe("undefined");
+  }, T);
+
+  it("AC4a: the combined { propositions, viewName } applyPropositions form gives the stock run's result", async () => {
+    const stockRun = replayFixture(browser, "s10-base", {
+      event: null, skipSteps: true, serve: serveStock, bootOptions: {},
+      run: (page) => page.evaluate(async () => {
+        const m = await (0, eval)('import("/martech/index.js")');
+        m.initMartech({ orgId: "x", datastreamId: "y", defaultConsent: "pending" }, { personalization: true });
+        await m.updateUserConsent({ collect: true, personalize: true, marketing: false, share: false });
+        return window.alloy("applyPropositions", { propositions: [], viewName: "home" }).then((r) => `ok:${JSON.stringify(Object.keys(r || {}).sort())}`, (e) => `err:${String(e.message).split("\n")[0]}`);
+      }),
+    });
+    const libRun = replayFixture(browser, "s10-base", {
+      event: null, skipSteps: true, serve: serveLib, bootOptions: AIRLOCK_BOOT,
+      run: (page) => page.evaluate(async () => {
+        const m = await (0, eval)('import("/martech/index.js")');
+        m.initMartech({ orgId: "x", datastreamId: "y", defaultConsent: "pending" }, { handle: window.__handle, personalization: true });
+        await m.updateUserConsent({ collect: true, personalize: true, marketing: false, share: false });
+        return m.getAirlockHandle().applyPropositions({ propositions: [], viewName: "home" }).then((r) => `ok:${JSON.stringify(Object.keys(r || {}).sort())}`, (e) => `err:${String(e.message).split("\n")[0]}`);
+      }),
+    });
+    const [s, l] = await Promise.all([stockRun, libRun]);
+    process.stderr.write(`combined applyPropositions: stock=${s.results.run} library=${l.results.run}\n`);
+    expect(l.results.run).toBe(s.results.run);
+  }, T);
 });
 
 
