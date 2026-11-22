@@ -1,7 +1,7 @@
 ---
 status: READY_FOR_IMPLEMENTATION
 dependencies: [064-21, 069-01, 069-02, 069-03, ADR-0065]
-last_verified: 2026-11-21
+last_verified: 2026-11-22
 ---
 
 ## Slice 064-31 — stock `alloy()` wrapper parity (identity list, `sendEvent` result, hook argument, configure diagnostics, `setConsent` promise)

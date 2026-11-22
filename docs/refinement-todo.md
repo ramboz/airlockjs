@@ -1428,3 +1428,7 @@ Resolved. [ADR-0063](decisions/adr-0063-host-command-entry.md) (Accepted 2026-11
 - **Trusted Types for rendered HTML (open).** Template write is not behind a Trusted Types policy.
 - **Low:** prehide selector injection and nonce, dedup attribute, one observer per item, remote fetches from rendered content sit outside the seal.
 - **Activity-map persistence (open, 064-20).** Stock `eventGroupingEnabled`/`sessionStorageEnabled` click persistence across pages is not ported; only the last page name is kept in memory. Disposition (064-27): not a storage-grant item. The collector is main-thread and never reads the chamber grant, so porting means a collector change that rewrites page-view events, not a grant. Trigger: a site relies on click-to-next-page activity-map continuity.
+
+## handle.sendEvent settle robustness (069-01 round 2, 2026-11-22)
+
+- **Open, Low.** In `adapters/eds/index.js` `runEntry`, `endPrehiding` is skipped when `settleDeliveries`/`finishEvent` throws, and a throwing page `onDiagnostic` inside the new catch can leave the pump stuck `running=true`; bounded by the prehide backstop timeout, pre-existing. Test gap: the settle test "queue keeps going" accepts a rejection and does not show a later event completing, and covers the last-step throw only. Owner: a later production-code slice (a change now would reopen 069-01 review rounds).

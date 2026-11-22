@@ -78,7 +78,7 @@ describe.runIf(real)("069-01 the handle vs pinned stock Alloy 2.31.1 (real Chrom
 
   it("AC1: the recorded S10 interact answer resolves identically in both arms (it carries no propositions or decisions: an empty personalization:decisions payload)", async () => {
     expect(JSON.parse(S10_ANSWER).handle.find((h) => h.type === "personalization:decisions").payload).toEqual([]);
-    // One event per run: the recorded answer's location hint moves the next request to a hint path on the default host, which the seal's endpoint ceiling does not list.
+    // One event per run: the recorded answer's location hint moves the next request to /ee/or2/... on adobedc.demdex.net (the host this rig boots with), and the ceiling lists hint paths only on edge.adobedc.net (a test-setup limit, not a product gap).
     for (const x of [OPTS, { renderDecisions: true, xdm: PV }]) {
       const s = await stock(browser, recordedInteract, async (page) => { await stockSetup(page); return noDest(await stockCall(page, "sendEvent", x)); }, ZONE, "s10-base");
       const o = await ours(browser, recordedInteract, async (page) => noDest(await handleCall(page, "(h, x) => h.sendEvent(x)", x)), { fixture: "s10-base" });

@@ -453,7 +453,7 @@ describe("069-01 AC2/AC3: the shared onBeforeEventSend helper", () => {
     expect(diags.find((d) => d.kind === "hook-threw").reason).toContain("plain string");
   });
 
-  it("honours Alloy's context option: a group left out is not in the hook's argument (stock's default reduced list shows no placeContext)", async () => {
+  it("honours Alloy's context option: a group left out is not in the hook's argument (the three-group list aem-martech passes shows no placeContext)", async () => {
     expect(stockContextXdm(CONTEXT, ["web", "device", "environment"]).placeContext).toBeUndefined();
     expect(stockContextXdm(CONTEXT, ["web"]).device).toBeUndefined();
     expect(stockContextXdm(CONTEXT).placeContext).toBeDefined();
