@@ -242,7 +242,11 @@ export function createDataLayer({ onEvent = () => {}, shouldProcessEvent = () =>
   function holdOrQueue(entry) {
     sendQueue.push(entry);
     while (!attached && sendQueue.length > MAX_HELD_EVENTS) {
-      sendQueue.shift();
+      const dropped = sendQueue.shift();
+      // A queued call may carry `onDrop`, so its caller's promise settles instead of hanging.
+      if (dropped && dropped.call && typeof dropped.call.onDrop === "function") {
+        try { dropped.call.onDrop(); } catch (e) { /* a throwing callback never breaks the page */ }
+      }
       say({ kind: "datalayer-held-overflow", reason: `held-event ring full (cap ${MAX_HELD_EVENTS}) before attach — oldest held event dropped` });
     }
   }

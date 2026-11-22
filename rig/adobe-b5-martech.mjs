@@ -6,8 +6,10 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { build } from "esbuild";
 
-const OUT = join(fileURLToPath(new URL("..", import.meta.url)), "rig/out/b5");
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
+const OUT = join(ROOT, "rig/out/b5");
 export const MARTECH_COMMIT = "1aa3dee3c4791636efa9ad2994342f861c8e149b";
 const BASE = `https://raw.githubusercontent.com/adobe-rnd/aem-martech/${MARTECH_COMMIT}/src`;
 
@@ -18,6 +20,15 @@ export const MARTECH_ASSETS = {
 };
 
 const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
+
+let libraryBuild = null;
+/** 069-03: the Airlock martech library (adapters/eds/martech.js) bundled as an ES module for the page; served where the stock arm serves `aem-martech`. */
+export function buildMartechLibrary() {
+  libraryBuild ||= build({
+    entryPoints: [join(ROOT, "adapters/eds/martech.js")], bundle: true, format: "esm", platform: "browser", target: "es2022", write: false, logLevel: "silent",
+  }).then((r) => r.outputFiles[0].text);
+  return libraryBuild;
+}
 
 /** One pinned file, from the cache or downloaded, always hash-verified. Returns its text. */
 export async function ensureMartechAsset(name) {

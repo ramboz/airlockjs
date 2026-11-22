@@ -60,3 +60,7 @@ Tagged **live-only**. The POC page has `launchUrls: []`; no Launch property exis
 ### Core and consent
 
 No `core/` change. The consent surface is unchanged; `consentToVector` is the wrapper's own mapping onto the existing vector.
+
+### Pointer (2026-11-22)
+
+The product path for `aem-martech` sites is now the Airlock martech library, `adapters/eds/martech.js` (spec 069-03, ADR-0065); this wrapper stays as its lower-level API and its arm in the S10 differential is unchanged. The library's own third arm sits beside it in `test/adobe-b5-martech.test.js`.

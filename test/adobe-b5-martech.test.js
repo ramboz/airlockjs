@@ -11,7 +11,7 @@ import { consentToVector, createAlloyCommandBridge } from "../adapters/eds/alloy
 import { attachQueueShim } from "../rig/alloy-queue-shim.mjs";
 import { chromium } from "playwright";
 import { diffBodies, ensureAlloyBundle, loadFixture, replayFixture, splitRequestUrl } from "../rig/adobe-b1-replay.mjs";
-import { ensureMartechAsset } from "../rig/adobe-b5-martech.mjs";
+import { ensureMartechAsset, buildMartechLibrary } from "../rig/adobe-b5-martech.mjs";
 
 const real = process.env.AIRLOCK_REAL_CHROMIUM === "1";
 const T = 90000;
@@ -21,15 +21,15 @@ const ORG = "908936ED5D35CC220A495CD4@AdobeOrg";
 const DATASTREAM = "23190fa7-9e6b-4250-b87b-abcdc8ebc297";
 
 /** The POC page's call sequence (stock-site.mjs), granted case: init, consent, propositionFetch, page view, ACDL link event. */
-const journey = (page) => page.evaluate(async ({ orgId, datastreamId, scope, link, pageUrl }) => {
+const journey = (page, extra = {}) => page.evaluate(async ({ orgId, datastreamId, scope, link, pageUrl, extra: more }) => {
   const m = await (0, eval)('import("/martech/index.js")');
   m.initMartech({
-    orgId, datastreamId, edgeDomain: "edge.adobedc.net", defaultConsent: "pending", debugEnabled: false, thirdPartyCookiesEnabled: false,
+    orgId, datastreamId, edgeDomain: "edge.adobedc.net", defaultConsent: more.defaultConsent || "pending", debugEnabled: false, thirdPartyCookiesEnabled: false,
     idMigrationEnabled: false, targetMigrationEnabled: false, clickCollectionEnabled: false, autoCollectPropositionInteractions: { AJO: "never", TGT: "never" },
   }, {
     analytics: true, personalization: true, performanceOptimized: true, personalizationTimeout: 1000, trackPageView: false, dataLayer: true,
     includeDataLayerState: false, launchUrls: [], alloyInstanceName: "alloy", dataLayerInstanceName: "adobeDataLayer", decisionScopes: [scope],
-    shouldProcessEvent: (payload) => payload && payload.event === link,
+    shouldProcessEvent: (payload) => payload && payload.event === link, ...more, ...(more.useHandle ? { handle: window.__handle } : {}),
   });
   await m.updateUserConsent({ collect: true, personalize: true, marketing: false, share: false });
   await m.sendEvent({
@@ -44,8 +44,12 @@ const journey = (page) => page.evaluate(async ({ orgId, datastreamId, scope, lin
   const deadline = Date.now() + 8000;
   const edgeCalls = () => performance.getEntriesByType("resource").filter((e) => /edge\.adobedc\.net|demdex/.test(e.name)).length;
   while (edgeCalls() < 4 && Date.now() < deadline) await new Promise((r) => setTimeout(r, 50));
-  return { calls: Object.keys(m).sort() };
-}, { orgId: ORG, datastreamId: DATASTREAM, scope: SCOPE, link: LINK, pageUrl: "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-stock=v1&case=no-offer&run=airlock05102-c19434f3bd208c0bd9c3706132f6a24b&consent=decline&google-ads=off&meta-pixel=off" });
+  return {
+    calls: Object.keys(m).sort(),
+    globals: { alloy: typeof window.alloy, alloyNS: typeof window.__alloyNS, adobeDataLayer: typeof window.adobeDataLayer },
+    resources: performance.getEntriesByType("resource").map((e) => new URL(e.name).pathname),
+  };
+}, { orgId: ORG, datastreamId: DATASTREAM, scope: SCOPE, link: LINK, extra, pageUrl: "https://main--aem-eds-airlock-poc--adobe-rnd.aem.page/?airlock-stock=v1&case=no-offer&run=airlock05102-c19434f3bd208c0bd9c3706132f6a24b&consent=decline&google-ads=off&meta-pixel=off" });
 
 /** Test-only: the stand-in a site would serve where aem-martech imports `./alloy.min.js`; it hands the queue stub to the wrapper. */
 const SHIM = "window.__attachAlloyBridge();";
@@ -131,6 +135,62 @@ describe.runIf(real)("spec 064-21: aem-martech through the airlock wrapper (real
 
   function recordedBody(which) {
     return fixtureCache.requests.filter((r) => r.method === "POST")[which === "set-consent" ? 0 : 1].request_body;
+  }
+});
+
+describe.runIf(real)("spec 069-03: the Airlock martech library in the S10 differential (real Chromium)", () => {
+  let browser;
+  let stock;
+  let lib;
+  let serveStock;
+  let serveLib;
+  const runLib = (extra = {}, serve = serveLib) => replayFixture(browser, "s10-base", { event: null, skipSteps: true, serve, bootOptions: AIRLOCK_BOOT, run: (page) => journey(page, { useHandle: true, ...extra }) });
+  const runStock = (extra = {}) => replayFixture(browser, "s10-base", { event: null, skipSteps: true, serve: serveStock, bootOptions: {}, run: (page) => journey(page, extra) });
+  beforeAll(async () => {
+    browser = await chromium.launch();
+    const [index, acdl, alloy, library] = await Promise.all([ensureMartechAsset("index.js"), ensureMartechAsset("acdl.min.js"), ensureAlloyBundle(), buildMartechLibrary()]);
+    serveStock = { "/martech/index.js": index, "/martech/acdl.min.js": acdl, "/martech/alloy.min.js": alloy.toString("utf8") };
+    serveLib = { "/martech/index.js": library };
+    stock = await runStock();
+    lib = await runLib();
+  }, T * 2);
+  afterAll(async () => { await browser?.close(); });
+
+  it("AC1/AC2b (recorded S10): the library run sends the recorded requests and equals the stock run (SYNTHETIC collect bodies)", async () => {
+    const rec = (await loadFixture("s10-base")).requests.filter((r) => r.method === "POST");
+    const a = posts(lib.network);
+    const b = posts(stock.network);
+    expect(a.map(pathOf)).toEqual(rec.map((r) => new URL(r.url).pathname));
+    expect(splitRequestUrl(a[0].url).stable).toBe(splitRequestUrl(rec[0].url).stable);
+    expect(splitRequestUrl(a[1].url).stable).toBe(splitRequestUrl(rec[1].url).stable);
+    expect(diffBodies(a[0].body, rec[0].request_body)).toEqual([]);
+    expect(diffBodies(normalised(a[1].body), normalised(rec[1].request_body))).toEqual([]);
+    expect(a.map((n) => new URL(n.url).hostname)).toEqual(b.map((n) => new URL(n.url).hostname));
+    for (const k of [0, 1, 2, 3]) expect(diffBodies(normalised(a[k].body), normalised(b[k].body))).toEqual([]);
+  }, T);
+
+  it("AC1/AC2b: no window.alloy, no ACDL file, no alloy.min.js on the main thread, no data layer proxy", () => {
+    expect(lib.results.run.globals).toEqual({ alloy: "undefined", alloyNS: "undefined", adobeDataLayer: "undefined" });
+    const res = lib.results.run.resources;
+    expect(res.some((p) => /acdl\.min\.js/.test(p))).toBe(false);
+    expect(res.filter((p) => /alloy\.min\.js/.test(p))).toEqual([]);
+    expect(stock.results.run.globals.alloy).toBe("function");
+  });
+
+  it("AC3g: defaultConsent \"out\" matches stock at the request level (nothing leaves until collect is granted)", async () => {
+    const [s, l] = await Promise.all([runStock({ defaultConsent: "out" }), runLib({ defaultConsent: "out" })]);
+    process.stderr.write(`defaultConsent out: stock=${posts(s.network).map(pathOf)} library=${posts(l.network).map(pathOf)}\n`);
+    expect(posts(l.network).map(pathOf)).toEqual(posts(s.network).map(pathOf));
+  }, T);
+
+  for (const [name, extra] of [["trackPageView:false is the journey default", { trackPageView: false }], ["trackPageView:true", { trackPageView: true }], ["performanceOptimized:false", { performanceOptimized: false }]]) {
+    it(`AC6 (SYNTHETIC, no capture): ${name} sends the stock run's requests`, async () => {
+      const [s, l] = await Promise.all([runStock(extra), runLib(extra)]);
+      const a = posts(l.network);
+      const b = posts(s.network);
+      expect(a.map(pathOf)).toEqual(b.map(pathOf));
+      for (let k = 0; k < b.length; k += 1) expect(diffBodies(normalised(a[k].body), normalised(b[k].body))).toEqual([]);
+    }, T);
   }
 });
 
