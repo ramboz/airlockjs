@@ -19,9 +19,16 @@
 //   enqueue(fn)     puts a direct call (the library's `sendEvent`) in the same queue, so it keeps order with the events.
 //
 // KNOWN LIMIT (069-02 AC2): no JavaScript primitive tests for a Proxy without running a trap. The validation walk reads
-// descriptors (never `get`, `set`, `has`, `defineProperty`, `deleteProperty` or `apply`), so the `getPrototypeOf`, `ownKeys`
-// and `getOwnPropertyDescriptor` traps of a pushed Proxy can run once before `structuredClone` (which rejects a Proxy
-// without running a trap) drops it. A getter is never invoked.
+// descriptors (never `get`, `set`, `has`, `defineProperty`, `deleteProperty` or `apply`), so during one validation walk the
+// `getPrototypeOf`, `ownKeys` and `getOwnPropertyDescriptor` traps of a pushed Proxy (`getOwnPropertyDescriptor` once per own
+// key, and the same traps of any nested Proxy) can run before `structuredClone` (which rejects a Proxy without running a
+// trap) drops it. `structuredClone` is the backstop: where it is missing, a Proxy whose traps return plain data is accepted.
+// A getter is never invoked. Closing the trap exposure is 069-04.
+//
+// A push is also bounded by MAX_PUSH_NODES (every object, array slot and own key counts, so a shared-reference DAG or a sparse
+// `length` cannot make the walk explode); a push over the budget is dropped with `datalayer-bad-push`.
+//
+// There is no uninstall for the migration proxy (the spec does not require one); installing twice on one name is a no-op.
 //
 // `installAdobeDataLayerProxy()` is the only code that touches `window.adobeDataLayer` (or the custom instance name). It is a
 // MIGRATION AID for sites that already push ACDL-shaped objects, not a best practice: new code should call the library's
@@ -30,6 +37,10 @@
 
 const UNSAFE = new Set(["__proto__", "constructor", "prototype"]);
 export const MAX_DEPTH = 32;
+// Per-push walk budget (objects, array slots and own keys), so cost never depends on shared references or a sparse `length`.
+export const MAX_PUSH_NODES = 100000;
+// Events held before attach(): mirrors core's held-beacon ring (MAX_HELD_BEACONS in core/airlock.js), oldest dropped first.
+export const MAX_HELD_EVENTS = 200;
 // The core events the Alloy connector subscribes to (`ALLOY_EVENTS` in connectors/alloy/connector.js, pinned by a test): the
 // forward skips them, so a `page_view` reaches Alloy once, through the library's own path.
 export const FORWARD_SKIP_EVENTS = Object.freeze(["page_view"]);
@@ -41,11 +52,13 @@ class BadPush extends Error {}
 const bad = (reason) => new BadPush(reason);
 
 /** Validate while copying: only own data properties of plain objects and arrays, up to MAX_DEPTH, no cycle. */
-function copyValue(v, depth, ancestors, counter, path) {
+function copyValue(v, depth, ancestors, counter, path, budget) {
   if (v === null || typeof v === "string" || typeof v === "boolean" || typeof v === "number") return v;
   if (typeof v !== "object") throw bad(`${typeof v} value at ${path}`);
   if (depth > MAX_DEPTH) throw bad(`deeper than ${MAX_DEPTH} levels at ${path}`);
   if (ancestors.has(v)) throw bad(`cyclic value at ${path}`);
+  const spend = () => { budget.n += 1; if (budget.n > MAX_PUSH_NODES) throw bad(`more than ${MAX_PUSH_NODES} values (shared references or a huge array) at ${path}`); };
+  spend();
   counter.visits += 1;
   ancestors.add(v);
   try {
@@ -56,25 +69,36 @@ function copyValue(v, depth, ancestors, counter, path) {
     if (array) {
       const out = [];
       for (let i = 0; i < descriptors.length.value; i += 1) {
+        spend();
         const d = descriptors[i];
         if (!d) { out.push(null); continue; }
         if (!("value" in d)) throw bad(`accessor property at ${path}[${i}]`);
-        out.push(d.value === undefined ? null : copyValue(d.value, depth + 1, ancestors, counter, `${path}[${i}]`));
+        out.push(d.value === undefined ? null : copyValue(d.value, depth + 1, ancestors, counter, `${path}[${i}]`, budget));
       }
       return out;
     }
     const out = {};
     for (const key of Object.keys(descriptors)) {
+      spend();
       const d = descriptors[key];
       if (!d.enumerable) continue;
       if (!("value" in d)) throw bad(`accessor property at ${path}.${key}`);
       if (d.value === undefined || UNSAFE.has(key)) continue;
-      out[key] = copyValue(d.value, depth + 1, ancestors, counter, `${path}.${key}`);
+      out[key] = copyValue(d.value, depth + 1, ancestors, counter, `${path}.${key}`, budget);
     }
     return out;
   } finally {
     ancestors.delete(v);
   }
+}
+
+/** A structural copy of validated plain data (what a hook or the forward receives, so none can edit what is stored). */
+function plainCopy(v) {
+  if (Array.isArray(v)) return v.map(plainCopy);
+  if (v === null || typeof v !== "object") return v;
+  const out = {};
+  for (const key of Object.keys(v)) out[key] = plainCopy(v[key]);
+  return out;
 }
 
 /** ACDL's stored copy of a value: nulls are dropped from arrays and from every object inside them. */
@@ -128,11 +152,11 @@ export function createDataLayer({ onEvent = () => {}, shouldProcessEvent = () =>
   const sendQueue = [];
   let foldHead = 0;
   let sendHead = 0;
-  let seq = 0;
   let scheduled = false;
   let attached = false;
   let mapEvents = true;
-  let proxyCheck = null;
+  const proxyChecks = [];
+  const installed = new Map();
   const say = (record) => { try { diagnose({ level: "warn", ...record }); } catch (e) { /* a throwing sink never breaks the page */ } };
 
   function dropBad(reason) {
@@ -158,8 +182,8 @@ export function createDataLayer({ onEvent = () => {}, shouldProcessEvent = () =>
   function forward(event, payload) {
     if (!airlock || FORWARD_SKIP_EVENTS.includes(event)) return;
     const params = {};
-    if (payload.xdm !== undefined) params.xdm = payload.xdm;
-    if (payload.data !== undefined) params.data = payload.data;
+    if (payload.xdm !== undefined) params.xdm = plainCopy(payload.xdm);
+    if (payload.data !== undefined) params.data = plainCopy(payload.data);
     try { airlock.push({ event, ...params }); } catch (e) { say({ kind: "datalayer-forward-threw", reason: String((e && e.message) || e) }); }
   }
 
@@ -167,23 +191,33 @@ export function createDataLayer({ onEvent = () => {}, shouldProcessEvent = () =>
     const { payload } = item;
     foldThrough(item);
     let process;
-    try { process = shouldProcessEvent(payload); } catch (e) {
+    // Hooks get copies: the stored payload (and what is forwarded to core) stays what the page pushed.
+    try { process = shouldProcessEvent(plainCopy(payload)); } catch (e) {
       say({ kind: "hook-threw", option: "shouldProcessEvent", reason: `shouldProcessEvent threw (${String((e && e.message) || e)}); the event is dropped` });
       return;
     }
     if (!process) return;
-    const { event, xdm, data, configOverrides } = payload;
-    try { onEvent({ eventType: event, ...(isObj(xdm) ? xdm : {}) }, data, configOverrides); } catch (e) {
-      say({ kind: "datalayer-onevent-threw", reason: String((e && e.message) || e) });
-    }
+    const { event, xdm, data, configOverrides } = plainCopy(payload);
+    const onEventFailed = (e) => say({ kind: "datalayer-onevent-threw", reason: String((e && e.message) || e) });
+    try {
+      const result = onEvent({ eventType: event, ...(isObj(xdm) ? xdm : {}) }, data, configOverrides);
+      if (result && typeof result.then === "function") result.then(undefined, onEventFailed);
+    } catch (e) { onEventFailed(e); }
     forward(event, payload);
   }
 
   function drain() {
     scheduled = false;
-    if (proxyCheck) proxyCheck();
+    for (const check of proxyChecks.slice()) {
+      try { check(); } catch (e) {
+        proxyChecks.splice(proxyChecks.indexOf(check), 1);
+        say({ kind: "datalayer-proxy-check-threw", reason: `reading the proxied push threw (${String((e && e.message) || e)}); the proxy is no longer checked` });
+      }
+    }
     if (attached) {
-      while (sendHead < sendQueue.length) {
+      // Only what was queued when the drain started: a hook that pushes gets its events in a new task, so a drain always ends.
+      const end = sendQueue.length;
+      while (sendHead < end) {
         const entry = sendQueue[sendHead];
         sendHead += 1;
         if (entry.call) {
@@ -192,8 +226,9 @@ export function createDataLayer({ onEvent = () => {}, shouldProcessEvent = () =>
           mapEvent(entry);
         }
       }
-      sendQueue.length = 0;
+      sendQueue.splice(0, sendHead);
       sendHead = 0;
+      if (sendQueue.length) schedule();
     }
     foldAll();
   }
@@ -204,18 +239,29 @@ export function createDataLayer({ onEvent = () => {}, shouldProcessEvent = () =>
     setTimeout(drain, 0);
   }
 
+  function holdOrQueue(entry) {
+    sendQueue.push(entry);
+    while (!attached && sendQueue.length > MAX_HELD_EVENTS) {
+      sendQueue.shift();
+      say({ kind: "datalayer-held-overflow", reason: `held-event ring full (cap ${MAX_HELD_EVENTS}) before attach — oldest held event dropped` });
+    }
+  }
+
   function push(raw) {
     if (typeof raw === "function") {
       say({ kind: "datalayer-function-push-dropped", reason: "a function push is never executed: page code cannot run in the capture path" });
       return;
     }
-    if (raw === null || typeof raw !== "object" || Array.isArray(raw)) {
+    if (raw === null || typeof raw !== "object") {
       dropBad("a push must be a plain data object");
       return;
     }
     let payload;
     try {
-      payload = copyValue(raw, 0, new Set(), pushCounter, "push");
+      // Array.isArray throws on a revoked Proxy, so it stays inside the try.
+      if (Array.isArray(raw)) throw bad("a push must be a plain data object");
+      payload = copyValue(raw, 0, new Set(), pushCounter, "push", { n: 0 });
+      // The backstop for a Proxy (structuredClone rejects one without running a trap); absent, a Proxy is accepted.
       if (typeof structuredClone === "function") structuredClone(raw);
     } catch (e) {
       dropBad(e instanceof BadPush ? e.message : "not plain data (a Proxy or an uncloneable value)");
@@ -225,10 +271,9 @@ export function createDataLayer({ onEvent = () => {}, shouldProcessEvent = () =>
       dropBad("`event` must be a non-empty string");
       return;
     }
-    const item = { seq, payload, folded: false };
-    seq += 1;
+    const item = { payload, folded: false };
     foldQueue.push(item);
-    if (typeof payload.event === "string") sendQueue.push(item);
+    if (typeof payload.event === "string") holdOrQueue(item);
     schedule();
   }
 
@@ -250,7 +295,7 @@ export function createDataLayer({ onEvent = () => {}, shouldProcessEvent = () =>
   }
 
   function enqueue(fn) {
-    sendQueue.push({ call: fn });
+    holdOrQueue({ call: fn });
     schedule();
   }
 
@@ -262,8 +307,10 @@ export function createDataLayer({ onEvent = () => {}, shouldProcessEvent = () =>
       try { data = JSON.parse(el.dataset.blockDataLayer); } catch (e) { data = {}; }
       if (!el.id) {
         const blockClass = el.classList[0];
+        // CSS.escape where it exists (a class such as `md:hero` is not a valid bare selector); stock uses the literal.
+        const escape = typeof CSS !== "undefined" && typeof CSS.escape === "function" ? CSS.escape : (s) => s;
         const siblings = blockClass
-          ? [...doc.querySelectorAll(`.${blockClass}`)]
+          ? [...doc.querySelectorAll(`.${escape(blockClass)}`)]
           : [...doc.querySelectorAll("[data-block-data-layer]")].filter((e) => !e.classList.length);
         el.id = `${data?.parentId ? `${data.parentId}-` : ""}${siblings.indexOf(el) + 1}`;
       }
@@ -280,10 +327,14 @@ export function createDataLayer({ onEvent = () => {}, shouldProcessEvent = () =>
     }
     const win = typeof window !== "undefined" ? window : globalThis;
     let arr = win[instanceName];
+    const known = installed.get(instanceName);
+    if (known && known.arr === arr) return known.isActive() ? { installed: true, instanceName } : { installed: false };
+    let foreign;
+    try { foreign = !Array.isArray(arr) || typeof arr.getState === "function" || typeof arr.addEventListener === "function"; } catch (e) { foreign = true; }
     if (arr === undefined || arr === null) {
       arr = [];
       win[instanceName] = arr;
-    } else if (!Array.isArray(arr) || typeof arr.getState === "function" || typeof arr.addEventListener === "function") {
+    } else if (foreign) {
       say({ kind: "datalayer-foreign-implementation", reason: `window.${instanceName} already holds a data layer implementation; the proxy was not installed` });
       return { installed: false };
     }
@@ -311,7 +362,8 @@ export function createDataLayer({ onEvent = () => {}, shouldProcessEvent = () =>
     for (const name of ["addEventListener", "removeEventListener", "on", "off"]) {
       define(name, () => { say({ kind: "datalayer-listener-not-supported", reason: `${name} registers nothing: listeners cannot cross the airlock` }); });
     }
-    proxyCheck = () => { if (active && arr.push !== proxiedPush) stop(); };
+    proxyChecks.push(() => { if (active && arr.push !== proxiedPush) stop(); });
+    installed.set(instanceName, { arr, isActive: () => active });
     return { installed: true, instanceName };
   }
 

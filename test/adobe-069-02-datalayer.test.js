@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { createDataLayer, FORWARD_SKIP_EVENTS, MAX_DEPTH } from "../adapters/eds/martech-datalayer.js";
+import { createDataLayer, FORWARD_SKIP_EVENTS, MAX_DEPTH, MAX_HELD_EVENTS } from "../adapters/eds/martech-datalayer.js";
 import { createAirlock } from "../core/airlock.js";
 import { DEFAULT_DENYLIST } from "../core/payload-governance.js";
 import { createAlloyConnector } from "../connectors/alloy/connector.js";
@@ -24,6 +24,17 @@ describe("069-02 AC1: the generic mechanism, no global", () => {
     const reads = [];
     const sentinel = new Proxy({}, { get: (_t, k) => { reads.push(String(k)); return undefined; }, set: (_t, k) => { reads.push(`set ${String(k)}`); return true; }, has: (_t, k) => { reads.push(`has ${String(k)}`); return false; } });
     const before = Object.keys(globalThis).sort();
+    // A `window` guard sees `typeof window.x`, `in` and own-key reads that a stubbed value cannot.
+    const winReads = [];
+    const winGuard = new Proxy({}, {
+      get: (_t, k) => { winReads.push(`get ${String(k)}`); return undefined; },
+      set: (_t, k) => { winReads.push(`set ${String(k)}`); return true; },
+      has: (_t, k) => { winReads.push(`has ${String(k)}`); return false; },
+      ownKeys: () => { winReads.push("ownKeys"); return []; },
+      getOwnPropertyDescriptor: (_t, k) => { winReads.push(`gopd ${String(k)}`); return undefined; },
+      defineProperty: (_t, k) => { winReads.push(`define ${String(k)}`); return true; },
+    });
+    vi.stubGlobal("window", winGuard);
     for (const name of ["adobeDataLayer", "alloy", "__alloyNS", "acdl"]) vi.stubGlobal(name, sentinel);
     const dl = make();
     dl.attach();
@@ -31,8 +42,10 @@ describe("069-02 AC1: the generic mechanism, no global", () => {
     dl.push({ page: { name: "p" } });
     dl.getState();
     dl.getState("page.name");
+    dl.scanBlocks({ querySelectorAll: () => [] });
     await tick();
     expect(reads).toEqual([]);
+    expect(winReads).toEqual([]);
     for (const name of ["adobeDataLayer", "alloy", "__alloyNS", "acdl"]) expect(globalThis[name]).toBe(sentinel);
     vi.unstubAllGlobals();
     expect(Object.keys(globalThis).sort()).toEqual(before);
@@ -221,7 +234,7 @@ describe("069-02 AC3: state equals ACDL's, folded lazily", () => {
   it("getState(path) reads dotted and indexed paths and returns undefined for a missing one", () => {
     const dl = make();
     dl.push({ a: { b: [{ c: 7 }] } });
-    expect(    dl.getState("a.b.0.c")).toBe(7);
+    expect(dl.getState("a.b.0.c")).toBe(7);
     expect(dl.getState("a.zz.c")).toBeUndefined();
     expect(dl.getState("__proto__.x")).toBeUndefined();
   });
@@ -515,6 +528,166 @@ describe("069-02 AC8: forward to core and the denylist", () => {
 describe("069-02 AC9: no capability", () => {
   it("holds nothing but the callbacks it was given and has no handle, chamber or command surface", () => {
     const dl = make();
-    expect(Object.keys(dl)).not.toEqual(expect.arrayContaining(["command", "sendEvent", "setConsent", "handle"]));
+    expect(Object.keys(dl).sort()).toEqual(["attach", "enqueue", "getState", "getStateSnapshot", "installAdobeDataLayerProxy", "push", "scanBlocks", "stats"]);
+    for (const k of Object.keys(dl)) expect(["command", "sendEvent", "setConsent", "handle", "chamber"]).not.toContain(k);
+  });
+});
+
+describe("069-02 round-1 fixes: validation budget, bounded drain, copies, revoked proxies, idempotent proxy", () => {
+  let win;
+  beforeEach(() => { win = {}; vi.stubGlobal("window", win); });
+
+  it("a shared-reference DAG (2^30 paths) is dropped under the per-push node budget, not walked", () => {
+    const dl = make();
+    let n = { v: 1 };
+    for (let i = 0; i < 30; i += 1) n = { a: n, b: n };
+    dl.push(n);
+    expect(kinds()).toEqual(["datalayer-bad-push"]);
+    expect(diags[0].reason).toMatch(/values/);
+    expect(dl.stats().pushVisits).toBeLessThan(200000);
+    expect(dl.getState()).toEqual({});
+  });
+
+  it("a sparse array with a huge `length` is dropped under the same budget", () => {
+    const dl = make();
+    const sparse = [];
+    sparse.length = 1e9;
+    dl.push({ event: "e", a: sparse });
+    expect(kinds()).toEqual(["datalayer-bad-push"]);
+    expect(diags[0].reason).toMatch(/values/);
+  });
+
+  it("a hook that pushes on every event does not hang the drain: one task per event, and later events still process", async () => {
+    const seen = [];
+    let again = true;
+    const dl = make({ onEvent: (x) => { seen.push(x.eventType); if (again) dl.push({ event: "again" }); } });
+    dl.attach();
+    dl.push({ event: "first" });
+    await tick();
+    expect(seen).toEqual(["first"]);
+    await tick();
+    expect(seen).toEqual(["first", "again"]);
+    again = false;
+    dl.push({ event: "later" });
+    await tick();
+    await tick();
+    await tick();
+    expect(seen).toContain("later");
+    expect(seen.at(-1)).toBe("later");
+  });
+
+  it("a throwing getter on the proxied push is diagnosed, stops that check and does not stall the queue", async () => {
+    const seen = [];
+    const dl = make({ onEvent: (x) => seen.push(x.eventType) });
+    dl.attach();
+    dl.installAdobeDataLayerProxy();
+    Object.defineProperty(win.adobeDataLayer, "push", { get() { throw new Error("getter boom"); }, configurable: true });
+    dl.push({ event: "e1" });
+    await tick();
+    expect(seen).toEqual(["e1"]);
+    expect(kinds()).toEqual(["datalayer-proxy-check-threw"]);
+    dl.push({ event: "e2" });
+    await tick();
+    expect(seen).toEqual(["e1", "e2"]);
+    expect(kinds()).toEqual(["datalayer-proxy-check-threw"]);
+  });
+
+  it("events held before attach are capped (drop oldest, diagnosed), like core's held-beacon ring; state keeps them all", async () => {
+    const seen = [];
+    const dl = make({ onEvent: (x) => seen.push(x.eventType) });
+    for (let i = 0; i < MAX_HELD_EVENTS + 5; i += 1) dl.push({ event: `e${i}`, data: { i } });
+    await tick();
+    expect(kinds().filter((k) => k === "datalayer-held-overflow")).toHaveLength(5);
+    dl.attach();
+    await tick();
+    expect(seen).toHaveLength(MAX_HELD_EVENTS);
+    expect(seen[0]).toBe("e5");
+    expect(seen.at(-1)).toBe(`e${MAX_HELD_EVENTS + 4}`);
+    expect(dl.getState("data.i")).toBe(MAX_HELD_EVENTS + 4);
+  });
+
+  it("hooks get copies: a mutating shouldProcessEvent/onEvent changes neither the state nor what is forwarded", async () => {
+    const airlock = { push: vi.fn() };
+    const dl = make({
+      airlock,
+      shouldProcessEvent: (p) => { p.xdm.a.b = "hook-edit"; p.data.n = "hook-edit"; return true; },
+      onEvent: (x, data, co) => { x.a.b = "edit2"; data.n = "edit2"; co.c = "edit2"; },
+    });
+    dl.attach();
+    dl.push({ event: "e", xdm: { a: { b: 1 } }, data: { n: 1 }, configOverrides: { c: 1 } });
+    await tick();
+    expect(airlock.push).toHaveBeenCalledWith({ event: "e", xdm: { a: { b: 1 } }, data: { n: 1 } });
+    expect(dl.getState()).toEqual({ xdm: { a: { b: 1 } }, data: { n: 1 }, configOverrides: { c: 1 } });
+  });
+
+  it("a rejected thenable returned by onEvent is diagnosed, not left unhandled", async () => {
+    const dl = make({ onEvent: () => Promise.reject(new Error("async boom")) });
+    dl.attach();
+    dl.push({ event: "e" });
+    await tick();
+    await tick();
+    expect(diags).toEqual([expect.objectContaining({ kind: "datalayer-onevent-threw", reason: "async boom" })]);
+  });
+
+  it("a revoked Proxy is dropped with datalayer-bad-push on every path and never thrown into the page", () => {
+    const dl = make();
+    const revoked = () => { const r = Proxy.revocable({}, {}); r.revoke(); return r.proxy; };
+    const revokedArray = () => { const r = Proxy.revocable([], {}); r.revoke(); return r.proxy; };
+    expect(() => dl.push(revoked())).not.toThrow();
+    expect(() => dl.push(revokedArray())).not.toThrow();
+    expect(() => dl.push({ nested: revoked() })).not.toThrow();
+    expect(kinds()).toEqual(["datalayer-bad-push", "datalayer-bad-push", "datalayer-bad-push"]);
+    win.adobeDataLayer = [revoked()];
+    expect(() => dl.installAdobeDataLayerProxy()).not.toThrow();
+    expect(() => win.adobeDataLayer.push(revoked(), { ok: 1 })).not.toThrow();
+    expect(kinds()).toHaveLength(5);
+    expect(dl.getState("ok")).toBe(1);
+  });
+
+  it("a revoked Proxy standing on the instance name is treated as foreign, not thrown", () => {
+    const dl = make();
+    const r = Proxy.revocable([], {});
+    r.revoke();
+    win.adobeDataLayer = r.proxy;
+    expect(dl.installAdobeDataLayerProxy()).toEqual({ installed: false });
+    expect(kinds()).toEqual(["datalayer-foreign-implementation"]);
+  });
+
+  it("installing twice on one name is idempotent: our own array is not reported as foreign and nothing is replayed", () => {
+    const dl = make();
+    const first = dl.installAdobeDataLayerProxy();
+    const arr = win.adobeDataLayer;
+    arr.push({ a: 1 });
+    const patched = arr.push;
+    expect(dl.installAdobeDataLayerProxy()).toEqual(first);
+    expect(win.adobeDataLayer).toBe(arr);
+    expect(arr.push).toBe(patched);
+    expect(kinds()).toEqual([]);
+    expect(dl.stats().pushVisits).toBe(1);
+  });
+
+  it("installing a second name keeps the first proxy's drain-time detection", async () => {
+    const dl = make();
+    dl.installAdobeDataLayerProxy();
+    dl.installAdobeDataLayerProxy({ instanceName: "second" });
+    Object.defineProperty(win.adobeDataLayer, "push", { value: function replaced() {}, writable: true, configurable: true });
+    dl.push({ a: 1 });
+    await tick();
+    expect(kinds()).toEqual(["datalayer-foreign-implementation"]);
+    expect(diags[0].reason).toMatch(/adobeDataLayer\.push/);
+  });
+
+  it("scanBlocks escapes the block class with CSS.escape when it exists, and uses the literal as stock does when it does not", () => {
+    const sels = [];
+    const els = [{ id: "", classList: ["md:hero"], dataset: { blockDataLayer: '{"a":1}' } }];
+    const doc = { querySelectorAll: (sel) => { sels.push(sel); return els; } };
+    make().scanBlocks(doc);
+    expect(sels).toContain(".md:hero");
+    sels.length = 0;
+    els[0].id = "";
+    vi.stubGlobal("CSS", { escape: (s) => s.replace(/:/g, "\\:") });
+    make().scanBlocks(doc);
+    expect(sels).toContain(".md\\:hero");
+    expect(sels).not.toContain(".md:hero");
   });
 });

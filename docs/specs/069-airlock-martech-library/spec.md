@@ -33,10 +33,11 @@ Out of scope: Launch container loading, a package split, freezing the library un
 | [069-01](slice-01-handle-results.md) | The handle returns what stock returns: `sendEvent` result, the hook's `xdm`, a throwing hook, `applyPropositions({ viewName })`, a settling `setAdobeConsent` |
 | [069-02](slice-02-generic-data-layer.md) | Airlock's generic data layer, no ACDL and no `adobeDataLayer` by default (`push({ event, ...params })`, `getState`, state pushes; O(1) validate-and-append), plus an opt-in `adobeDataLayer` migration proxy and the dispositions for what ACDL gave that cannot cross the airlock |
 | [069-03](slice-03-martech-library.md) | `adapters/eds/martech.js`: the 14 `aem-martech` exports on the handle, no page global, proven against the recording and the stock run |
+| [069-04](slice-04-proxy-trap-free-detection.md) | Overflow of 069-02 AC2: trap-free rejection of a pushed `Proxy`, or the residual three-trap exposure accepted with its threat model |
 
 Order: 069-01, 069-02, then 069-03 (the library uses both). 069-04 is an overflow of 069-02 and does not block 069-03.
 
-Status: 069-01 DONE (2026-11-22); 069-02 IN_PROGRESS (built, AC2's Proxy-trap clause moved to 069-04); 069-03 and 069-04 READY_FOR_IMPLEMENTATION.
+Status: 069-01 DONE (2026-11-22); 069-02 DONE (2026-11-22, AC2's Proxy-trap clause moved to 069-04); 069-03 and 069-04 READY_FOR_IMPLEMENTATION.
 
 ## 3. Boundaries
 

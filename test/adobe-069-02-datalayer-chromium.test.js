@@ -185,17 +185,23 @@ describe.runIf(real)("spec 069-02: generic data layer vs real ACDL 3.0.1 and rea
       }
       return Promise.resolve({});
     }, { q: [] });`;
-  const stockRun = (page, { martechConfig, hook, pushes }) => page.evaluate(async ({ stockSetup, martechConfig: mc, hook: h, pushes: ps }) => {
-    (0, eval)(stockSetup);
-    const m = await (0, eval)(`import("/stock/index.js")`);
-    const cfg = h ? { ...mc, shouldProcessEvent: (0, eval)(`(${h})`) } : mc;
-    await m.initMartech({ orgId: "00000000000000000000000A@AdobeOrg", datastreamId: "00000000-0000-0000-0000-000000000000", edgeDomain: "edge.example", defaultConsent: "in" }, cfg);
-    await m.martechLazy();
-    let pushErrors = 0;
-    for (const p of ps) { try { window.adobeDataLayer.push(p); } catch (e) { pushErrors += 1; } }
-    await new Promise((r) => setTimeout(r, 60));
-    return { sent: window.__sent, state: window.adobeDataLayer.getState(), pushErrors };
-  }, { stockSetup: STOCK_PAGE, martechConfig, hook, pushes });
+  // `expectSent` is how many sendEvent bodies the run must produce: the stock arm is polled for them (its listener runs on a
+  // promise chain) instead of sleeping; a run that must send nothing gets one short settle.
+  const stockRun = async (page, { martechConfig, hook, pushes, expectSent = 0 }) => {
+    const pushErrors = await page.evaluate(async ({ stockSetup, martechConfig: mc, hook: h, pushes: ps }) => {
+      (0, eval)(stockSetup);
+      const m = await (0, eval)(`import("/stock/index.js")`);
+      const cfg = h ? { ...mc, shouldProcessEvent: (0, eval)(`(${h})`) } : mc;
+      await m.initMartech({ orgId: "00000000000000000000000A@AdobeOrg", datastreamId: "00000000-0000-0000-0000-000000000000", edgeDomain: "edge.example", defaultConsent: "in" }, cfg);
+      await m.martechLazy();
+      let errors = 0;
+      for (const p of ps) { try { window.adobeDataLayer.push(p); } catch (e) { errors += 1; } }
+      return errors;
+    }, { stockSetup: STOCK_PAGE, martechConfig, hook, pushes });
+    if (expectSent > 0) await page.waitForFunction((n) => window.__sent.length >= n, expectSent, { timeout: 10000 });
+    else await page.evaluate(() => new Promise((r) => setTimeout(r, 30)));
+    return page.evaluate(() => ({ sent: window.__sent, state: window.adobeDataLayer.getState() })).then((r) => ({ ...r, pushErrors }));
+  };
   const baseConfig = { analytics: true, personalization: false, trackPageView: false, dataLayer: true, includeDataLayerState: false, launchUrls: [], alloyInstanceName: "alloy", dataLayerInstanceName: "adobeDataLayer" };
   const ourRun = (page, { analytics, pushes, shouldProcessEvent }) => page.evaluate(async ({ analytics: an, pushes: ps, sp }) => {
     const { createDataLayer } = await (0, eval)(`import("/ours/martech-datalayer.js")`);
@@ -208,7 +214,7 @@ describe.runIf(real)("spec 069-02: generic data layer vs real ACDL 3.0.1 and rea
     });
     dl.attach({ analytics: an });
     for (const p of ps) dl.push(p);
-    await new Promise((r) => setTimeout(r, 60));
+    for (let i = 0; i < 3; i += 1) await new Promise((r) => setTimeout(r, 0)); // the drain is one macrotask after the pushes
     return { sent, diags, state: JSON.parse(JSON.stringify(dl.getState())) };
   }, { analytics, pushes, sp: shouldProcessEvent });
   const strip = (sent) => sent.map(({ documentUnloading, xdm, data, edgeConfigOverrides }) => ({ documentUnloading, xdm, data: Object.fromEntries(Object.entries(data ?? {}).filter(([k]) => k !== "__adobe")), edgeConfigOverrides }));
@@ -222,7 +228,7 @@ describe.runIf(real)("spec 069-02: generic data layer vs real ACDL 3.0.1 and rea
 
   it("AC4: events map to the stock run's sendEvent bodies (xdm, data, configOverrides, order) with analytics true", async () => {
     const stockPage = await newPage();
-    const stock = await stockRun(stockPage, { martechConfig: { ...baseConfig }, pushes: EVENT_PUSHES });
+    const stock = await stockRun(stockPage, { martechConfig: { ...baseConfig }, pushes: EVENT_PUSHES, expectSent: 3 });
     const oursPage = await newPage();
     const ours = await ourRun(oursPage, { analytics: true, pushes: EVENT_PUSHES });
     expect(stock.sent.length).toBe(3);
@@ -248,7 +254,7 @@ describe.runIf(real)("spec 069-02: generic data layer vs real ACDL 3.0.1 and rea
     const hook = "(p) => { if (p.event === 'boom') throw new Error('x'); return p.event === 'keep'; }";
     const pushes = [{ event: "keep", xdm: { a: 1 } }, { event: "skip" }, { event: "boom" }];
     const stockPage = await newPage();
-    const stock = await stockRun(stockPage, { martechConfig: { ...baseConfig }, hook, pushes });
+    const stock = await stockRun(stockPage, { martechConfig: { ...baseConfig }, hook, pushes, expectSent: 1 });
     const oursPage = await newPage();
     const ours = await ourRun(oursPage, { analytics: true, pushes, shouldProcessEvent: hook });
     expect(strip(ours.sent)).toEqual(strip(stock.sent));
@@ -306,5 +312,55 @@ describe.runIf(real)("spec 069-02: generic data layer vs real ACDL 3.0.1 and rea
     expect(oursXdm).toEqual({ eventType: "t", a: { x: 1, y: 2 }, xdm: { skip: 1 } });
     await stockPage.context().close();
     await oursPage.context().close();
+  }, T);
+
+  it("AC3: the state-carrying send costs O(state): measured on the recorded S10 state and on a 100x copy (push + fold + snapshot + drain)", async () => {
+    const s10 = JSON.parse(await readFile(new URL("./fixtures/adobe-capture/s10-base.json", import.meta.url), "utf8"));
+    const pushes = s10.requests
+      .filter((r) => r.method === "POST" && /\/(interact|collect)\?/.test(r.url) && r.request_body)
+      .flatMap((r) => JSON.parse(r.request_body).events ?? [])
+      .map((e) => ({ event: "s10", xdm: e.xdm, data: e.data ?? {} }));
+    expect(pushes.length).toBeGreaterThan(0);
+    const page = await newPage();
+    const out = await page.evaluate(async ({ ps }) => {
+      const { createDataLayer } = await (0, eval)(`import("/ours/martech-datalayer.js")`);
+      const scaled = (n) => Array.from({ length: n }, (_, i) => ps.map((p) => ({ event: p.event, xdm: { [`k${i}`]: p.xdm }, data: { [`k${i}`]: p.data } }))).flat();
+      const measure = async (items, reps) => {
+        const times = [];
+        let bytes = 0;
+        for (let r = 0; r < reps; r += 1) {
+          let sends = 0;
+          const dl = createDataLayer({ onEvent: () => { sends += 1; } });
+          dl.attach();
+          const t0 = performance.now();
+          for (const p of items) dl.push(p);
+          const snap = dl.getStateSnapshot();
+          await new Promise((res) => setTimeout(res, 0));
+          times.push(performance.now() - t0);
+          bytes = JSON.stringify(snap).length;
+          if (sends !== items.length) throw new Error(`expected ${items.length} sends, got ${sends}`);
+        }
+        times.sort((a, b) => a - b);
+        return { events: items.length, stateBytes: bytes, medianMs: times[Math.floor(times.length / 2)], maxMs: times[times.length - 1] };
+      };
+      return { s10: await measure(ps, 50), s10x100: await measure(scaled(100), 20) };
+    }, { ps: pushes });
+    expect(out.s10.stateBytes).toBeGreaterThan(0);
+    expect(out.s10.medianMs).toBeLessThan(25);
+    expect(out.s10x100.medianMs).toBeLessThan(250);
+    await page.context().close();
+  }, T);
+
+  it("AC7: a block class that is not a valid bare selector (`md:hero`) is escaped and indexed, where stock's literal selector would throw", async () => {
+    const html = `<!doctype html><html><body>
+      <div class="md:hero" data-block-data-layer='{"a":1}'></div>
+      <div class="md:hero" data-block-data-layer='{"b":2}'></div></body></html>`;
+    const page = await newPage(html);
+    const ids = await page.evaluate(async () => {
+      const { createDataLayer } = await (0, eval)(`import("/ours/martech-datalayer.js")`);
+      return createDataLayer({}).scanBlocks(document);
+    });
+    expect(ids).toEqual(["1", "2"]);
+    await page.context().close();
   }, T);
 });
