@@ -323,9 +323,29 @@ describe.runIf(real)("spec 069-03: the Airlock martech library in the S10 differ
 
 
 /** 069-05: one display-flow journey, run as-is against the stock arm and the library arm. Returns what the page shows and the edge request starts. */
-const displayJourney = (page, opts = {}) => page.evaluate(async ({ orgId, datastreamId, scope, more }) => {
-  const edgeCount = () => performance.getEntriesByType("resource").filter((e) => /edge\.adobedc\.net|demdex/.test(e.name)).length;
-  const hero = () => (document.getElementById("hero") || { innerHTML: null }).innerHTML;
+const EDGE_HOST = /edge\.adobedc\.net|demdex/;
+/** Counts the edge requests the page and its chamber Worker start or finish (Playwright reports Worker traffic on the page; performance entries of the main window do not see it). */
+const watchEdge = (page) => {
+  const seen = { count: 0 };
+  const bump = (r) => { if (EDGE_HOST.test(r.url())) seen.count += 1; };
+  page.on("request", bump);
+  page.on("requestfinished", bump);
+  page.on("requestfailed", bump);
+  return seen;
+};
+/** Waits until no edge request started or finished for `quietMs` (bounded by `capMs`), from the Node side so the library arm's Worker requests count. */
+const edgeQuiet = async (seen, quietMs = 1600, capMs = 8000) => {
+  const deadline = Date.now() + capMs;
+  let last = seen.count;
+  let quietSince = Date.now();
+  while (Date.now() < deadline && Date.now() - quietSince < quietMs) {
+    await new Promise((r) => setTimeout(r, 50));
+    if (seen.count !== last) { last = seen.count; quietSince = Date.now(); }
+  }
+};
+const displayJourney = async (page, opts = {}) => {
+  const seen = watchEdge(page);
+  const result = await page.evaluate(async ({ orgId, datastreamId, scope, more }) => {
   const m = await (0, eval)('import("/martech/index.js")');
   const personalization = more.personalization !== false;
   m.initMartech({
@@ -355,15 +375,12 @@ const displayJourney = (page, opts = {}) => page.evaluate(async ({ orgId, datast
     await consent;
     early = await (sent || send());
   }
-  const deadline = Date.now() + 8000;
-  let last = edgeCount();
-  let quietSince = Date.now();
-  while (Date.now() < deadline && Date.now() - quietSince < 1600) {
-    await new Promise((r) => setTimeout(r, 50));
-    if (edgeCount() !== last) { last = edgeCount(); quietSince = Date.now(); }
-  }
-  return { early, hero: hero(), globals: { alloy: typeof window.alloy, adobeDataLayer: typeof window.adobeDataLayer } };
+  return { early };
 }, { orgId: ORG, datastreamId: DATASTREAM, scope: SCOPE, more: opts });
+  await edgeQuiet(seen);
+  const state = await page.evaluate(() => ({ hero: (document.getElementById("hero") || { innerHTML: null }).innerHTML, globals: { alloy: typeof window.alloy, adobeDataLayer: typeof window.adobeDataLayer } }));
+  return { ...result, ...state };
+};
 
 /** A SYNTHETIC edge answer (no capture) with one dom-action offer for the fetch; the same bytes go to both arms. */
 const OFFER_ID = "airlock-069-05-offer";
@@ -378,7 +395,6 @@ const withOffer = ({ delay = 0 } = {}, stats = { answered: 0 }) => (req) => {
 
 /** Failed boot: martechLazy after a chamber (library) or Alloy file (stock) that cannot load. Reports how martechLazy settled and what the page shows. */
 const failedBootJourney = (page, opts = {}) => page.evaluate(async ({ orgId, datastreamId, scope, more }) => {
-  const edgeCount = () => performance.getEntriesByType("resource").filter((e) => /edge\.adobedc\.net|demdex/.test(e.name)).length;
   const m = await (0, eval)('import("/martech/index.js")');
   const settled = (p) => Promise.resolve(p).then(() => "ok", (e) => `err:${String(e && e.message).split("\n")[0]}`);
   const init = settled(m.initMartech({
@@ -391,8 +407,9 @@ const failedBootJourney = (page, opts = {}) => page.evaluate(async ({ orgId, dat
   const consent = settled(m.updateUserConsent({ collect: true, personalize: true, marketing: false, share: false }));
   const eager = await settled(m.martechEager());
   const lazy = await settled(m.martechLazy());
+  // Deliberate fixed wait: the claim is that nothing is ever sent, and absence cannot be awaited; the real check is the Node-side request list.
   await new Promise((r) => setTimeout(r, 1500));
-  return { init: await init, eager, lazy, consent: await Promise.race([consent, new Promise((r) => setTimeout(() => r("pending"), 100))]), edgeCalls: edgeCount(), bodyStyle: document.body.getAttribute("style") || "" };
+  return { init: await init, eager, lazy, consent: await Promise.race([consent, new Promise((r) => setTimeout(() => r("pending"), 100))]), bodyStyle: document.body.getAttribute("style") || "" };
 }, { orgId: ORG, datastreamId: DATASTREAM, scope: SCOPE, more: opts });
 
 describe.runIf(real)("spec 069-05: the Airlock martech library display flows against stock (real Chromium, SYNTHETIC answers)", () => {
@@ -415,6 +432,9 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
   // AC1 and AC4 are two views of the same personalization-off journey: run it once.
   let offJourney;
   const personalizationOff = () => { offJourney = offJourney || both({ personalization: false }); return offJourney; };
+  // AC3 and AC6 are two views of the same trackPageView:false offer journey: run it once.
+  let offerRun;
+  const offerNoPageView = () => { offerRun = offerRun || both({ config: { trackPageView: false }, placements: true }, {}); return offerRun; };
   const bodiesOf = (r) => posts(r.network).map((n) => JSON.parse(n.body));
   const eventTypes = (r) => bodiesOf(r).flatMap((b) => (b.events || []).map((e) => e.xdm && e.xdm.eventType));
   const fetchQuery = (r) => bodiesOf(r).map((x) => x.events && x.events[0].query && x.events[0].query.personalization).find(Boolean);
@@ -478,7 +498,7 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
   }, T);
 
   it("AC3 (069-05): a synthetic offer renders and is reported as stock does, trackPageView:false (requests equal stock's)", async () => {
-    const [s, l] = await both({ config: { trackPageView: false }, placements: true }, {});
+    const [s, l] = await offerNoPageView();
     expect(sameAsStock(s, l)).toBe(3);
     expect(s.results.run.hero).toContain("airlock-069-05-offer");
     expect(l.results.run.hero).toContain("airlock-069-05-offer");
@@ -534,7 +554,7 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
   }, T);
 
   it("AC6 (069-05): the library fetches only its declared scopes; stock adds __view__, the page surface and the dom-action schema", async () => {
-    const [s, l] = await both({ config: { trackPageView: false }, placements: true }, {});
+    const [s, l] = await offerNoPageView();
     sameAsStock(s, l);
     // sameAsStock asserts the values; this is the named owner of the difference, so state it in words too.
     expect(fetchQuery(s).decisionScopes).toContain("__view__");
@@ -551,29 +571,58 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
     expect(l.results.run.hero).toBe("default");
     expect(displays(l).filter((e) => e.xdm.eventType === "decisioning.propositionDisplay")).toHaveLength(0);
     expect(displays(s)).toHaveLength(1);
+    expect(l.answered).toBe(1);
     // With the placement declared the library renders (AC3), so the placement is what decides.
     const [, withPlacement] = await both({ config: { trackPageView: false }, placements: true }, {});
     expect(withPlacement.results.run.hero).toContain("airlock-069-05-offer");
   }, T);
 
-  for (const performanceOptimized of [true, false]) {
-    it(`AC10 (069-05): a failed boot, performanceOptimized ${performanceOptimized}: how martechLazy settles and what is sent, library versus stock`, async () => {
-      const run = (library) => replayFixture(browser, "s10-base", {
-        event: null, skipSteps: true, serve: library ? serveLib : { ...serveStock, "/martech/alloy.min.js": "throw new Error('airlock-069-05-load-failure');" }, bootOptions: library ? AIRLOCK_BOOT : {}, bodyHtml: heroHtml(true),
-        run: (page) => failedBootJourney(page, { performanceOptimized, ...(library ? { edgeDomain: "not a host/", airlock: { bundleUrl: "/rig/alloy.min.js", workerUrl: "/rig/chamber.js" } } : {}) }),
-      });
-      const [s, l] = await Promise.all([run(false), run(true)]);
-      // The same failure in both (stock: the Alloy file throws at load; library: bootAlloy rejects), no request, the page left visible.
-      for (const r of [s, l]) {
-        expect(r.results.run.init).toMatch(/^err:/);
-        expect(r.results.run.edgeCalls).toBe(0);
-        expect(r.results.run.bodyStyle).toBe("");
-        expect(posts(r.network)).toEqual([]);
-      }
-      // The difference: stock's martechLazy settles (it catches the failure and goes on); the library's rethrows the boot error.
-      expect(s.results.run.lazy).toBe("ok");
-      expect(l.results.run.lazy).toMatch(/^err:edgeDomain must be a bare host name/);
-    }, T);
+  // Two triggers, each applied the same way to both arms: an Alloy file (stock) or chamber bundle (library) that throws at load, and an invalid edgeDomain.
+  const BROKEN_SCRIPT = "throw new Error('airlock-069-05-load-failure');";
+  const BROKEN_BUNDLE = "/martech/broken-alloy.js";
+  const triggers = {
+    "a script that throws at load": (library) => ({
+      serve: library ? { ...serveLib, [BROKEN_BUNDLE]: BROKEN_SCRIPT } : { ...serveStock, "/martech/alloy.min.js": BROKEN_SCRIPT },
+      journey: library ? { airlock: { bundleUrl: BROKEN_BUNDLE, workerUrl: "/rig/chamber.js" } } : {},
+    }),
+    "an invalid edgeDomain": (library) => ({
+      serve: library ? serveLib : serveStock,
+      journey: { edgeDomain: "not a host/", ...(library ? { airlock: { bundleUrl: "/rig/alloy.min.js", workerUrl: "/rig/chamber.js" } } : {}) },
+    }),
+  };
+  for (const [trigger, setup] of Object.entries(triggers)) {
+    for (const performanceOptimized of [true, false]) {
+      it(`AC10 (069-05): a failed boot (${trigger}), performanceOptimized ${performanceOptimized}: how martechLazy settles and what is sent, library versus stock`, async () => {
+        const run = (library) => {
+          const { serve, journey } = setup(library);
+          return replayFixture(browser, "s10-base", {
+            event: null, skipSteps: true, serve, bootOptions: library ? AIRLOCK_BOOT : {}, bodyHtml: heroHtml(true),
+            run: (page) => failedBootJourney(page, { performanceOptimized, ...journey }),
+          });
+        };
+        const [s, l] = await Promise.all([run(false), run(true)]);
+        // Both arms: nothing is sent (the real check, the request list) and the page is left visible.
+        for (const r of [s, l]) {
+          expect(r.results.run.bodyStyle).toBe("");
+          expect(posts(r.network)).toEqual([]);
+          expect(r.results.run.eager).toBe("ok");
+        }
+        if (trigger === "an invalid edgeDomain") {
+          // The config is rejected up front in both; stock's martechLazy and consent call swallow or hang on it, the library's reject with the config error.
+          expect(s.results.run.init).toMatch(/^err:\[alloy\] Resolve these configuration problems/);
+          expect(l.results.run.init).toMatch(/^err:edgeDomain must be a bare host name/);
+          expect([s.results.run.lazy, s.results.run.consent]).toEqual(["ok", "pending"]);
+          expect(l.results.run.lazy).toMatch(/^err:edgeDomain must be a bare host name/);
+          expect(l.results.run.consent).toMatch(/^err:edgeDomain must be a bare host name/);
+        } else {
+          // A load failure: stock's initMartech rejects with the script's error; the library's does not surface it (the chamber never boots), and in both the consent call stays unsettled and martechLazy resolves.
+          expect(s.results.run.init).toBe("err:airlock-069-05-load-failure");
+          expect(l.results.run.init).toBe("ok");
+          expect([s.results.run.lazy, l.results.run.lazy]).toEqual(["ok", "ok"]);
+          expect([s.results.run.consent, l.results.run.consent]).toEqual(["pending", "pending"]);
+        }
+      }, T);
+    }
   }
 });
 
