@@ -749,5 +749,5 @@ describe.runIf(real)("bug 006: a stock arm is a pure stock page (real Chromium)"
       expect(booted.results.run.worker).toBe("object");
       expect(booted.results.run.resources).toContain("/rig/airlock-eds.js");
     } finally { await browser.close(); }
-  });
+  }, T);
 });
