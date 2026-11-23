@@ -1,15 +1,15 @@
 ---
-status: REPORTED
-tier:
-severity:
+status: DONE
+tier: standard
+severity: medium
 claimed_by: bug-006-post-fold-oracle
-regression_test:
-main_repro_checked_at:
-main_repro_ref:
-main_repro_result:
-red_confirmed_at:
-green_confirmed_at:
-fix_class:
+regression_test: a stock arm is a pure stock page
+main_repro_checked_at: 2026-11-23
+main_repro_ref: origin/main@67daba40
+main_repro_result: reproduces
+red_confirmed_at: 2026-11-23
+green_confirmed_at: 2026-11-23
+fix_class: guardrail
 security_surface: false
 escalated_to:
 closure_schema: 1
@@ -20,77 +20,64 @@ closure_schema: 1
 ## Symptom
 
 `test/adobe-b5-martech.test.js` (real Chromium, GATING step of the `browser-oracle` job) failed with
-`expected ['meta.state.domain'] to deeply equal []` in the library-versus-stock compare (069-03 S10 and AC6),
-and the same diff appeared in the b4 064-24 redirect compare. Post-fold, about 3 of 4 CI attempts at times,
-then none for hours; never locally (39/39 idle). The 069-05 order diff seen alongside it is a separate
-defect: [bug 007](007-martech-event-order-vs-stock.md).
+`expected ['meta.state.domain'] to deeply equal []` in the library-versus-stock compare (069-03 S10 k=0..3 and
+AC6), and the same diff appeared in the b4 064-24 redirect compare. The stock side's `meta.state.domain` was `""`
+where the library's was the full page host. After the fold it hit about 3 of 4 CI attempts in some windows and
+none for hours; it never reproduced locally on an idle machine. The 069-05 order diff seen alongside is a
+separate defect: [bug 007](007-martech-event-order-vs-stock.md).
 
 ## Repro
 
-CI only. Failures clustered in two time windows on 2026-11-23 (about 18:04-18:46Z and 20:11-20:41Z, and again in a diag run at 22:34Z).
+CI only. Red attempts clustered on 2026-11-23 (about 18:04-18:46Z and 20:11-20:41Z, and again in a diagnostic
+run at 22:34Z).
 
 ## Evidence
 
 - Runner image, runner version and Chromium were identical for red and green attempts.
-- Diag run 45262070431 attempt 2: library `meta.state.domain` was the full page host, stock's was `""`.
-- Diag run 45278072531 attempt 2 (cookie tracer): on the stock page, the chamber's `reconcile` wrote
-  `com.adobe.alloy.getTld=com.adobe.alloy.getTld; path=/` into the real jar at 136 ms; stock Alloy's own
-  apex probe read it back at 151 ms (`t.get(X)` truthy on its first loop test), so it wrote no domain cookie
-  and returned `""`; the chamber removed its copy at 153 ms. In the green traces the chamber's write and
-  removal finish before Alloy probes, and Alloy writes its own `domain=` probe cookies.
-- Pinned Alloy 2.31.1 probe: `for(;o<r.length&&!t.get(X);) ... return t.remove(...), n` with `n` starting `""`.
+- Diagnostic run 45262070431 attempt 2: library `meta.state.domain` was the full page host, stock's was `""`.
+- Tracer run 45278072531 attempt 2: on the stock page the chamber's `reconcile` wrote
+  `com.adobe.alloy.getTld=com.adobe.alloy.getTld; path=/` into the real jar at 136 ms; stock Alloy's own apex
+  probe read it back at 151 ms (its first loop test saw the cookie), so it wrote no `domain=` cookie and returned
+  `""`; the chamber removed its copy at 153 ms. In green traces the chamber's write and removal finish before
+  Alloy probes, and Alloy writes its own probe cookies.
+- Pinned Alloy 2.31.1 probe: `for(;o<r.length&&!t.get(X);) ... return t.remove(...), n`, with `n` starting `""`.
 
 ## Hypotheses
 
-<!-- Anti-anchoring: >=2 candidates, mark the leading one. Any Markdown
-     list works (-, *, +, or 1.); the gate counts top-level items only
-     (indented sub-bullets are notes, not hypotheses). -->
-- [x] H1 (leading, confirmed): the stock page also boots the chamber, which mirrors its own Alloy's probe
-  cookie into the jar for ~15 ms; a stock probe inside that window returns `""`. Confirmed by the tracer capture above.
-- [ ] H2: the fold's 068-03 no-park path or the extra opt-out registration changed library-side domain writes.
-  Falsified: the library side's domain is the full host in every red capture; only stock's differs.
-- [ ] H3: cookie or storage shared between the sequential arms. Falsified: `replayFixture` makes a fresh browser
-  context per call.
-- [ ] H4: stock's domain resolution varies under load by itself (stock-versus-stock). Partly true: the window is
-  timing-dependent, but it only opens because of the chamber's mirrored write.
+- [x] H1 (leading, confirmed): the stock arm's page also boots the chamber, which mirrors its Alloy's probe
+  cookie into the jar for about 15 ms; a stock probe inside that window returns `""`. Confirmed by the tracer capture.
+- [ ] H2: the fold's 068-03 no-park path or the extra opt-out registration changed the library side's domain
+  writes. Falsified: the library side's domain is the full host in every red capture; only stock's differs.
+- [ ] H3: cookie or storage state shared between the sequential arms. Falsified: `replayFixture` makes a fresh
+  browser context per call.
+- [ ] H4: stock's domain resolution varies under load by itself. Falsified as an independent cause: it only
+  varies when a chamber shares the page; a pure stock page has no such window.
 
 ## Root cause
 
-The rig page boots the airlock chamber in every arm, including stock ones. The chamber's Alloy probes
-`com.adobe.alloy.getTld` and the adapter's `reconcile` mirrors that write into the real jar. When stock Alloy's
-own probe on the main thread lands in the few milliseconds before the chamber's removal, stock sees the cookie,
-skips its own `domain=` writes and reports an empty domain. The fold's extra boot work shifted the chamber's
-timing so the windows overlapped on loaded runners; the library arm is unaffected. A harness artifact: no
-production code path has a stock tag and a chamber sharing a page.
+The rig booted the airlock chamber on every page, including the arms meant to be stock. The chamber's Alloy
+probes `com.adobe.alloy.getTld` and the adapter's `reconcile` mirrors that write into the real jar. When stock
+Alloy's own probe on the main thread lands in the few milliseconds before the chamber's removal, stock sees the
+cookie, skips its own `domain=` writes and reports an empty domain. A harness artifact: no production path puts a
+stock tag and a chamber on one page. Every stock arm (b5, b4, h1, 069-01, storage-grant) booted a chamber; the
+enumeration is closed by `grep -n "replayFixture(" test/` plus the helper that wraps it in each file.
 
 ## Repository closure inventory
 
-**Equivalent / convergent logic searched:** `getTld` and `reconcile` across `adapters/eds/index.js`,
-`connectors/alloy/sync-cookie-cache.js`, `rig/` and the pinned bundle; `document.cookie` hooks in `rig/`. No
-existing rig-side filter for the probe cookie.
+**Equivalent / convergent logic searched:** `getTld`, `reconcile` and `document.cookie` in `adapters/eds/index.js`,
+`connectors/alloy/sync-cookie-cache.js`, `rig/` and the pinned bundle; `bootAlloy` and `replayFixture(` across
+`test/` and `rig/`. No existing way to make a replay page stock-only.
 
-**Relevant history inspected:** `git log -S getTld` on the adapter and rig; `probeApexDomain` untouched by the fold.
+**Relevant history inspected:** `git log -S getTld` and `git log -S bootAlloy -- rig/`; the fold changed no apex
+probe code, so the window opened only because boot timing shifted.
 
-**Affected call sites:** every `replayFixture` page (all arms); the b5 and b4 stock-arm compares are the ones that read it.
+**Affected call sites:** every `replayFixture` stock arm in `test/adobe-b5-martech.test.js`,
+`test/adobe-b4-personalization.test.js`, `test/adobe-h1-host-command.test.js`,
+`test/adobe-069-01-handle-results-chromium.test.js` and `test/adobe-storage-grant.test.js`.
 
-**Reuse decision:** extend the shared `PAGE_SCRIPT` in `rig/adobe-b1-replay.mjs`, no per-test change.
-
-<!-- Spec 091 / ADR-0037: pre-fix repository closure. Standard & gnarly
-     bugs gate ROOT_CAUSED -> FIXING on substantive answers below. This
-     is an effort-and-protocol standard, NOT a completeness proof: show
-     the search you actually ran. A bare "none found" fails; record
-     residual uncertainty as an assumption WITH the protocol behind it,
-     applying the same enumeration standard as `## Root cause` (ADR-0052).
-     Prefer a configured semantic index; the portable floor is targeted
-     search + `git log`/`git blame`. -->
-
-**Equivalent / convergent logic searched:**
-
-**Relevant history inspected:**
-
-**Affected call sites:**
-
-**Reuse decision:**
+**Reuse decision:** extend `replayFixture` with one option rather than a per-test page; the first attempt (a
+`document.cookie` filter keyed on the stack name `reconcile`, e02d67f4) was dropped because it depended on a
+bundle-time function name, removed the production mirror write from library arms, and left the stock arm running a chamber.
 
 ## Fix class
 
@@ -98,35 +85,67 @@ guardrail (test harness)
 
 ## Fix
 
-`PAGE_SCRIPT` wraps the `document.cookie` setter and drops a write whose name is the Alloy probe cookie and whose stack passes through `reconcile` (the chamber's mirror). Every other write, including the tag's own probe, goes through. No oracle comparison, library code or production code changes.
+`replayFixture` takes `boot` (default `true`). `boot: false` serves a pure stock page: no adapter script, no
+`bootAlloy`, no Worker, no chamber, no recorded steps. Every stock arm passes it; library arms are unchanged. It
+throws if combined with `commands` or a non-null `event`. No oracle comparison, library code or production code changes.
 
 ## Call-site closure
 
-**Disposition per affected site:** all `replayFixture` pages: changed once, centrally. The b5 and b4 compares: unchanged. `core/`, adapters and connectors: left alone (no production change).
-
-<!-- Spec 091 / ADR-0037: before REVIEWED, account for every site named
-     in the inventory above as changed, tested, or intentionally left
-     alone. Accounting, not mandatory widening. -->
-
-**Disposition per affected site:**
+**Disposition per affected site:** b5 stock arms (064-21 `run`, `runStock`, `flow`, `arm`, 069-05, AC10),
+b4 stock arms (including the 064-24 redirect), h1, 069-01 and storage-grant stock arms: changed to `boot: false`.
+`reload` in storage-grant no longer waits for a chamber on the stock arm. b1, b2, b3, b6 and parity tests have no
+live stock arm: left alone. `core/`, adapters and connectors: left alone.
 
 ## Already tried
 
-Diagnostic prints in the b5 compare and the rig (scratch branch, deleted); a bisect was skipped because failures were time-clustered, not code-clustered.
+- A bisect: skipped, failures were time-clustered, not code-clustered.
+- Pre-fix controls on scratch refs at 7fb8fae7 were green in two windows, so the CI red is window-dependent.
+- First fix e02d67f4 (cookie-setter filter in the shared page script): replaced, see Reuse decision.
 
 ## Regression test
 
-`test/adobe-b5-martech.test.js`: "bug 006: the rig keeps the chamber's mirrored probe cookie out of a stock tag's reach". Fails without the rig change (revert-checked locally: `expected true to be false`), passes with it. The original CI symptom does not reproduce locally, so the CI sample below is the proof for the real compare.
+`test/adobe-b5-martech.test.js`, "bug 006: a stock arm is a pure stock page (real Chromium)": a `boot: false` page
+has no `__worker`, no `AirlockEds` and requests neither `/rig/chamber.js` nor `/rig/airlock-eds.js`; the default
+page boots one (positive control). Revert-checked locally against the old rig: fails with
+`expected 'object' to be 'undefined'`. The CI symptom does not reproduce locally, so this test is a structural
+guard and the CI sample below is the proof for the compares.
 
 ## Proof
 
+Fix head sample (fb1ee84f; the shipped head c803c513 differs only by review polish: dead stock `bootOptions`
+removed, a `boot:false` guard, a positive control in the test), six scratch refs, same window as a control at
+7fb8fae7:
+
+- Fix runs 45286852280, 45286863429, 45286872434, 45286877442: fully green.
+- Fix runs 45286858919 and 45286870684: red only on the 069-05 AC1/AC4 order diff (`:450`, `:481`), bug 007's. The
+  `meta.state.domain` compares (b5 S10 k=0..3, AC6, b4 064-24 redirect) were green in all six, so 6 of 6.
+- Control 45286882819 (7fb8fae7, no fix): green in this window, so it neither confirms nor refutes the pre-fix
+  rate. Earlier pre-fix reds: 45234396848 attempt 1 and 45238356339 attempts 1 and 3, plus the diagnostic runs above.
+- First fix e02d67f4: 5 runs, 45282879295, 45282898307, 45282902969, 45282909765, 45282914321, no domain mismatch.
+
+The strict "5 consecutive green job attempts" bar is not met because bug 007 keeps the job red about 1 in 3; the
+006 assertions themselves were green in every attempt on the fix head.
+
+## Carried findings
+
+- **Chamber mirror visible in the page jar** (low). The chamber's `reconcile` makes Alloy's transient
+  `com.adobe.alloy.getTld` probe cookie visible in the real page jar for about 15 ms; stock writes and removes it
+  within one synchronous task, so no other script sees it. Owner: coordinator 23, to be decided as overflow slice 064-35. Not fixed here.
+- **One unattributed local mismatch** (low). Once, in a run of five suites at fb1ee84f plus the review polish, the
+  069-03 "AC1 (boot path)" compare printed `meta.state.domain` differing; 16 further local runs (some under CPU
+  load) and 6 CI runs did not repeat it, and which side differed is unknown. The compare now prints both domains on
+  a mismatch. Owner: coordinator 23.
+- **`boot` is opt-in** (low, bug-review). A new stock arm that forgets `boot: false` brings the race back. Owner: coordinator 23, with 064-35.
+
 ## Learning
 
-## Proof (status: fix landed, review and 5-green proof outstanding)
+Recorded in `docs/memory/learnings.md`: "A stock arm must be a pure stock page".
 
-Pre-fix: the `meta.state.domain` mismatch was red in about 3 of 4 attempts during its windows (runs listed under Evidence).
-Fix head e02d67f4, 5 scratch runs (45282879295, 45282898307, 45282902969, 45282909765, 45282914321): the domain
-mismatch appeared in 0 of 5. Runs 45282879295 and 45282909765 were red only on the 069-05 AC1/AC4 order diff
-([bug 007](007-martech-event-order-vs-stock.md)), the other three were fully green. The "5 consecutive green" bar
-is not met because bug 007 (owner: coordinator 23) keeps the job red about 2 in 5. The bug-review and craft passes
-have not been run (stop rule reached), so this record stays at FIXING.
+## Main recheck
+
+- 2026-11-23 - `origin/main@67daba40` -> reproduces: The stock arm shares its page with a booted chamber on main and on vendor-adobe (rig/adobe-b1-replay.mjs boots one on every page); the symptom is CI-only and was captured by the tracer run 45278072531 attempt 2 on vendor-adobe. Main carries the same rig.
+- 2026-11-23 - `origin/main@67daba40` -> reproduces: The Adobe replay rig and the b5/b4 oracle tests exist only on vendor-adobe (rig/adobe-b1-replay.mjs is absent from origin/main), so the repro cannot run on main; the bug lives on vendor-adobe at 7fb8fae7 (CI runs 45234396848 attempt 1, 45238356339 attempts 1 and 3, tracer run 45278072531 attempt 2). Landing on vendor-adobe only is correct: no core/ change.
+
+## Reviews
+
+`docs/bugs/reviews/bug-006-bug-review.md` (approved, round 1) and `docs/bugs/reviews/bug-006-craft.md` (round 3 approved after fixes in c803c513 and 86df6daa). No security pass: test and rig only.

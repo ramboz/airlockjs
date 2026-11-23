@@ -78,3 +78,6 @@ Owner approval2026-10-12/ADR0039 makes actual final stock/chamber serialized dis
 
 ## Deferred capability calls need a fresh consent check
 A consent read before a Promise continuation is not authorization for the later capability invocation. Reapply the existing purpose and personalization policy inside the callback, including after injected diagnostics that can revoke consent. Count actual capability invocations, keep held requests settled without replay, and distinguish already-issued work. This host-side check cannot authorize final wire inside a separately asynchronous downstream transport. See `test/wrapped-sdk-host.test.js` and `core/wrapped-sdk-host.js`.
+
+## A stock arm must be a pure stock page
+A compare arm that is meant to be stock Alloy must load no adapter, construct no Worker and request no chamber. Booting a chamber on the stock page lets its mirrored writes (the transient `com.adobe.alloy.getTld` probe cookie, visible for about 15 ms) race stock Alloy's own apex probe, which then returns an empty domain only on loaded runners. Use `replayFixture` with `boot: false` for every stock arm; filtering the chamber's writes in the page keeps the contamination and changes what the library arms exercise. See `rig/adobe-b1-replay.mjs` and bug 006.
