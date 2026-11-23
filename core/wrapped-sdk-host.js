@@ -800,13 +800,11 @@ export function createWrappedSdkHost({
      * @param {readonly unknown[]|null} [values]
      */
     expectOptOutConsent(values) {
-      let copy = [];
       try {
-        copy = Array.isArray(values) ? structuredClone(values) : [];
+        optOutExpected = Array.isArray(values) ? structuredClone(values) : [];
       } catch {
-        copy = [];
+        optOutExpected = [];
       }
-      optOutExpected = copy;
     },
     /** Teardown: parked requests have no later consent decision to flush to, so they are dropped. */
     dispose() {
