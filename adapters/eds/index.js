@@ -2376,7 +2376,7 @@ export async function bootAlloy(opts = {}) {
     // Gated on `consentRef`: only a `consentHold: false` boot with no consent vector has none,
     // leaves the gate off and posts NO chamber message.
     setConsent: (v) => {
-      pageConsentObject = null;
+      if (v) pageConsentObject = null; // applyVector ignores a falsy vector, so the registration stays as it was
       applyVector(v);
     },
     // 064-30 (ADR-0064): the page's Adobe 2.0 object. ONE synchronous call: post the object to the chamber first

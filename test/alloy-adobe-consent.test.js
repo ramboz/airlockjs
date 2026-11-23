@@ -281,6 +281,26 @@ describe("064-33: the opt-out forward carries only the consent the adapter regis
     expect(forwarded().map((b) => b.consent)).toEqual([VECTOR_REFUSAL]);
   });
 
+  it("an object the chamber never received (postMessage throws) is not registered", async () => {
+    const { handle, worker } = await boot();
+    const orig = worker.postMessage.bind(worker);
+    worker.postMessage = (m) => { if (m.type === "adobeConsent") throw new Error("gone"); orig(m); };
+    handle.setAdobeConsent([REFUSAL]);
+    send(worker, "t1", [REFUSAL]);
+    send(worker, "t2", VECTOR_REFUSAL);
+    await tick(60);
+    expect(forwarded().map((b) => b.consent)).toEqual([VECTOR_REFUSAL]);
+  });
+
+  it("a falsy handle.setConsent leaves the registration and the page object as they were", async () => {
+    const { handle, worker } = await boot();
+    handle.setAdobeConsent([REFUSAL]);
+    handle.setConsent(null);
+    send(worker, "n1", [REFUSAL]);
+    await tick(60);
+    expect(forwarded().map((b) => b.consent)).toEqual([[REFUSAL]]);
+  });
+
   it("a later handle.setConsent drops the page object from the registration", async () => {
     const { handle, worker } = await boot();
     handle.setAdobeConsent([REFUSAL]);
