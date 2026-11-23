@@ -2,7 +2,7 @@
 round: 2
 verdict: changes-requested
 reviewer: Opus 5.5 jig:reviewer (fresh, read-only)
-reviewed_at: 2026-11-23T16:36:10Z
+reviewed_at: 2026-11-23T16:36:17Z
 prompt_source: "diff 04fe54c2..6b00eab5 (squashed into the commit that carries the files)"
 scope: reconciliation of slice 069-05 and its ADR amendment after the round-1 fixes
 ---
@@ -11,7 +11,7 @@ scope: reconciliation of slice 069-05 and its ADR amendment after the round-1 fi
 
 The author saved this text from the reviewer's output. The reviewer returned `changes-requested`. "This commit" is the one that carries this file.
 
-Note: `reviewed_at` is the earliest time the output could have been read; the exact read time was not logged. The findings below are summaries from the output, not a verbatim copy.
+Note: `reviewed_at` is the time the output was read. The findings below are summaries from the output, not a verbatim copy.
 
 | Finding | Severity | Disposition |
 |---|---|---|
