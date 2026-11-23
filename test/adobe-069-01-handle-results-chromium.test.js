@@ -160,7 +160,7 @@ describe.runIf(real)("069-01 the handle vs pinned stock Alloy 2.31.1 (real Chrom
     expect(posts(s)).toHaveLength(1);
   }, T);
 
-  it("AC4 (finding): stock 2.31.1 rejects { viewName } alone (its validator needs propositions) and renders nothing; the handle renders the cached view", async () => {
+  it("AC4 (finding): stock 2.31.1 rejects { viewName } alone (its validator needs propositions) and renders nothing, and so does the wrapper; the handle renders the cached view", async () => {
     const s = await stock(browser, answer(PAYLOAD), async (page) => {
       await stockSetup(page);
       await stockCall(page, "sendEvent", { renderDecisions: false, xdm: PV });
@@ -175,6 +175,15 @@ describe.runIf(real)("069-01 the handle vs pinned stock Alloy 2.31.1 (real Chrom
     expect(o.results.run.res.ok.propositions.map((p) => [p.id, p.renderAttempted])).toEqual([["v-cart", true]]);
     expect(posts(o)).toHaveLength(1);
     expect((await ours(browser, answer(PAYLOAD), (page) => handleCall(page, "(h) => h.applyPropositions({ viewName: 'nowhere' })"))).results.run).toEqual({ ok: { propositions: [] } });
+    const w = await ours(browser, answer(PAYLOAD), async (page) => {
+      await handleCall(page, "(h, x) => h.sendEvent(x)", { renderDecisions: false, xdm: PV });
+      return page.evaluate(async () => {
+        const alloy = globalThis.AirlockEds.createAlloyCommandBridge(window.__handle, { onDiagnostic: () => {} });
+        return { res: await alloy("applyPropositions", { viewName: "cart" }), dom: document.getElementById("z").innerHTML };
+      });
+    });
+    expect(w.results.run).toEqual(s.results.run.res ? { res: s.results.run.res.ok, dom: "orig" } : null);
+    expect(posts(w)).toHaveLength(1);
   }, T);
 
   it("AC5: setAdobeConsent settles with Alloy's own outcome (resolve, and the rejection message on a failed set-consent)", async () => {

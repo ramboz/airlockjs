@@ -429,6 +429,18 @@ describe("069-01 AC2/AC3: the shared onBeforeEventSend helper", () => {
     expect(diags).toEqual([expect.objectContaining({ kind: "hook-threw", option: "onBeforeEventSend", reason: expect.stringContaining("boom") })]);
   });
 
+  it("the wrapper's applyPropositions matches stock: no non-empty propositions renders nothing and never reaches the handle; the combined form forwards", async () => {
+    const handle = { push: vi.fn(), sendEvent: vi.fn(), setConsent: vi.fn(), applyPropositions: vi.fn(() => Promise.resolve({ propositions: ["h"] })), command: vi.fn() };
+    const alloy = createAlloyCommandBridge(handle);
+    for (const bare of [{ viewName: "home" }, { propositions: [], viewName: "home" }, {}, undefined]) {
+      expect(await alloy("applyPropositions", bare)).toEqual({ propositions: [] });
+    }
+    expect(handle.applyPropositions).not.toHaveBeenCalled();
+    const combined = { propositions: [{ id: "p" }], viewName: "home" };
+    expect(await alloy("applyPropositions", combined)).toEqual({ propositions: ["h"] });
+    expect(handle.applyPropositions).toHaveBeenCalledWith(combined);
+  });
+
   it("the wrapper sends the event with the hook's edits and drops a throwing hook's event", async () => {
     const handle = { push: vi.fn(), sendEvent: vi.fn(() => Promise.resolve({ propositions: [1], decisions: [] })), setConsent: vi.fn(), applyPropositions: vi.fn(), command: vi.fn() };
     const diags = [];

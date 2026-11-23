@@ -480,7 +480,8 @@ export function createMartech(handle, opts = {}) {
   async function applyPersonalization(viewName) {
     assertInitialized("applyPersonalization");
     if (!viewName) throw new Error("The `viewName` parameter needs to be defined");
-    return whenReady(() => alloy("applyPropositions", { viewName }));
+    // The handle directly: the stock-shaped wrapper would match stock and render nothing for the bare form.
+    return whenReady(() => theHandle.applyPropositions({ viewName }));
   }
 
   async function martechEager() {

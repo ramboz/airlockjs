@@ -351,8 +351,8 @@ describe("spec 064-21: the alloy command wrapper (hermetic)", () => {
     await alloy("setConsent", { consent: [{ standard: "Adobe", version: "2.0", value: { collect: { val: "y" }, personalize: { content: { val: "n" } }, marketing: { any: { val: "n" } } } }] });
     expect(h.setConsent).toHaveBeenCalledWith({ analytics_storage: "granted", personalization: "denied" });
     expect(consentToVector([{ standard: "IAB TCF", value: {} }])).toBeNull();
-    await alloy("applyPropositions", { propositions: [] });
-    expect(h.applyPropositions).toHaveBeenCalledWith({ propositions: [] });
+    await alloy("applyPropositions", { propositions: [{ id: "p" }] });
+    expect(h.applyPropositions).toHaveBeenCalledWith({ propositions: [{ id: "p" }] });
     await expect(alloy("getLibraryInfo", {})).resolves.toBe("cmd");
     expect(h.command).toHaveBeenCalledWith("getLibraryInfo", {});
   });
@@ -393,7 +393,7 @@ describe("spec 064-21: the alloy command wrapper (hermetic)", () => {
       await alloy("configure", {});
       await alloy("sendEvent", { xdm: {} });
       await alloy("setConsent", { consent: [{ standard: "Adobe", version: "2.0", value: { collect: { val: "y" } } }] });
-      await alloy("applyPropositions", { propositions: [] });
+      await alloy("applyPropositions", { propositions: [{ id: "p" }] });
       await alloy("getLibraryInfo", {});
       expect(globalThis.alloy).toBe(sentinel);
       expect(sentinel.q).toHaveLength(1);

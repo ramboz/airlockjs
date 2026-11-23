@@ -2,7 +2,7 @@
 round: 2
 verdict: approved
 reviewer: Opus 5.5 jig:reviewer (fresh, read-only)
-reviewed_at: 2026-11-22T17:49:00Z
+reviewed_at: 2026-11-22T17:47:45Z
 prompt_source: "the whole slice diff 2dcd83fa..70d36df2 and the round-1 fix diff 7032a6a3..70d36df2, read from disk by the reviewer; the review files are pushed in the commit that carries them (squashed into it)"
 scope: spec compliance of slice 069-01 (handle results, hook helper, chamber consent outcome) against its acceptance criteria and ADR-0065
 ---

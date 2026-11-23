@@ -12,7 +12,9 @@
 //   setConsent        -> handle.setAdobeConsent (the page's Adobe 2.0 object; the handle derives the seal's vector from it,
 //                        ADR-0064), else handle.setConsent(vector) on a handle that has no such method
 //   configure         -> boot options are fixed at `bootAlloy`; only `onBeforeEventSend` is taken from it
-//   applyPropositions -> handle.applyPropositions
+//   applyPropositions -> handle.applyPropositions when `propositions` is a non-empty array (with or without `viewName`);
+//                        otherwise nothing is rendered or sent and it resolves `{ propositions: [] }`, as stock 2.31.1 does for
+//                        the bare `{ viewName }` (the handle and the library render that cached view; the wrapper matches stock)
 //   anything else     -> handle.command   (it rejects a name outside the allowlist with a plain Error)
 
 import { plainDataProblem } from "../../connectors/alloy/host-commands.js";
@@ -134,7 +136,9 @@ export function createAlloyCommandBridge(handle, opts = {}) {
       case "configure": return configure(options);
       case "sendEvent": return sendEvent(options);
       case "setConsent": return setConsent(options);
-      case "applyPropositions": return handle.applyPropositions(options);
+      case "applyPropositions":
+        if (!options || !Array.isArray(options.propositions) || options.propositions.length === 0) return Promise.resolve({ propositions: [] });
+        return handle.applyPropositions(options);
       default: return handle.command(command, options);
     }
   };
