@@ -182,7 +182,7 @@ describe.runIf(real)("069-01 the handle vs pinned stock Alloy 2.31.1 (real Chrom
         return { res: await alloy("applyPropositions", { viewName: "cart" }), dom: document.getElementById("z").innerHTML };
       });
     });
-    expect(w.results.run).toEqual(s.results.run.res ? { res: s.results.run.res.ok, dom: "orig" } : null);
+    expect(w.results.run).toEqual({ res: s.results.run.res.ok, dom: "orig" });
     expect(posts(w)).toHaveLength(1);
   }, T);
 
