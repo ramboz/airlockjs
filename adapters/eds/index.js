@@ -2038,7 +2038,10 @@ export async function bootAlloy(opts = {}) {
   const storageSeed = storageGrant.active ? scopeSeedStorage(pageStorage(), storageGrant.areas) : null;
   // 068-03: the consent value Alloy's refusal request carries on the wire, registered so the
   // host forwards an opt-out only when it matches (re-registered on every setConsent below).
-  const registerOptOutConsent = () => host.expectOptOutConsent(consentRef ? [shapeAlloyConsent(consentRef).consent] : []);
+  // 064-33: while a page object is posted to the chamber, it is registered too (the vector-shaped consent
+  // stays registered for the chamber's one retry after Alloy rejects the object).
+  let pageConsentObject = null;
+  const registerOptOutConsent = () => host.expectOptOutConsent(consentRef ? [...(pageConsentObject ? [pageConsentObject] : []), shapeAlloyConsent(consentRef).consent] : []);
   registerOptOutConsent();
   const apex = probeApexDomain(resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).narrowed ? resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).names : null);
   host.init({ cookie: seedCookie, config, bundleUrl, consent: consentRef, ...(apex ? { apex } : {}), ...(storageSeed ? { storage: storageSeed } : {}) });
@@ -2372,7 +2375,10 @@ export async function bootAlloy(opts = {}) {
     //       defaultConsent:"pending" queue (grounded: rig/alloy-consent-pending.mjs).
     // Gated on `consentRef`: only a `consentHold: false` boot with no consent vector has none,
     // leaves the gate off and posts NO chamber message.
-    setConsent: applyVector,
+    setConsent: (v) => {
+      pageConsentObject = null;
+      applyVector(v);
+    },
     // 064-30 (ADR-0064): the page's Adobe 2.0 object. ONE synchronous call: post the object to the chamber first
     // (it waits there for the very next vector message), then apply the vector DERIVED FROM THE SAME OBJECT, which
     // updates the seam's ref and posts the vector message. The object is never a seal signal: only the vector is.
@@ -2407,6 +2413,7 @@ export async function bootAlloy(opts = {}) {
         warnDiagnostic({ level: "warn", kind: "consent-object-fallback", reason: `${r.reason}; the chamber drives Alloy's setConsent from the consent vector instead` });
         if (id !== null) { const o = consentOutcomes.get(id); consentOutcomes.delete(id); if (o) { clearTimeout(o.timer); o.resolve({}); } }
       }
+      pageConsentObject = sent ? r.consent : null;
       applyVector(r.vector);
       return outcome;
     },

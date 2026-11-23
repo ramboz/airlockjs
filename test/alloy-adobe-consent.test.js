@@ -222,6 +222,76 @@ describe("064-30 AC4: the full-object refusal still forwards (068-02 opt-out)", 
   });
 });
 
+// Slice 064-33 (ADR-0062 amendment, 068-03): the opt-out forward carries only a `consent` the adapter registered.
+// HERMETIC (fake Worker, mocked fetch); there is no real-Chromium test in this slice.
+describe("064-33: the opt-out forward carries only the consent the adapter registered", () => {
+  const SET_CONSENT = `https://adobedc.demdex.net/ee/v1/privacy/set-consent?configId=${DS}`;
+  const VECTOR_REFUSAL = [{ standard: "Adobe", version: "2.0", value: { collect: { val: "n" } } }];
+  const DENIED = { analytics_storage: "denied", personalization: "denied" };
+  const wire = (consent) => JSON.stringify({ consent, query: { identity: { fetch: ["ECID"] } }, meta: { state: { domain: "site.example" } } });
+  const send = (worker, id, consent) => worker.emit({ type: "intercepted-fetch", id, url: SET_CONSENT, method: "POST", headers: {}, body: wire(consent) });
+  const forwarded = () => fetchMock.mock.calls.filter((c) => String(c[0]).includes("/privacy/set-consent")).map((c) => JSON.parse(c[1].body));
+
+  it("a boot-time denial forwards the vector-shaped refusal, and a tampered one is held", async () => {
+    const { worker } = await boot({ consent: { ...DENIED } });
+    send(worker, "b1", VECTOR_REFUSAL);
+    send(worker, "b2", [{ ...VECTOR_REFUSAL[0], extra: "data" }]);
+    await tick(60);
+    const sent = forwarded();
+    expect(sent).toHaveLength(1);
+    expect(sent[0].consent).toEqual(VECTOR_REFUSAL);
+    expect(Object.keys(sent[0]).sort()).toEqual(["consent", "meta"]);
+  });
+
+  it("a direct handle.setConsent denial forwards the vector refusal and holds a tampered one", async () => {
+    const { handle, worker } = await boot({ consent: { analytics_storage: "granted", personalization: "granted" } });
+    handle.setConsent({ ...DENIED });
+    send(worker, "d1", [{ ...VECTOR_REFUSAL[0], version: "9.9" }]);
+    send(worker, "d2", VECTOR_REFUSAL);
+    await tick(60);
+    expect(forwarded().map((b) => b.consent)).toEqual([VECTOR_REFUSAL]);
+  });
+
+  it("the page's object forwards on the object path and a tampered object is held", async () => {
+    const { handle, worker } = await boot();
+    handle.setAdobeConsent([REFUSAL]);
+    const tampered = adobe({ collect: { val: "n" }, personalize: { content: { val: "n" } }, share: { val: "y" } });
+    send(worker, "o1", [tampered]);
+    send(worker, "o2", [REFUSAL]);
+    await tick(60);
+    expect(forwarded().map((b) => b.consent)).toEqual([[REFUSAL]]);
+  });
+
+  it("the chamber's one retry with the vector-shaped consent still forwards after the object path", async () => {
+    const { handle, worker } = await boot();
+    handle.setAdobeConsent([REFUSAL]);
+    send(worker, "r1", [REFUSAL]);
+    send(worker, "r2", VECTOR_REFUSAL);
+    await tick(60);
+    expect(forwarded().map((b) => b.consent)).toEqual([[REFUSAL], VECTOR_REFUSAL]);
+  });
+
+  it("the 064-30 fallback registers the vector, not the unreadable object", async () => {
+    const { handle, worker } = await boot();
+    const unreadable = [adobe({ collect: { val: "n" } }, "1.0")];
+    handle.setAdobeConsent(unreadable);
+    send(worker, "f1", unreadable);
+    send(worker, "f2", VECTOR_REFUSAL);
+    await tick(60);
+    expect(forwarded().map((b) => b.consent)).toEqual([VECTOR_REFUSAL]);
+  });
+
+  it("a later handle.setConsent drops the page object from the registration", async () => {
+    const { handle, worker } = await boot();
+    handle.setAdobeConsent([REFUSAL]);
+    handle.setConsent({ ...DENIED });
+    send(worker, "s1", [REFUSAL]);
+    send(worker, "s2", VECTOR_REFUSAL);
+    await tick(60);
+    expect(forwarded().map((b) => b.consent)).toEqual([VECTOR_REFUSAL]);
+  });
+});
+
 describe("064-30 AC3: the thirdPartyCookiesEnabled boot option", () => {
   it("reaches the chamber config unchanged and only when given", async () => {
     for (const value of [true, false]) {
