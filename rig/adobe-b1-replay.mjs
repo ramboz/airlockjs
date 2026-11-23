@@ -57,7 +57,7 @@ export function buildArtifacts() {
   return built;
 }
 
-export const PAGE_SCRIPT = `
+const PAGE_SCRIPT = `
 window.__diag = [];
 for (const level of ["warn", "error"]) {
   const native = console[level].bind(console);
@@ -87,7 +87,7 @@ window.__command = (command, options) => new Promise((resolve) => {
 });
 `;
 
-// Bug 006: `boot: false` is a pure stock page: no adapter script and no chamber, so nothing but the stock tag touches the page.
+// Bug 006: `boot: false` is a pure stock page: no adapter script and no chamber, so the page runs only the rig's observers and the stock tag.
 const pageHtml = (bootOptions, title, bodyHtml = "", headHtml = "", boot = true) => boot
   ? `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>${headHtml}
 <script src="/rig/airlock-eds.js"></script><script>${PAGE_SCRIPT}</script></head><body>${bodyHtml}
@@ -108,7 +108,7 @@ const interactResponses = (fixture) => fixture.requests.filter((r) => r.method =
  *   `event: null` skips the default page-view push; `run(page)` drives a scenario of its own (064-19) and its value lands in `results.run`.
  *   064-20: `bodyHtml` / `headHtml` seed the replay page (a placement box, a link to click, a prehiding target).
  *   064-21: `serve` maps a page-origin path to the JavaScript text served there (the pinned `aem-martech` files and the bridge shim).
- *   Bug 006: `boot: false` makes the page a pure stock page (no adapter, no chamber, no Worker); use it for every stock arm.
+ *   Bug 006: `boot: false` makes the page a pure stock page (no adapter, no chamber); use it for every stock arm. It cannot take `commands` or `event`.
  *   `bootOptions` is merged into the bootAlloy options (a site opt-in such as a reduced `context`).
  *   064-26: `skipSteps` leaves the recorded getIdentity / appendIdentityToUrl steps to `run(page)`, which drives them through `handle.command`.
  *   064-18: `extraHosts` are further vendor hosts answered from the fixture (a first-party edge domain);
@@ -117,6 +117,7 @@ const interactResponses = (fixture) => fixture.requests.filter((r) => r.method =
 export async function replayFixture(browser, name, { bootOptions = {}, title = "airlock064-page", seed = true, event = PAGE_VIEW, commands = [], extraHosts = [], respond = null, extraCookies = [], run = null, bodyHtml = "", headHtml = "", skipSteps = false, serve = {}, boot = true } = {}) {
   // 064-22: a caller may pass a synthetic fixture object instead of a recorded file stem.
   const fixture = typeof name === "object" ? name : await loadFixture(name);
+  if (!boot && (commands.length || event)) throw new Error("replayFixture: boot:false has no chamber, so it cannot take `commands` or a non-null `event`");
   const { manifest, capture } = fixture;
   const input = manifest.input_state;
   const pageUrl = new URL(input.url);

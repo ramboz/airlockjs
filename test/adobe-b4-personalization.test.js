@@ -479,7 +479,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
   describe("AC2 click collection and notifications vs pinned stock Alloy 2.31.1 (SYNTHETIC page, no capture)", () => {
     const LINKS = '<div id="box"><a id="ext" href="https://destination.example/landing" onclick="return false"><span id="inner">Go there</span></a><a id="dl" href="/files/report.pdf" onclick="return false">Report</a><a id="inl" href="/other" onclick="return false">Other</a></div>';
     const click = async (browser, selector) => {
-      const stock = await replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: LINKS, bootOptions: { clickCollectionEnabled: false }, respond: synthetic([]), run: async (page) => { await runStock(page, { xdm: PV_XDM }); await page.click(selector); await page.waitForTimeout(800); } });
+      const stock = await replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: LINKS, respond: synthetic([]), run: async (page) => { await runStock(page, { xdm: PV_XDM }); await page.click(selector); await page.waitForTimeout(800); } });
       const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml: LINKS, respond: synthetic([]), run: async (page) => { await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x }), PV_XDM); await page.waitForTimeout(600); await page.click(selector); await page.waitForTimeout(1000); } });
       const last = (r) => r.network.filter((n) => n.method === "POST").map((n) => n.body).filter((b) => /linkClicks/.test(b || ""));
       return { stock: last(stock), ours: last(ours) };
@@ -508,7 +508,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     /** Stock and airlock on `payload`: a push `xdm`, then `after` (a click). Returns every edge POST body in order, meta stripped, and the page DOM. */
     const journey = async (browser, payload, { xdm = PV_XDM, click = "#cta", after, bootExtra = {}, stockConfig = {} } = {}) => {
       const act = async (page) => { if (after) await after(page); else if (click) await page.click(click); await page.waitForTimeout(1000); return page.evaluate(() => document.getElementById("box").outerHTML); };
-      const stock = await replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: LINKS, bootOptions: { clickCollectionEnabled: false }, respond: synthetic(payload), run: async (page) => { await runStock(page, { renderDecisions: true, xdm }, stockConfig); await page.waitForTimeout(700); return act(page); } });
+      const stock = await replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: LINKS, respond: synthetic(payload), run: async (page) => { await runStock(page, { renderDecisions: true, xdm }, stockConfig); await page.waitForTimeout(700); return act(page); } });
       const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + LINKS, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }], ...bootExtra }, respond: synthetic(payload), run: async (page) => { await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x }), xdm); await page.waitForTimeout(900); return act(page); } });
       const bodies = (r) => r.network.filter((n) => n.method === "POST").map((n) => noMeta(n.body));
       return { stock: bodies(stock), ours: bodies(ours), stockDom: stock.results.run, oursDom: ours.results.run };

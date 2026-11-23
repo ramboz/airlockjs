@@ -182,7 +182,7 @@ describe.runIf(real)("spec 069-03: the Airlock martech library in the S10 differ
   let serveStock;
   let serveLib;
   const runLib = (extra = {}, serve = serveLib) => replayFixture(browser, "s10-base", { event: null, skipSteps: true, serve, bootOptions: AIRLOCK_BOOT, run: (page) => journey(page, { useHandle: true, ...extra }) });
-  const runStock = (extra = {}) => replayFixture(browser, "s10-base", { event: null, skipSteps: true, serve: serveStock, bootOptions: {}, boot: false, run: (page) => journey(page, extra) });
+  const runStock = (extra = {}) => replayFixture(browser, "s10-base", { event: null, skipSteps: true, serve: serveStock, boot: false, run: (page) => journey(page, extra) });
   beforeAll(async () => {
     browser = await chromium.launch();
     const [index, acdl, alloy, library] = await Promise.all([ensureMartechAsset("index.js"), ensureMartechAsset("acdl.min.js"), ensureAlloyBundle(), buildMartechLibrary()]);
@@ -235,7 +235,7 @@ describe.runIf(real)("spec 069-03: the Airlock martech library in the S10 differ
     const a = posts(l.network);
     const b = posts(s.network);
     expect(a.map(pathOf)).toEqual(b.map(pathOf));
-    for (let k = 0; k < b.length; k += 1) expect(diffBodies(normalised(a[k].body), normalised(b[k].body))).toEqual([]);
+    for (let k = 0; k < b.length; k += 1) { const d = diffBodies(normalised(a[k].body), normalised(b[k].body)); if (d.length) console.log("compare mismatch (bug 006 watch): post", k, "meta.state.domain", JSON.stringify({ lib: JSON.parse(a[k].body).meta?.state?.domain, stock: JSON.parse(b[k].body).meta?.state?.domain })); expect(d).toEqual([]); }
     return b.length;
   };
   for (const [name, extra] of [["default path (martechEager page view, martechLazy none, martechDelayed)", {}], ["trackPageView:false (no offer, so no display event)", { trackPageView: false }], ["performanceOptimized:false (the __view__ fetch, body hidden then restored)", { performanceOptimized: false }]]) {
@@ -747,6 +747,7 @@ describe.runIf(real)("bug 006: a stock arm is a pure stock page (real Chromium)"
       expect(stock.results.run.resources).not.toContain("/rig/airlock-eds.js");
       const booted = await replayFixture(browser, "s10-base", { event: null, skipSteps: true, run: probe });
       expect(booted.results.run.worker).toBe("object");
+      expect(booted.results.run.resources).toContain("/rig/airlock-eds.js");
     } finally { await browser.close(); }
   });
 });
