@@ -107,7 +107,7 @@ const interactResponses = (fixture) => fixture.requests.filter((r) => r.method =
  *   `bootOptions` is merged into the bootAlloy options (a site opt-in such as a reduced `context`).
  *   064-26: `skipSteps` leaves the recorded getIdentity / appendIdentityToUrl steps to `run(page)`, which drives them through `handle.command`.
  *   064-18: `extraHosts` are further vendor hosts answered from the fixture (a first-party edge domain);
- *   `respond(request, index)` may return `{ status, headers, body }` to override the recorded answer.
+ *   `respond(request, index)` (may be async, 069-05) may return `{ status, headers, body }` to override the recorded answer.
  */
 export async function replayFixture(browser, name, { bootOptions = {}, title = "airlock064-page", seed = true, event = PAGE_VIEW, commands = [], extraHosts = [], respond = null, extraCookies = [], run = null, bodyHtml = "", headHtml = "", skipSteps = false, serve = {} } = {}) {
   // 064-22: a caller may pass a synthetic fixture object instead of a recorded file stem.
@@ -169,7 +169,7 @@ export async function replayFixture(browser, name, { bootOptions = {}, title = "
         network.push({ url: req.url(), method: req.method(), headers, body: req.postData() });
         const index = network.length - 1;
         const answer = recorded[index] || recorded[recorded.length - 1];
-        const override = respond ? respond(req, index) : null;
+        const override = respond ? await respond(req, index) : null;
         if (override === "abort" || (!override && answer && answer.failure)) return route.abort("blockedbyclient");
         if (override) return route.fulfill(override);
         // The recorded answer carries the CORS headers for the capture page origin and the edge
