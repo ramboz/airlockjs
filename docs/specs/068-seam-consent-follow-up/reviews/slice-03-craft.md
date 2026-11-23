@@ -4,7 +4,7 @@ pass: craft
 round: 3
 verdict: approved
 reviewer: claude-opus-5.5:jig:reviewer
-reviewed_at: 2026-11-23T17:46:00Z
+reviewed_at: 2026-11-23T17:44:30Z
 prompt_source: pushed commits 7a67a0b5..56cef833 (full diff in the prompt, plus the round-2 fix diff a09e7f47..56cef833); the author saved the reviewer's text
 ---
 
