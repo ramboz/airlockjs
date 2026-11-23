@@ -1,12 +1,12 @@
 ---
-status: READY_FOR_IMPLEMENTATION
+status: DONE
 dependencies: [064-21, 069-01, 069-02, 069-03, ADR-0065]
-last_verified: 2026-11-22
+last_verified: 2026-11-23
 ---
 
 ## Slice 064-31 — stock `alloy()` wrapper parity (identity list, `sendEvent` result, hook argument, configure diagnostics, `setConsent` promise)
 
-> **Re-scoped 2026-11-21 against [ADR-0065](../../decisions/adr-0065-airlock-martech-library.md).** The product path for `aem-martech` sites is the new Airlock martech library (spec 069), not this wrapper. The wrapper stays as a lower-level API and gets no new parity work of its own. Each AC below is kept, moved or dropped; the numbering is unchanged. Nothing is left for this slice to build: it closes as DONE-by-reference once ADR-0065 is Accepted and 069-01 and 069-03 are DONE (until then it is READY_FOR_IMPLEMENTATION with no work of its own).
+> **Re-scoped 2026-11-21 against [ADR-0065](../../decisions/adr-0065-airlock-martech-library.md).** The product path for `aem-martech` sites is the new Airlock martech library (spec 069), not this wrapper. The wrapper stays as a lower-level API and gets no new parity work of its own. Each AC below is kept, moved or dropped; the numbering is unchanged. Nothing is left for this slice to build: it closed as DONE by reference on 2026-11-23, once 069-01 and 069-03 (with 069-05's display-flow proofs) were DONE. Moved ACs: AC2, AC3, AC5 and AC8 to 069-01, AC6 and AC7 to 069-03. Dropped ACs: AC1 (closed by 064-30) and AC4 (moved to 064-30, ADR-0064). The slice built nothing of its own.
 
 **Goal:** A page written against stock `alloy(command, options)` (the `aem-martech` journey) sends the identity query it configured and gets back what stock's `sendEvent` resolves with.
 

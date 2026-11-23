@@ -26,6 +26,12 @@ Possible scenarios: per-run Target display/click goal deltas and duplicate attri
 Analytics commerce/session behavior; AJO campaign outcomes; CJA ingestion/connections/data
 views; RTCDP profile/audience/activation results. Scope each product independently.
 
+Display carried by the page view: with `trackPageView: true` and an offer, the Airlock
+martech library's page view carries the display and no separate `decisioning.propositionDisplay`
+follows, where stock sends one after the page view. Check that Target/A4T display and hit
+counts match stock's for the same offer. Owner decision on 069-05 AC8 (2026-11-23): "Accept:
+page view carries the display, log the reporting check as a follow-up (Recommended)".
+
 Before executing, choose supported observations and real configuration/permission scope,
 finite windows, operator availability, cost and cleanup. Prefer supported API methods where
 available; manual reports may supplement them without guessed endpoints, UI-key substitution,
