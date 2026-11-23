@@ -2010,6 +2010,24 @@ describe("createWrappedSdkHost — the opt-out forward checks the registered con
     expect(host.getState().consentHeld).toBe(1);
   });
 
+  it("a registration replaced between the first gate and the deferred recheck holds the request", async () => {
+    const chamber = makeFakeChamber();
+    const dispatched = [];
+    const caps = { egress: { dispatch: async (req) => { dispatched.push(req); return { status: 200, statusText: "OK", headers: {}, body: "{}" }; } } };
+    const other = [{ standard: "Adobe", version: "2.0", value: { collect: { val: "n" }, other: 1 } }];
+    let host;
+    host = createWrappedSdkHost({
+      chamber, caps, consent: { ...DENIED }, egressPurposes: ["analytics_storage", "personalization"], flushOnGrant: true, consentOptOut: OPT_OUT,
+      endpointCeiling: [INTERACT, "https://adobedc.demdex.net/ee/v1/privacy/set-consent"],
+      onDiagnostic: (d) => { if (d.disposition === "opt-out-forwarded") host.expectOptOutConsent([other]); },
+    });
+    host.expectOptOutConsent([CONSENT]);
+    chamber.emit({ type: "intercepted-fetch", id: 1, url: SET_CONSENT, method: "POST", headers: {}, body: body(CONSENT) });
+    await wait();
+    expect(dispatched).toHaveLength(0);
+    expect(chamber.posted.filter((x) => x.type === "intercepted-fetch-response").map((x) => x.statusText)).toEqual(["held at the seal: consent"]);
+  });
+
   it("holds a value whose type differs but still parses as a refusal", async () => {
     const reg = [{ standard: "Adobe", version: "2.0", value: { collect: { val: "n" } } }];
     const typed = [{ standard: "Adobe", version: 2, value: { collect: { val: "n" } } }];
