@@ -68,7 +68,7 @@ All tests below are hermetic (Vitest, fake chamber or mocked host); none is real
 **Revert-checks** (break, confirm red, restore): removing the compare (tampered tests fail), removing the no-park rule at the first gate and at the recheck (pending tests fail), removing the adapter registration (registration tests fail), `jsonEqual` order-insensitive (array-order test fails), `Object.is` replaced by `==` (type test fails), `structuredClone` replaced by `slice()` (deep-copy test fails).
 
 **Deviations from the AC text.**
-- AC2 reworded from "counts as held and parks (068-01)" to "rejected, never parked" for a refusal-shaped request (owner correction, 2026-11-23): a parked refusal could be sent after a grant. The pending-hold diagnostic reason for this case reads "opt-out request held at the seal and dropped, never sent after a later grant".
+- AC2 reworded from "counts as held and parks (068-01)" to "rejected, never parked" for a refusal-shaped request (coordinator review, 2026-11-23): a parked refusal could be sent after a grant. The pending-hold diagnostic reason for this case reads "opt-out request held at the seal and dropped, never sent after a later grant".
 - AC4: on main the endpoint ceiling is the interact floor, so set-consent cannot pass `bootAlloy` end to end. The forward and tamper-hold are proven at the host (AC1, AC2); the adapter-level end-to-end proof is owned by 064-33 on vendor-adobe. The CMP `onChange` path is covered by construction (it calls `handle.setConsent`), not by its own test.
 - With no consent input and the hold on, the adapter registers the wire `consent` for `collect:"n"` (`consentRef` is `{}`); harmless, since a forward needs an explicit denial. With `consentHold:false` and no vector it registers `[]` (clears), rather than "nothing".
 - A registration that cannot be deep-copied clears the registration (fail closed).
@@ -76,5 +76,7 @@ All tests below are hermetic (Vitest, fake chamber or mocked host); none is real
 **Accepted edges** (ADR-0062 amendment): a refusal that reaches the host after a grant has landed is sent as stock Alloy does; a request whose `collect:"n"` is outside the declared entry or whose URL varies from the declared suffix parks like any request; `meta` is unchecked; a forward later dropped at the recheck does not bump `consentHeld` (carried, see reviews).
 
 **Reviews.** Three rounds (cap) of fresh Opus 5.5 reviewers; round 3 approved on all three. Files in `reviews/slice-03-{compliance,craft,reconciliation}.md`.
+
+**Post-cap change.** 1ce4be50 (a lint fix, after round 3 at the cap) was not reviewed: it removes a useless assignment in `expectOptOutConsent` and is behaviour-identical, because `structuredClone` throws before the assignment. Full suite green.
 
 **Core change** (vendor-neutral, named in the ADR-0062 amendment): `core/wrapped-sdk-host.js` (`expectOptOutConsent`, deep equality, no-park for refusal-shaped requests on both gates).
