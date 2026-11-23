@@ -1,7 +1,7 @@
 ---
 status: Accepted
 dependencies: [ADR-0003, ADR-0006, ADR-0007, ADR-0012, ADR-0013, ADR-0023, ADR-0061]
-last_verified: 2026-11-13
+last_verified: 2026-11-23
 frame_review: true
 ---
 
@@ -16,6 +16,8 @@ Amended (2026-11-13, spec 067-11, owner decision D4): helix-rum RUM sits outside
 Amended (2026-11-20, spec 068-02, owner decision): after an explicit refusal, the seam forwards the connector's declared opt-out signal (Alloy: `privacy/set-consent` carrying `collect: "n"`, without `query.identity.fetch`) so the vendor records the refusal. Everything else stays held or dropped, and a pending state does not qualify. This is a narrow exemption to exception (a), not a new ADR. See "Amendment: opt-out forwarding (2026-11-20)".
 
 Clarified (2026-11-20, spec 068-01): point 4's "hold and flush on grant" is implemented at the Alloy seam as well. A pending seam hold keeps the request and sends it once on grant; a denial or teardown drops it. The shared wrapped-SDK host makes this an opt-in (`flushOnGrant`, default off): only the Alloy seam opts in. The Google wrapped-SDK seam keeps its pending-reject contract ("never replays on grant") and is a tracked follow-up on the Google track, not changed here.
+
+Amended (2026-11-23, spec 068-03, owner decision): the opt-out forward is checked (gap found by the ADR-0064 review, 2026-11-20; the owner decided the form). The forwarded request's `consent` must equal a value the adapter registered, otherwise the request is held. A refusal-shaped request held while consent is pending is dropped, never parked, so it cannot be sent after a later grant (this narrows the 068-01 clarification above for that one request). Owner answer to "Record the core rule as an ADR-0062 amendment note, or as a new ADR?": "ADR-0062 amendment note (Recommended)". See "Amendment: opt-out forward is checked (2026-11-23)".
 
 Amends and partially supersedes ADR-0003, ADR-0006 (projection and cookie/storage clauses), ADR-0012 (ambient-context boundary note) and ADR-0013 (minimization claims). The clauses are listed under Recommended Decision. Everything else in those ADRs stands.
 
@@ -64,6 +66,16 @@ Adopt Option B.
 **What it means.** After an explicit refusal (a governing purpose is `denied`, never merely pending), the shared seam forwards the one request the connector declares as its opt-out signal. For Alloy that is `privacy/set-consent` with `collect: "n"`; the forwarded body keeps only the declared keys, so the ECID `query.identity.fetch` that stock Alloy adds is removed. Adobe then records the refusal. Every other request stays held or dropped. The endpoint ceiling and config-integrity gates still apply.
 
 **Where it lives.** The Alloy-specific request shape is declared by the connector (`ALLOY_CONSENT_OPT_OUT`); `core/wrapped-sdk-host.js` only honours a declared signal and stays vendor-neutral. Implemented by spec 068-02.
+
+### Amendment: opt-out forward is checked (2026-11-23)
+
+**Decision (owner, 2026-11-23).** Asked whether to record the core rule as an amendment note or a new ADR, the owner chose: "ADR-0062 amendment note (Recommended)". The gap was found by the ADR-0064 review (2026-11-20): the 068-02 forward sent the chamber's `consent` and `meta` keys unchecked, so an untrusted chamber could put other data through the exemption.
+
+**What it means.** The adapter registers, through `host.expectOptOutConsent(values)`, the `consent` value(s) it expects on the wire. The host forwards a matching opt-out only when its `consent` deep-equals a registered value (object key order ignored, array order kept). Otherwise the request is held like any other. With no registration the opt-out is held. A refusal-shaped request held while consent is only pending is dropped, never parked, so it cannot be sent after a later grant. The registered value is opaque to core.
+
+**Remaining risk.** `meta` is still forwarded unchecked. It mirrors per-session cookie state, so there is no fixed value to register and a structural check would be Alloy-specific. A hostile chamber could put data into `meta` of a refusal that goes to the already-allowlisted Adobe endpoint; the ceiling and config-integrity gates still apply. Keeping `meta` follows the 2026-11-20 choice. Two edges stay: a refusal the host receives after a grant has already landed is sent as stock Alloy does (the grant set-consent follows, so Adobe's final state is granted), and a request whose `collect: "n"` sits outside the declared entry is not refusal-shaped, so it parks while pending like any request. Neither lets a request the connector declares as a refusal be sent later.
+
+**Where it lives.** `core/wrapped-sdk-host.js` (the compare and the method, vendor-neutral); the Alloy adapter registers the wire `consent` array from `shapeAlloyConsent(consent)`. Implemented by spec 068-03. The page's Adobe 2.0 object is registered on `vendor-adobe` (064-33).
 
 ## Existing decisions
 
