@@ -34,6 +34,7 @@
 import { createAirlock, MAX_HELD_BEACONS } from "../../core/airlock.js";
 import { createWrappedSdkHost } from "../../core/wrapped-sdk-host.js";
 import { ALLOY_CONSENT_OPT_OUT } from "../../connectors/alloy/connector.js";
+import { shapeAlloyConsent } from "../../connectors/alloy/consent.js";
 import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
 import { resolveOnetrustBootConsent, subscribeOnetrustConsentChanges } from "../../drivers/consent/onetrust.js";
@@ -1809,6 +1810,10 @@ export async function bootAlloy(opts = {}) {
   // that declares none posts the exact init message it always did.
   const storageGrant = resolveStorageGrant(ALLOY_STORAGE_NAMES, storageGrantNarrowing);
   const storageSeed = storageGrant.active ? scopeSeedStorage(pageStorage(), storageGrant.areas) : null;
+  // 068-03: the consent value Alloy's refusal request carries on the wire, registered so the
+  // host forwards an opt-out only when it matches (re-registered on every setConsent below).
+  const registerOptOutConsent = () => host.expectOptOutConsent(consentRef ? [shapeAlloyConsent(consentRef).consent] : []);
+  registerOptOutConsent();
   host.init({ cookie: seedCookie, config, bundleUrl, consent: consentRef, ...(storageSeed ? { storage: storageSeed } : {}) });
 
   // Serialize push/pushCritical through the single-slot driveEvent: events run one at a time
@@ -1894,6 +1899,7 @@ export async function bootAlloy(opts = {}) {
       if (!consentRef || !v) return;
       consentInputWired = true;
       Object.assign(consentRef, v); // (a) seam live ref
+      registerOptOutConsent();
       host.setConsent(consentRef); // (b) chamber alloy setConsent -> native flush
     },
     getState: () => host.getState(),
