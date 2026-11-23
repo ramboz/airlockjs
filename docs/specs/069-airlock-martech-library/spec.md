@@ -38,7 +38,7 @@ Out of scope: Launch container loading, a package split, freezing the library un
 
 Order: 069-01, 069-02, then 069-03 (the library uses both). 069-04 is an overflow of 069-02 and does not block 069-03. 069-05 was built against the reviewed library and gates 069-03's DONE.
 
-Status: 069-01 DONE (2026-11-22); 069-02 DONE (2026-11-22, AC2's Proxy-trap clause moved to 069-04); 069-03 IN_PROGRESS and 069-05 IN_PROGRESS (2026-11-23: built and green; both flip to DONE together once 069-05's three reviews are saved, by owner decision); 069-04 READY_FOR_IMPLEMENTATION.
+Status: 069-01 DONE (2026-11-22); 069-02 DONE (2026-11-22, AC2's Proxy-trap clause moved to 069-04); 069-03 IN_PROGRESS and 069-05 IN_PROGRESS (2026-11-23: built and green; both flip to DONE together once 069-05's three reviews are saved and the owner has signed off AC8, by owner decision); 069-04 READY_FOR_IMPLEMENTATION.
 
 ## 3. Boundaries
 

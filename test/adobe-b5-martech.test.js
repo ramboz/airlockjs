@@ -342,41 +342,42 @@ const edgeQuiet = async (seen, quietMs = 1600, capMs = 8000) => {
     await new Promise((r) => setTimeout(r, 50));
     if (seen.count !== last) { last = seen.count; quietSince = Date.now(); }
   }
+  if (Date.now() - quietSince < quietMs) console.error(`edgeQuiet: still ${Date.now() - quietSince}ms since last edge request at the ${capMs}ms cap`);
 };
 const displayJourney = async (page, opts = {}) => {
   const seen = watchEdge(page);
   const result = await page.evaluate(async ({ orgId, datastreamId, scope, more }) => {
-  const m = await (0, eval)('import("/martech/index.js")');
-  const personalization = more.personalization !== false;
-  m.initMartech({
-    orgId, datastreamId, edgeDomain: "edge.adobedc.net", defaultConsent: "pending", debugEnabled: false, thirdPartyCookiesEnabled: false,
-    idMigrationEnabled: false, targetMigrationEnabled: false, clickCollectionEnabled: false, autoCollectPropositionInteractions: { AJO: "never", TGT: "never" },
-  }, {
-    analytics: true, personalization, performanceOptimized: true, personalizationTimeout: 1000, trackPageView: true, dataLayer: false, includeDataLayerState: false,
-    launchUrls: [], alloyInstanceName: "alloy", dataLayerInstanceName: "adobeDataLayer", decisionScopes: [scope], ...more.config, ...(more.useHandle ? { handle: window.__handle } : {}),
-  });
-  const grant = { collect: true, personalize: true, marketing: false, share: false };
-  const decorate = () => setTimeout(() => document.getElementById("hero").setAttribute("data-block-status", "loaded"), more.decorateAfter);
-  let sent;
-  let early;
-  if (personalization) {
-    await m.updateUserConsent(grant);
-    const eager = m.martechEager();
-    if (more.decorateAfter) decorate();
-    await eager;
-    await m.martechLazy();
-  } else {
-    // Personalization off: alloy loads in martechLazy, so the grant and the event settle only after it.
-    const consent = m.updateUserConsent(grant);
-    const send = () => m.sendEvent({ xdm: { eventType: "web.webinteraction.linkClicks", web: { webInteraction: { name: "airlock-069-05", type: "other", linkClicks: { value: 1 } } } } }).then(() => "ok", (e) => `err:${String(e.message).split("\n")[0]}`);
-    if (more.sendBeforeLazy) sent = send();
-    await m.martechEager();
-    await m.martechLazy();
-    await consent;
-    early = await (sent || send());
-  }
-  return { early };
-}, { orgId: ORG, datastreamId: DATASTREAM, scope: SCOPE, more: opts });
+    const m = await (0, eval)('import("/martech/index.js")');
+    const personalization = more.personalization !== false;
+    m.initMartech({
+      orgId, datastreamId, edgeDomain: "edge.adobedc.net", defaultConsent: "pending", debugEnabled: false, thirdPartyCookiesEnabled: false,
+      idMigrationEnabled: false, targetMigrationEnabled: false, clickCollectionEnabled: false, autoCollectPropositionInteractions: { AJO: "never", TGT: "never" },
+    }, {
+      analytics: true, personalization, performanceOptimized: true, personalizationTimeout: 1000, trackPageView: true, dataLayer: false, includeDataLayerState: false,
+      launchUrls: [], alloyInstanceName: "alloy", dataLayerInstanceName: "adobeDataLayer", decisionScopes: [scope], ...more.config, ...(more.useHandle ? { handle: window.__handle } : {}),
+    });
+    const grant = { collect: true, personalize: true, marketing: false, share: false };
+    const decorate = () => setTimeout(() => document.getElementById("hero").setAttribute("data-block-status", "loaded"), more.decorateAfter);
+    let sent;
+    let early;
+    if (personalization) {
+      await m.updateUserConsent(grant);
+      const eager = m.martechEager();
+      if (more.decorateAfter) decorate();
+      await eager;
+      await m.martechLazy();
+    } else {
+      // Personalization off: alloy loads in martechLazy, so the grant and the event settle only after it.
+      const consent = m.updateUserConsent(grant);
+      const send = () => m.sendEvent({ xdm: { eventType: "web.webinteraction.linkClicks", web: { webInteraction: { name: "airlock-069-05", type: "other", linkClicks: { value: 1 } } } } }).then(() => "ok", (e) => `err:${String(e.message).split("\n")[0]}`);
+      if (more.sendBeforeLazy) sent = send();
+      await m.martechEager();
+      await m.martechLazy();
+      await consent;
+      early = await (sent || send());
+    }
+    return { early };
+  }, { orgId: ORG, datastreamId: DATASTREAM, scope: SCOPE, more: opts });
   await edgeQuiet(seen);
   const state = await page.evaluate(() => ({ hero: (document.getElementById("hero") || { innerHTML: null }).innerHTML, globals: { alloy: typeof window.alloy, adobeDataLayer: typeof window.adobeDataLayer } }));
   return { ...result, ...state };
@@ -573,7 +574,7 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
     expect(displays(s)).toHaveLength(1);
     expect(l.answered).toBe(1);
     // With the placement declared the library renders (AC3), so the placement is what decides.
-    const [, withPlacement] = await both({ config: { trackPageView: false }, placements: true }, {});
+    const [, withPlacement] = await offerNoPageView();
     expect(withPlacement.results.run.hero).toContain("airlock-069-05-offer");
   }, T);
 
