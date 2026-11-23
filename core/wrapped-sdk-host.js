@@ -507,7 +507,9 @@ export function createWrappedSdkHost({
           purpose: egressPurposes.join(","),
           reason: denied
             ? "un-granted governing purpose — alloy interact held at the seal"
-            : "pending governing purpose — alloy interact held at the seal until consent is decided",
+            : consentOptOut && optOutParse(original, consentOptOut)
+              ? "pending governing purpose — opt-out request held at the seal and dropped, never sent after a later grant"
+              : "pending governing purpose — alloy interact held at the seal until consent is decided",
           beaconId: `${inspectorTag}#${m.id}`,
           destination: hostOf(m.url),
         });
@@ -794,11 +796,17 @@ export function createWrappedSdkHost({
     /**
      * 068-03 — register the `consent` value(s) the adapter expects on a forwarded opt-out request.
      * Opaque to core. Each call replaces the previous registration; `null`, `undefined` or `[]`
-     * clears it, and with nothing registered the opt-out is held.
+     * clears it, and with nothing registered the opt-out is held. Values are deep-copied (JSON data).
      * @param {readonly unknown[]|null} [values]
      */
     expectOptOutConsent(values) {
-      optOutExpected = Array.isArray(values) ? values.slice() : [];
+      let copy = [];
+      try {
+        copy = Array.isArray(values) ? structuredClone(values) : [];
+      } catch {
+        copy = [];
+      }
+      optOutExpected = copy;
     },
     /** Teardown: parked requests have no later consent decision to flush to, so they are dropped. */
     dispose() {

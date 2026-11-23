@@ -11,13 +11,13 @@ use_cases: [UC-2, UC-6]
 
 ## 0. Summary for the owner
 
-**What changes.** The Alloy seam now does what ADR-0062 point 4 says: "Hold" means hold and flush on grant. A request held while consent is pending is sent exactly once when consent is granted, and dropped on a denial or at teardown. Separately, after an explicit refusal Airlock forwards Alloy's `collect: "n"` set-consent request (without the ECID identity fetch) so Adobe records the refusal. Everything else stays held.
+**What changes.** The Alloy seam now does what ADR-0062 point 4 says: "Hold" means hold and flush on grant. A request held while consent is pending is sent exactly once when consent is granted, and dropped on a denial or at teardown (except a refusal-shaped opt-out request, which is dropped, never parked). Separately, after an explicit refusal Airlock forwards Alloy's `collect: "n"` set-consent request (without the ECID identity fetch) so Adobe records the refusal, but only when its `consent` equals a value the adapter registered. Everything else stays held.
 
 **Why it matters.** Before this, a stale Alloy consent cookie plus a pending page lost the first interact after a grant, and Adobe never learned about a refusal.
 
 **Main tradeoff.** A held Alloy fetch stays pending in the chamber until the decision, so the page event that triggered it waits too (bounded by the existing consent hold ring).
 
-**What needs you.** Nothing. Both parts are settled: ADR-0062 point 4, and the owner decision of 2026-11-20, "Forward the opt-out only, via a narrow seam exemption (Recommended)".
+**What needs you.** Nothing. All parts are settled: ADR-0062 point 4, the owner decision of 2026-11-20, "Forward the opt-out only, via a narrow seam exemption (Recommended)", and the owner decision of 2026-11-23 to record the consent check as an ADR-0062 amendment, "ADR-0062 amendment note (Recommended)".
 
 ## 1. Scope
 
@@ -35,10 +35,11 @@ Out of scope: the real-Chromium proofs of the vendor-adobe tests (a follow-up co
 
 ## 3. Decisions
 
-Both are settled (see section 0). The mechanism choices are slice design:
+All are settled (see section 0). The mechanism choices are slice design:
 
 - 068-01 is opt-in per host (`flushOnGrant`, Alloy only) and parks the original request in the host and re-runs it through every gate on the next `setConsent`, rather than replaying from the chamber, because the chamber's fetch rejects on hold and has no consumer later.
 - 068-02 keeps core vendor-neutral: the connector declares the request path, one body marker and the keys that may leave; core only honours that declaration.
+- 068-03 keeps core vendor-neutral too: the adapter registers the expected `consent` through `expectOptOutConsent`, core compares it as opaque JSON, and a refusal-shaped request is dropped, not parked, while consent is pending, so it can never be sent after a grant.
 
 ## 4. Definition of done
 

@@ -2000,9 +2000,35 @@ describe("createWrappedSdkHost — the opt-out forward checks the registered con
   });
 
   it("keeps array order significant", async () => {
-    const two = [CONSENT[0], { standard: "X", version: "1", value: {} }];
-    const { dispatched, fire } = make({ ...DENIED }, [two]);
-    fire(1, body([two[1], two[0]]));
+    const A = { standard: "Adobe", version: "2.0", value: { collect: { val: "n" }, a: 1 } };
+    const B = { standard: "Adobe", version: "2.0", value: { collect: { val: "n" }, b: 2 } };
+    const { dispatched, host, fire } = make({ ...DENIED }, [[A, B]]);
+    fire(1, body([B, A]));
+    fire(2, body([A, B]));
+    await wait();
+    expect(dispatched).toHaveLength(1);
+    expect(host.getState().consentHeld).toBe(1);
+  });
+
+  it("holds a value whose type differs but still parses as a refusal", async () => {
+    const reg = [{ standard: "Adobe", version: "2.0", value: { collect: { val: "n" } } }];
+    const typed = [{ standard: "Adobe", version: 2, value: { collect: { val: "n" } } }];
+    const { dispatched, host, fire } = make({ ...DENIED }, [reg]);
+    fire(1, body(typed));
+    await wait();
+    expect(dispatched).toHaveLength(0);
+    expect(host.getState().consentHeld).toBe(1);
+  });
+
+  it("deep-copies the registration so later mutation of the caller's object changes nothing", async () => {
+    const reg = [{ standard: "Adobe", version: "2.0", value: { collect: { val: "n" } } }];
+    const { dispatched, host, fire } = make({ ...DENIED }, [reg]);
+    reg[0].value.extra = true;
+    fire(1, body(reg));
+    await wait();
+    expect(dispatched).toHaveLength(0);
+    host.expectOptOutConsent(undefined);
+    fire(2, body(CONSENT));
     await wait();
     expect(dispatched).toHaveLength(0);
   });
