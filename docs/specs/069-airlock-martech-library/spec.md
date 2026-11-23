@@ -34,11 +34,11 @@ Out of scope: Launch container loading, a package split, freezing the library un
 | [069-02](slice-02-generic-data-layer.md) | Airlock's generic data layer, no ACDL and no `adobeDataLayer` by default (`push({ event, ...params })`, `getState`, state pushes; O(1) validate-and-append), plus an opt-in `adobeDataLayer` migration proxy and the dispositions for what ACDL gave that cannot cross the airlock |
 | [069-03](slice-03-martech-library.md) | `adapters/eds/martech.js`: the 14 `aem-martech` exports on the handle, no page global, proven against the recording and the stock run |
 | [069-04](slice-04-proxy-trap-free-detection.md) | Overflow of 069-02 AC2: trap-free rejection of a pushed `Proxy`, or the residual three-trap exposure accepted with its threat model |
-| [069-05](slice-05-library-display-flows.md) | Overflow of 069-03 AC6: real-Chromium personalization-off, late-display and synthetic-offer flows of the library |
+| [069-05](slice-05-library-display-flows.md) | Required for 069-03 AC6 (owner, 2026-11-23): real-Chromium personalization-off, late-display and synthetic-offer flows of the library |
 
-Order: 069-01, 069-02, then 069-03 (the library uses both). 069-04 is an overflow of 069-02 and does not block 069-03. 069-05 follows 069-03 (display flows the library's journey does not cover).
+Order: 069-01, 069-02, then 069-03 (the library uses both). 069-04 is an overflow of 069-02 and does not block 069-03. 069-05 is built against the reviewed library at 0bb97347 and gates 069-03's DONE.
 
-Status: 069-01 DONE (2026-11-22); 069-02 DONE (2026-11-22, AC2's Proxy-trap clause moved to 069-04); 069-03 DONE (2026-11-22, AC6's personalization-off, late-display and synthetic-offer flows moved to 069-05); 069-04 and 069-05 READY_FOR_IMPLEMENTATION.
+Status: 069-01 DONE (2026-11-22); 069-02 DONE (2026-11-22, AC2's Proxy-trap clause moved to 069-04); 069-03 IN_PROGRESS (built and reviewed at 0bb97347; DONE when 069-05 is DONE, by owner decision 2026-11-23); 069-04 and 069-05 READY_FOR_IMPLEMENTATION (069-05 required).
 
 ## 3. Boundaries
 

@@ -1,15 +1,15 @@
 ---
 status: READY_FOR_IMPLEMENTATION
-dependencies: [069-03]
+dependencies: [ADR-0065]
 last_verified: 2026-11-22
 ---
 
-## Slice 069-05 — Real-Chromium display flows of the martech library (overflow of 069-03 AC6)
+## Slice 069-05 — Real-Chromium display flows of the martech library (required for 069-03 AC6)
 
-**Goal:** Overflow from 069-03 AC6. The library arm already matches the stock run's requests for the default path (`martechEager`, `martechLazy`, `martechDelayed`), `trackPageView` on and off, `performanceOptimized: false` with the body style changes, and the `martechConfig.airlock` boot path. This slice adds the flows that need a new rig scenario: personalization off, a late display after the timeout, and a synthetic offer answer that renders and sends `propositionDisplay` (also `trackPageView: false` with an offer, AC3).
+**Goal:** Required by the owner (2026-11-23, "Reject: prove them before 069-03 counts as DONE") for 069-03 AC6; 069-03 stays IN_PROGRESS until this slice is DONE, and both flip in one commit. The library arm already matches the stock run's requests for the default path (`martechEager`, `martechLazy`, `martechDelayed`), `trackPageView` on and off, `performanceOptimized: false` with the body style changes, and the `martechConfig.airlock` boot path. This slice adds the flows that need a new rig scenario: personalization off, a late display after the timeout, and a synthetic offer answer that renders and sends `propositionDisplay` (also `trackPageView: false` with an offer, AC3).
 
 **Definition of Ready:**
-- ✅ 069-03 DONE (except this AC6 remainder).
+- ✅ The library code is built and reviewed at 0bb97347 (069-03, IN_PROGRESS pending this slice). No dependency on 069-03 DONE, which avoids a cycle.
 
 **Definition of Done:**
 - The three fresh Opus 5.5 `jig:reviewer` reviews saved in `reviews/`.
@@ -25,4 +25,4 @@ last_verified: 2026-11-22
 
 ## Notes
 
-Raised by 069-03's Findings. The hermetic tests of 069-03 already cover the personalization-off, timeout and late-display logic with the fake worker.
+Raised by 069-03's Findings; the owner made it required. The hermetic tests of 069-03 already cover the personalization-off, timeout and late-display logic with the fake worker.

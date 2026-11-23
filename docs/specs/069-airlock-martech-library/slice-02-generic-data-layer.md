@@ -40,7 +40,7 @@ Written under ADR-0065 after the owner's 2026-11-21 direction: no ACDL as is, Op
 
 ## Findings (2026-11-22)
 
-Built `adapters/eds/martech-datalayer.js` (pure, no imports; `createDataLayer`, `FORWARD_SKIP_EVENTS`, `MAX_DEPTH`, `MAX_PUSH_NODES`, `MAX_HELD_EVENTS`). No `core/` change; the ADR-0063 allowlist files are untouched. AC2's Proxy-trap clause is reworded and moved to 069-04 (`slice-04-proxy-trap-free-detection.md`, a real file). Round 1 of the three reviews returned changes-requested (saved in `reviews/slice-02-generic-data-layer-*.md`); every finding is fixed or carried there, and the slice is DONE with every AC met as reworded.
+Built `adapters/eds/martech-datalayer.js` (pure, no imports; `createDataLayer`, `FORWARD_SKIP_EVENTS`, `MAX_DEPTH`, `MAX_PUSH_NODES`, `MAX_HELD_EVENTS`). No `core/` change; the ADR-0063 allowlist files are untouched. AC2's Proxy-trap clause is reworded and moved to 069-04 (owner accepted 2026-11-23) (`slice-04-proxy-trap-free-detection.md`, a real file). Round 1 of the three reviews returned changes-requested (saved in `reviews/slice-02-generic-data-layer-*.md`); every finding is fixed or carried there, and the slice is DONE with every AC met as reworded.
 
 **Tests per AC** (H = hermetic, `test/adobe-069-02-datalayer.test.js`, 53 tests; C = real Chromium, `test/adobe-069-02-datalayer-chromium.test.js`, 11 tests, gated by `AIRLOCK_REAL_CHROMIUM=1`, GATING step in `browser-oracle`; the stock arm is the real ACDL 3.0.1 and the pinned `aem-martech` source with a recording `alloy` stub):
 - AC1: H "AC1" (4 tests: no global, no global with the names absent, bad push, state push); C no window global and no `acdl.min.js` request.
@@ -67,7 +67,7 @@ Built `adapters/eds/martech-datalayer.js` (pure, no imports; `createDataLayer`, 
 - (g) Each event is copied up to three times (Info, accepted by design).
 - A live Proxy array on the instance name passes the foreign check and its traps run in `slice()`/`defineProperty` during install (ADR-0065 amendment; owner: 069-04).
 
-**Carried:** the owner's approval of the AC2 rewrite goes to the coordinator (owner: coordinator). No `uninstallAdobeDataLayerProxy`: the spec does not require one (owner: 069-04, which decides whether the proxy gets an uninstall).
+**Carried:** the owner approved the AC2 rewrite on 2026-11-23, verbatim: "Accept the rewrite, 069-04 decides later (Recommended)". No `uninstallAdobeDataLayerProxy`: the spec does not require one (owner: 069-04, which decides whether the proxy gets an uninstall).
 
 **Revert-checks, round 1** (break, see red, restore): node budget off -> the DAG test hangs; drain loop on the live length -> the re-entrant test hangs; unguarded proxy check, held cap off, hook copies removed, `Array.isArray` outside the `try`, idempotent early return removed, `scanBlocks` escape removed, the checks list reset on install -> the revoked, proxy-getter, held-cap, copy, second-name, idempotent and `scanBlocks` tests red.
 
@@ -92,7 +92,7 @@ Built `adapters/eds/martech-datalayer.js` (pure, no imports; `createDataLayer`, 
 - A late `push` replacement is detected at assignment, stricter than "next drain" (AC6).
 - `scanBlocks` null-guards `data`; block-id collisions merge as in stock (AC7).
 - A pushed Proxy's `getPrototypeOf`/`ownKeys`/`getOwnPropertyDescriptor` traps may run during one validation walk (`getOwnPropertyDescriptor` once per own key, and nested Proxies' traps too) (AC2, -> 069-04). Without `structuredClone` the backstop is absent and a Proxy whose traps return plain data is accepted (module header).
-- ORIGINAL AC2 wording (before the rewrite): "a `Proxy` trap is never hit" and "one queue shared with the library's pre-boot queue, tested". Owner approval of the rewrite is carried to the coordinator.
+- ORIGINAL AC2 wording (before the rewrite): "a `Proxy` trap is never hit" and "one queue shared with the library's pre-boot queue, tested". The owner approved the rewrite on 2026-11-23 (see Findings).
 - AC2 adds a per-push node budget (`MAX_PUSH_NODES`, 100,000): over it, the push is dropped with `datalayer-bad-push`.
 - The forward to core is gated by attach, `analytics !== false` and `shouldProcessEvent` (AC8), and forwards a copy of the pristine payload; hooks get copies.
 - Events pushed during a drain are processed in a new task, not the running drain (AC2).

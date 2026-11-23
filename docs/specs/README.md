@@ -218,9 +218,9 @@ do not grant live authority.
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-33 — the opt-out forward carries only the consent the page gave | READY_FOR_IMPLEMENTATION |  |
 | [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-01 — the handle returns what stock returns (`sendEvent` result, hook argument, `viewName`, consent outcome) | DONE |  |
 | [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-02 — Airlock's generic data layer (no ACDL) plus an opt-in `adobeDataLayer` migration proxy | DONE (AC2 Proxy-trap clause -> 069-04) |  |
-| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-03 — `adapters/eds/martech.js`: the `aem-martech` exports on the `bootAlloy` handle | DONE (AC6's personalization-off, late-display and synthetic-offer flows -> 069-05) |  |
+| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-03 — `adapters/eds/martech.js`: the `aem-martech` exports on the `bootAlloy` handle | IN_PROGRESS (built at 0bb97347; DONE when 069-05 is DONE) |  |
 | [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-04 — trap-free rejection of a pushed `Proxy` (overflow of 069-02 AC2) | READY_FOR_IMPLEMENTATION |  |
-| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-05 — real-Chromium display flows of the library (overflow of 069-03 AC6) | READY_FOR_IMPLEMENTATION |  |
+| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-05 — real-Chromium display flows of the library (required for 069-03 AC6) | READY_FOR_IMPLEMENTATION |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01: ADR status lines and docs rewording | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-02: Consent hold on every track, with a no-consent-input warning | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-03: Alloy holds and flushes, and an empty `egressPurposes` holds and warns | **DONE** |  |
