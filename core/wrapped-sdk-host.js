@@ -189,6 +189,7 @@ function consoleDiagnostic(record) {
  *   init: (initMsg?: Record<string, unknown>) => void,
  *   driveEvent: (event: object) => Promise<{ summary: object, ready: unknown[] }>,
  *   setConsent: (vector: (Record<string, string> | null)) => void,
+ *   expectOptOutConsent: (values?: (readonly unknown[] | null)) => void,
  *   getState: () => {
  *     phases: string[],
  *     writeBacks: string[],
@@ -349,6 +350,9 @@ export function createWrappedSdkHost({
   // teardown drop it.
   let parked = [];
   let disposed = false;
+  // 068-03: the `consent` values the adapter expects on an opt-out request (opaque to core).
+  // None registered means no opt-out is forwarded.
+  let optOutExpected = [];
   function rejectHeld(req, statusText) {
     chamber.postMessage({ type: "intercepted-fetch-response", id: req.id, status: 0, statusText, body: "" });
   }
@@ -507,7 +511,7 @@ export function createWrappedSdkHost({
         // 068-02: after an explicit refusal (never pending), the connector's declared opt-out
         // signal is forwarded alone so the vendor records the refusal; all else stays held.
         if (denied && consentOptOut) {
-          const forwarded = optOutForward(m, consentOptOut);
+          const forwarded = optOutForward(m, consentOptOut, optOutExpected);
           if (forwarded) {
             m = forwarded;
             // The gate runs again in the deferred recheck; report the forward once per request.
@@ -538,7 +542,9 @@ export function createWrappedSdkHost({
           purpose: egressPurposes.join(","),
           reason: denied
             ? "un-granted governing purpose — alloy interact held at the seal"
-            : "pending governing purpose — alloy interact held at the seal until consent is decided",
+            : consentOptOut && optOutParse(original, consentOptOut)
+              ? "pending governing purpose — opt-out request held at the seal and dropped, never sent after a later grant"
+              : "pending governing purpose — alloy interact held at the seal until consent is decided",
           beaconId: `${inspectorTag}#${m.id}`,
           destination: hostOf(m.url),
         });
@@ -576,7 +582,9 @@ export function createWrappedSdkHost({
       return true;
     }
     if (!applyConsent((denied) => {
-      if (denied || disposed || !flushOnGrant) rejectHeld(m, "held at the seal: consent");
+      // An opt-out-shaped request is never parked: a refusal held while pending must not be sent
+      // after a later grant (068-03).
+      if (denied || disposed || !flushOnGrant || (consentOptOut && optOutParse(original, consentOptOut))) rejectHeld(m, "held at the seal: consent");
       else park(original);
     })) return;
 
@@ -613,7 +621,8 @@ export function createWrappedSdkHost({
       .then(() => {
         // Consent can change between the initial gate and this continuation.
         if (!applyConsent((denied) => {
-          if (denied || disposed || !flushOnGrant) {
+          // Same rule as the first gate: a refusal-shaped request is never parked (068-03).
+          if (denied || disposed || !flushOnGrant || (consentOptOut && optOutParse(original, consentOptOut))) {
             respond({ status: 0, statusText: "held at the seal: consent", body: "" });
           } else {
             settled = true;
@@ -845,6 +854,19 @@ export function createWrappedSdkHost({
       parked = [];
       for (const req of batch) dispatchInterceptedFetch(req);
     },
+    /**
+     * 068-03 — register the `consent` value(s) the adapter expects on a forwarded opt-out request.
+     * Opaque to core. Each call replaces the previous registration; `null`, `undefined` or `[]`
+     * clears it, and with nothing registered the opt-out is held. Values are deep-copied (JSON data).
+     * @param {readonly unknown[]|null} [values]
+     */
+    expectOptOutConsent(values) {
+      try {
+        optOutExpected = Array.isArray(values) ? structuredClone(values) : [];
+      } catch {
+        optOutExpected = [];
+      }
+    },
     /** Teardown: parked requests have no later consent decision to flush to, so they are dropped. */
     dispose() {
       if (disposed) return;
@@ -898,16 +920,13 @@ export function reconcileForBrokerJar(raw) {
 }
 
 /**
- * 068-02 — build the forwarded form of a request that matches a connector's declared opt-out
- * signal, or null. Vendor-neutral: the connector declares the URL path suffix, one body value
- * that must equal the refusal marker, and the only top-level body keys that may leave (everything
- * else, such as an identity fetch query, is removed). Never throws; anything unparseable or not
- * matching returns null (stays held).
+ * 068-02 — parse a request that matches a connector's declared opt-out signal (URL path suffix plus
+ * one body value equal to the refusal marker), or null. Vendor-neutral. Never throws.
  * @param {{ url: string, body?: string }} m
- * @param {{ path: string, match: { path: readonly (string | number)[], equals: string }, forward: readonly string[] }} optOut
- * @returns {object|null}
+ * @param {{ path: string, match: { path: readonly (string | number)[], equals: string } }} optOut
+ * @returns {object|null} the parsed body
  */
-function optOutForward(m, optOut) {
+function optOutParse(m, optOut) {
   let pathname;
   try {
     pathname = new URL(m.url).pathname;
@@ -926,7 +945,33 @@ function optOutForward(m, optOut) {
     if (node == null || typeof node !== "object") return null;
     node = node[key];
   }
-  if (node !== optOut.match.equals) return null;
+  return node === optOut.match.equals ? parsed : null;
+}
+
+/** Deep equality for JSON values: object key order is ignored, array order is kept. */
+function jsonEqual(a, b) {
+  if (Object.is(a, b)) return true;
+  if (a == null || b == null || typeof a !== "object" || typeof b !== "object") return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  if (Array.isArray(a)) return a.length === b.length && a.every((v, i) => jsonEqual(v, b[i]));
+  const ka = Object.keys(a);
+  return ka.length === Object.keys(b).length && ka.every((k) => Object.hasOwn(b, k) && jsonEqual(a[k], b[k]));
+}
+
+/**
+ * 068-02 + 068-03 — build the forwarded form of an opt-out request, or null. The connector declares
+ * the signal and the only top-level body keys that may leave; the adapter registers the `consent`
+ * value(s) expected on the wire (opaque to core). The request is forwarded only when its `consent`
+ * deep-equals one of them. Never throws; anything else returns null (stays held).
+ * @param {{ url: string, body?: string }} m
+ * @param {{ path: string, match: { path: readonly (string | number)[], equals: string }, forward: readonly string[] }} optOut
+ * @param {readonly unknown[]} expected
+ * @returns {object|null}
+ */
+function optOutForward(m, optOut, expected) {
+  const parsed = optOutParse(m, optOut);
+  if (!parsed || !Object.hasOwn(parsed, "consent")) return null;
+  if (!expected.some((v) => jsonEqual(v, parsed.consent))) return null;
   const kept = {};
   for (const key of optOut.forward) if (Object.hasOwn(parsed, key)) kept[key] = parsed[key];
   return { ...m, body: JSON.stringify(kept) };
