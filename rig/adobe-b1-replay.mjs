@@ -57,11 +57,26 @@ export function buildArtifacts() {
   return built;
 }
 
-const PAGE_SCRIPT = `
+export const PAGE_SCRIPT = `
 window.__diag = [];
 for (const level of ["warn", "error"]) {
   const native = console[level].bind(console);
   console[level] = (...a) => { try { for (const x of a) if (x && typeof x === "object" && x.kind) window.__diag.push(JSON.parse(JSON.stringify(x))); } catch (e) {} native(...a); };
+}
+// Bug 006: the chamber mirrors its own Alloy's probe cookie (com.adobe.alloy.getTld) into the real jar for
+// a moment. A stock tag sharing the page that probes inside that window reads it back and settles on an
+// empty domain. The rig drops that one mirrored write; every other cookie write, including the tag's own
+// probe, goes through.
+{
+  const desc = Object.getOwnPropertyDescriptor(Document.prototype, "cookie");
+  Object.defineProperty(document, "cookie", {
+    configurable: true,
+    get() { return desc.get.call(this); },
+    set(v) {
+      if (/^com\\.adobe\\.alloy\\.getTld=/.test(String(v)) && /\\breconcile\\b/.test(new Error().stack || "")) return;
+      desc.set.call(this, v);
+    },
+  });
 }
 window.__observed = []; window.__responses = []; window.__results = new Map(); window.__seq = 0;
 const NativeWorker = window.Worker;

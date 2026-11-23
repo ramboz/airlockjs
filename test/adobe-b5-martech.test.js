@@ -10,7 +10,7 @@ import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { consentToVector, createAlloyCommandBridge } from "../adapters/eds/alloy-bridge.js";
 import { attachQueueShim } from "../rig/alloy-queue-shim.mjs";
 import { chromium } from "playwright";
-import { diffBodies, ensureAlloyBundle, loadFixture, replayFixture, splitRequestUrl } from "../rig/adobe-b1-replay.mjs";
+import { PAGE_SCRIPT, diffBodies, ensureAlloyBundle, loadFixture, replayFixture, splitRequestUrl } from "../rig/adobe-b1-replay.mjs";
 import { ensureMartechAsset, buildMartechLibrary } from "../rig/adobe-b5-martech.mjs";
 
 const real = process.env.AIRLOCK_REAL_CHROMIUM === "1";
@@ -727,5 +727,31 @@ describe("spec 064-21: the alloy command wrapper (hermetic)", () => {
       expect(h.push).toHaveBeenCalledTimes(1);
       expect(Object.keys(globalThis).sort()).toEqual(keys);
     } finally { delete globalThis.alloy; }
+  });
+});
+
+describe.runIf(real)("bug 006: the rig keeps the chamber's mirrored probe cookie out of a stock tag's reach (real Chromium)", () => {
+  it("drops the chamber's reconcile write of the getTld probe cookie and keeps the tag's own writes", async () => {
+    const browser = await chromium.launch();
+    try {
+      const page = await (await browser.newContext()).newPage();
+      await page.route("https://probe.example/", (route) => route.fulfill({
+        contentType: "text/html",
+        body: `<!doctype html><script>${PAGE_SCRIPT}</script><script>
+          const reconcile = (v) => { document.cookie = v; };
+          const tag = (v) => { document.cookie = v; };
+          window.__mirror = () => reconcile("com.adobe.alloy.getTld=com.adobe.alloy.getTld; path=/");
+          window.__own = () => tag("com.adobe.alloy.getTld=1; path=/");
+          window.__other = () => reconcile("kept=1; path=/");
+        </script>`,
+      }));
+      await page.goto("https://probe.example/");
+      const has = (name) => page.evaluate((n) => document.cookie.includes(n + "="), name);
+      await page.evaluate(() => { window.__mirror(); window.__other(); });
+      expect(await has("com.adobe.alloy.getTld")).toBe(false);
+      expect(await has("kept")).toBe(true);
+      await page.evaluate(() => window.__own());
+      expect(await has("com.adobe.alloy.getTld")).toBe(true);
+    } finally { await browser.close(); }
   });
 });
