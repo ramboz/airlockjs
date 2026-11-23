@@ -1,7 +1,7 @@
 ---
 status: DONE
 dependencies: [064-21, 064-29, 064-30, ADR-0065]
-last_verified: 2026-11-22
+last_verified: 2026-11-23
 ---
 
 ## Slice 069-01 — the handle returns what stock returns (`sendEvent` result, hook argument, `viewName`, consent outcome)

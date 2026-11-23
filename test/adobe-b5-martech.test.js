@@ -99,6 +99,13 @@ const normalised = (text) => {
 };
 const posts = (network) => network.filter((n) => n.method === "POST");
 const pathOf = (n) => new URL(n.url).pathname;
+/** A SYNTHETIC edge answer (no capture): CORS headers for the page's origin and a fixed requestId; `payload` is the decisions array. */
+const syntheticAnswer = (req, payload, delay = 0) => {
+  const origin = req.headers().origin || "*";
+  const headers = { "content-type": "application/json", "access-control-allow-origin": origin, "access-control-allow-credentials": "true", "access-control-allow-headers": "*", "access-control-allow-methods": "POST, GET, OPTIONS" };
+  const body = JSON.stringify({ requestId: "00000000-0000-0000-0000-000000000069", handle: [{ type: "personalization:decisions", payload, eventIndex: 0 }] });
+  return new Promise((resolve) => setTimeout(() => resolve({ status: 200, headers, body }), delay));
+};
 
 
 describe.runIf(real)("spec 064-21: aem-martech through the airlock wrapper (real Chromium)", () => {
@@ -284,18 +291,18 @@ describe.runIf(real)("spec 069-03: the Airlock martech library in the S10 differ
     // SYNTHETIC answer (no capture): the warm-up fetch carries the view-scoped proposition; set-consent falls through to the fixture.
     const respond = (req) => {
       if (req.method() !== "POST" || !/propositionFetch|pageViews/.test(req.postData() || "")) return null;
-      const origin = req.headers().origin || "*";
-      const headers = { "content-type": "application/json", "access-control-allow-origin": origin, "access-control-allow-credentials": "true", "access-control-allow-headers": "*", "access-control-allow-methods": "POST, GET, OPTIONS" };
-      return { status: 200, headers, body: JSON.stringify({ requestId: "00000000-0000-0000-0000-000000000069", handle: [{ type: "personalization:decisions", payload: [pageWide, cart], eventIndex: 0 }] }) };
+      return syntheticAnswer(req, [pageWide, cart]);
     };
     const bodyHtml = '<main><div id="z">orig</div><div id="o">orig</div></main>';
     const arm = (library) => replayFixture(browser, "s10-base", {
-      event: null, skipSteps: true, serve: library ? serveLib : serveStock, bootOptions: library ? { ...AIRLOCK_BOOT, placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] } : {}, bodyHtml, respond,
+      event: null, skipSteps: true, serve: library ? serveLib : serveStock, // The library fetches only declared scopes (AC6): this placement makes it fetch `__view__`, which carries the warmed view cache.
+      bootOptions: library ? { ...AIRLOCK_BOOT, placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] } : {}, bodyHtml, respond,
       run: (page) => page.evaluate(async ({ lib, own: prop, orgId, datastreamId }) => {
         const m = await (0, eval)('import("/martech/index.js")');
         m.initMartech({ orgId, datastreamId, edgeDomain: "edge.adobedc.net", defaultConsent: "pending", debugEnabled: false, thirdPartyCookiesEnabled: false, idMigrationEnabled: false, targetMigrationEnabled: false, clickCollectionEnabled: false }, { personalization: true, ...(lib ? { handle: window.__handle } : {}) });
         await m.updateUserConsent({ collect: true, personalize: true, marketing: false, share: false });
-        const settle = (p) => p.then((r) => { const { destinations, ...rest } = JSON.parse(JSON.stringify(r ?? null)); return { ok: rest }; }, (e) => ({ err: String(e.message).split("\n")[0] }));
+        // The handle's result carries only propositions and decisions (069-01), stock's also has destinations: compare the common part.
+        const settle = (p) => p.then((r) => { const { destinations, ...rest } = JSON.parse(JSON.stringify(r ?? null)) || {}; return { ok: rest }; }, (e) => ({ err: String(e.message).split("\n")[0] }));
         const target = () => (lib ? m.getAirlockHandle() : window.alloy);
         const call = (name, o) => (lib ? target()[name](o) : window.alloy(name, o));
         const warm = await settle(call("sendEvent", { renderDecisions: false, xdm: { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name: "airlock-069-03" } } } }));
@@ -362,39 +369,77 @@ const displayJourney = (page, opts = {}) => page.evaluate(async ({ orgId, datast
 const OFFER_ID = "airlock-069-05-offer";
 const OFFER = { id: OFFER_ID, scope: SCOPE, scopeDetails: { decisionProvider: "TGT", activity: { id: "airlock-069-05-activity" }, characteristics: { eventToken: "airlock-069-05-token" } },
   items: [{ id: "airlock-069-05-item", schema: "https://ns.adobe.com/personalization/dom-action", data: { type: "setHtml", selector: "#hero", content: "<b>airlock-069-05-offer</b>" } }] };
-const offerAnswer = (req, { delay = 0 } = {}) => {
-  const origin = req.headers().origin || "*";
-  const headers = { "content-type": "application/json", "access-control-allow-origin": origin, "access-control-allow-credentials": "true", "access-control-allow-headers": "*", "access-control-allow-methods": "POST, GET, OPTIONS" };
-  const body = JSON.stringify({ requestId: "00000000-0000-0000-0000-000000000069", handle: [{ type: "personalization:decisions", payload: [OFFER], eventIndex: 0 }] });
-  return new Promise((resolve) => setTimeout(() => resolve({ status: 200, headers, body }), delay));
+/** The per-arm responder; `stats.answered` counts the fetches answered, so a test can tell a late answer from no fetch at all. */
+const DOM_ACTION = "https://ns.adobe.com/personalization/dom-action";
+const withOffer = ({ delay = 0 } = {}, stats = { answered: 0 }) => (req) => {
+  if (req.method() !== "POST" || !/propositionFetch/.test(req.postData() || "")) return null;
+  return syntheticAnswer(req, [OFFER], delay).then((answer) => { stats.answered += 1; return answer; });
 };
-const withOffer = (opts) => (req) => (req.method() === "POST" && /propositionFetch/.test(req.postData() || "") ? offerAnswer(req, opts) : null);
+
+/** Failed boot: martechLazy after a chamber (library) or Alloy file (stock) that cannot load. Reports how martechLazy settled and what the page shows. */
+const failedBootJourney = (page, opts = {}) => page.evaluate(async ({ orgId, datastreamId, scope, more }) => {
+  const edgeCount = () => performance.getEntriesByType("resource").filter((e) => /edge\.adobedc\.net|demdex/.test(e.name)).length;
+  const m = await (0, eval)('import("/martech/index.js")');
+  const settled = (p) => Promise.resolve(p).then(() => "ok", (e) => `err:${String(e && e.message).split("\n")[0]}`);
+  const init = settled(m.initMartech({
+    orgId, datastreamId, edgeDomain: more.edgeDomain || "edge.adobedc.net", defaultConsent: "pending", debugEnabled: false, thirdPartyCookiesEnabled: false,
+    idMigrationEnabled: false, targetMigrationEnabled: false, clickCollectionEnabled: false,
+  }, {
+    analytics: true, personalization: true, performanceOptimized: more.performanceOptimized, personalizationTimeout: 500, trackPageView: true, dataLayer: false,
+    launchUrls: [], alloyInstanceName: "alloy", decisionScopes: [scope], ...(more.airlock ? { airlock: more.airlock } : {}),
+  }));
+  const consent = settled(m.updateUserConsent({ collect: true, personalize: true, marketing: false, share: false }));
+  const eager = await settled(m.martechEager());
+  const lazy = await settled(m.martechLazy());
+  await new Promise((r) => setTimeout(r, 1500));
+  return { init: await init, eager, lazy, consent: await Promise.race([consent, new Promise((r) => setTimeout(() => r("pending"), 100))]), edgeCalls: edgeCount(), bodyStyle: document.body.getAttribute("style") || "" };
+}, { orgId: ORG, datastreamId: DATASTREAM, scope: SCOPE, more: opts });
 
 describe.runIf(real)("spec 069-05: the Airlock martech library display flows against stock (real Chromium, SYNTHETIC answers)", () => {
   let browser;
   let serveStock;
   let serveLib;
   const heroHtml = (loaded) => `<main><div id="hero"${loaded ? ' data-block-status="loaded"' : ""}>default</div></main>`;
-  const arm = (library, more, respond) => replayFixture(browser, "s10-base", {
-    event: null, skipSteps: true, serve: library ? serveLib : serveStock, bootOptions: library ? { ...AIRLOCK_BOOT, ...(more.placements ? { placements: [{ scope: SCOPE, selector: "#hero", minHeight: 0 }] } : {}) } : {}, bodyHtml: heroHtml(!more.decorateAfter), respond,
-    run: (page) => displayJourney(page, library ? { ...more, useHandle: true } : more),
-  });
-  const both = (more, respond) => Promise.all([arm(false, more, respond), arm(true, more, respond)]);
+  /** `more.placements` declares the hero placement for the library arm; `offer` (options for withOffer) answers the fetch with the synthetic offer. */
+  const arm = async (library, more, offer) => {
+    const stats = { answered: 0 };
+    const respond = offer ? withOffer(offer, stats) : undefined;
+    const r = await replayFixture(browser, "s10-base", {
+      event: null, skipSteps: true, serve: library ? serveLib : serveStock, bootOptions: library ? { ...AIRLOCK_BOOT, ...(more.placements ? { placements: [{ scope: SCOPE, selector: "#hero", minHeight: 0 }] } : {}) } : {}, bodyHtml: heroHtml(!more.decorateAfter), respond,
+      run: (page) => displayJourney(page, library ? { ...more, useHandle: true } : more),
+    });
+    r.answered = stats.answered;
+    return r;
+  };
+  const both = (more, offer) => Promise.all([arm(false, more, offer), arm(true, more, offer)]);
+  // AC1 and AC4 are two views of the same personalization-off journey: run it once.
+  let offJourney;
+  const personalizationOff = () => { offJourney = offJourney || both({ personalization: false }); return offJourney; };
   const bodiesOf = (r) => posts(r.network).map((n) => JSON.parse(n.body));
   const eventTypes = (r) => bodiesOf(r).flatMap((b) => (b.events || []).map((e) => e.xdm && e.xdm.eventType));
-  /** Same requests in the same order, equal bodies (cookie order aside), and the page shows the same. */
-  const sameAsStock = (s, l) => {
+  const fetchQuery = (r) => bodiesOf(r).map((x) => x.events && x.events[0].query && x.events[0].query.personalization).find(Boolean);
+  /**
+   * Same requests in the same order (path, query string without requestId), equal bodies (cookie order aside) except the three fetch
+   * query fields, and the page shows the same. With `fetch` (default) the fetch request must exist in both arms and its scopes,
+   * surfaces and schemas are asserted explicitly (AC6): they are the one place the library differs.
+   */
+  const sameAsStock = (s, l, { fetch = true } = {}) => {
     const a = posts(l.network);
     const b = posts(s.network);
-    expect(a.map(pathOf)).toEqual(b.map(pathOf));
-    // The one recorded difference: the library fetches only its declared scopes (no `__view__`, no page surface, no dom-action schema).
+    expect(a.map((n) => splitRequestUrl(n.url).stable)).toEqual(b.map((n) => splitRequestUrl(n.url).stable));
     const pzn = (p) => /^events\[0\]\.query\.personalization\.(decisionScopes|schemas|surfaces)\[/.test(p);
     for (let k = 0; k < b.length; k += 1) expect(diffBodies(normalised(a[k].body), normalised(b[k].body)).filter((p) => !pzn(p))).toEqual([]);
-    const fetchQuery = (r) => bodiesOf(r).map((x) => x.events && x.events[0].query && x.events[0].query.personalization).find(Boolean);
-    if (fetchQuery(l) && fetchQuery(l).decisionScopes && !fetchQuery(l).decisionScopes.includes("__view__")) {
-      expect(fetchQuery(s).decisionScopes).toContain("__view__");
-      expect(fetchQuery(l).decisionScopes).toEqual([SCOPE]);
-      expect(fetchQuery(l).surfaces).toEqual([]);
+    if (fetch) {
+      const sq = fetchQuery(s);
+      const lq = fetchQuery(l);
+      expect(sq).toBeDefined();
+      expect(lq).toBeDefined();
+      expect(sq.decisionScopes).toEqual([SCOPE, "__view__"]);
+      expect(sq.surfaces).toEqual(["web://main--aem-eds-airlock-poc--adobe-rnd.aem.page/"]);
+      expect(sq.schemas).toContain(DOM_ACTION);
+      expect(lq.decisionScopes).toEqual([SCOPE]);
+      expect(lq.surfaces).toEqual([]);
+      expect(lq.schemas).toEqual(sq.schemas.filter((x) => x !== DOM_ACTION));
     }
     expect(l.results.run.hero).toBe(s.results.run.hero);
     expect(l.results.run.globals.alloy).toBe("undefined");
@@ -411,21 +456,20 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
   afterAll(async () => { await browser?.close(); });
 
   it("AC1 (069-05): personalization off, martechLazy called before awaiting sendEvent, sends the stock run's requests", async () => {
-    const [s, l] = await both({ personalization: false });
-    expect(sameAsStock(s, l)).toBeGreaterThanOrEqual(3);
+    const [s, l] = await personalizationOff();
+    expect(sameAsStock(s, l, { fetch: false })).toBeGreaterThanOrEqual(3);
     expect(eventTypes(l)).toContain("web.webinteraction.linkClicks");
   }, T);
 
   it("AC4 (069-05): personalization off, the event after martechLazy and the page view keep stock's order", async () => {
-    const [s, l] = await both({ personalization: false });
-    sameAsStock(s, l);
+    const [s, l] = await personalizationOff();
     const order = eventTypes(s);
     expect(order).toContain("web.webpagedetails.pageViews");
     expect(order).toContain("web.webinteraction.linkClicks");
     expect(eventTypes(l)).toEqual(order);
   }, T);
 
-  it("DIFFERENCE (069-05): personalization off, an event sent before martechLazy: stock rejects it (alloy not configured yet), the library queues and sends it", async () => {
+  it("AC9 (069-05): personalization off, an event sent before martechLazy: stock rejects it (alloy not configured yet), the library queues and sends it", async () => {
     const [s, l] = await both({ personalization: false, sendBeforeLazy: true });
     expect(s.results.run.early).toMatch(/^err:.*must be configured first/);
     expect(l.results.run.early).toBe("ok");
@@ -434,7 +478,7 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
   }, T);
 
   it("AC3 (069-05): a synthetic offer renders and is reported as stock does, trackPageView:false (requests equal stock's)", async () => {
-    const [s, l] = await both({ config: { trackPageView: false }, placements: true }, withOffer());
+    const [s, l] = await both({ config: { trackPageView: false }, placements: true }, {});
     expect(sameAsStock(s, l)).toBe(3);
     expect(s.results.run.hero).toContain("airlock-069-05-offer");
     expect(l.results.run.hero).toContain("airlock-069-05-offer");
@@ -447,22 +491,27 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
     }
   }, T);
 
-  it("DIFFERENCE AC3 (069-05): trackPageView:true, the offer renders and is reported once in both arms; stock sends it as a separate display after the page view, the library bundles it into the page view", async () => {
-    const [s, l] = await both({ config: { trackPageView: true }, placements: true }, withOffer());
+  it("AC8 (069-05): trackPageView:true, the offer renders and is reported once in both arms; stock sends it as a separate display after the page view, the library bundles it into the page view", async () => {
+    const [s, l] = await both({ config: { trackPageView: true }, placements: true }, {});
     expect(s.results.run.hero).toContain("airlock-069-05-offer");
     expect(l.results.run.hero).toContain("airlock-069-05-offer");
     expect(eventTypes(s).slice(-2)).toEqual(["web.webpagedetails.pageViews", "decisioning.propositionDisplay"]);
     expect(eventTypes(l).slice(-1)).toEqual(["web.webpagedetails.pageViews"]);
+    expect(eventTypes(l)).not.toContain("decisioning.propositionDisplay");
     for (const r of [s, l]) {
       const d = displays(r);
       expect(d).toHaveLength(1);
       expect(d[0].xdm._experience.decisioning.propositions.map((p) => p.id)).toEqual([OFFER_ID]);
       expect(d[0].xdm._experience.decisioning.propositionEventType).toEqual({ display: 1 });
     }
+    // The page view itself carries the proposition in the library arm; in stock it does not.
+    const pageView = (r) => bodiesOf(r).flatMap((b) => b.events || []).find((e) => e.xdm.eventType === "web.webpagedetails.pageViews");
+    expect(pageView(l).xdm._experience && pageView(l).xdm._experience.decisioning).toBeDefined();
+    expect(pageView(s).xdm._experience && pageView(s).xdm._experience.decisioning).toBeUndefined();
   }, T);
 
   it("AC2 (069-05): an offer rendered after personalizationTimeout (block decorated late) sends the late propositionDisplay as stock does", async () => {
-    const [s, l] = await both({ config: { personalizationTimeout: 400 }, decorateAfter: 1000, placements: true }, withOffer());
+    const [s, l] = await both({ config: { personalizationTimeout: 400 }, decorateAfter: 1000, placements: true }, {});
     expect(sameAsStock(s, l)).toBe(4);
     expect(s.results.run.hero).toContain("airlock-069-05-offer");
     for (const r of [s, l]) {
@@ -471,12 +520,61 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
     }
   }, T);
 
-  it("AC2 (069-05): an answer that arrives after personalizationTimeout is not applied and not reported, as stock", async () => {
-    const [s, l] = await both({ config: { personalizationTimeout: 300 }, placements: true }, withOffer({ delay: 900 }));
-    sameAsStock(s, l);
-    expect(s.results.run.hero).toBe("default");
-    expect(displays(s).filter((e) => e.xdm.eventType === "decisioning.propositionDisplay")).toHaveLength(0);
+  it("AC11 (069-05): an answer that arrives after personalizationTimeout is not applied and not reported, as stock", async () => {
+    const [s, l] = await both({ config: { personalizationTimeout: 300 }, placements: true }, { delay: 900 });
+    const requests = sameAsStock(s, l);
+    expect(requests).toBeGreaterThanOrEqual(2);
+    for (const r of [s, l]) {
+      // The fetch was sent and answered (after the timeout), so "nothing applied" is not just "nothing asked".
+      expect(r.answered).toBe(1);
+      expect(eventTypes(r)).toContain("decisioning.propositionFetch");
+      expect(r.results.run.hero).toBe("default");
+      expect(displays(r).filter((e) => e.xdm.eventType === "decisioning.propositionDisplay")).toHaveLength(0);
+    }
   }, T);
+
+  it("AC6 (069-05): the library fetches only its declared scopes; stock adds __view__, the page surface and the dom-action schema", async () => {
+    const [s, l] = await both({ config: { trackPageView: false }, placements: true }, {});
+    sameAsStock(s, l);
+    // sameAsStock asserts the values; this is the named owner of the difference, so state it in words too.
+    expect(fetchQuery(s).decisionScopes).toContain("__view__");
+    expect(fetchQuery(s).surfaces).toHaveLength(1);
+    expect(fetchQuery(s).schemas).toContain(DOM_ACTION);
+    expect(fetchQuery(l).decisionScopes).not.toContain("__view__");
+    expect(fetchQuery(l).surfaces).toHaveLength(0);
+    expect(fetchQuery(l).schemas).not.toContain(DOM_ACTION);
+  }, T);
+
+  it("AC7 (069-05): the library renders only into a declared placement; with none for the scope it renders nothing (stock renders any selector)", async () => {
+    const [s, l] = await both({ config: { trackPageView: false } }, {});
+    expect(s.results.run.hero).toContain("airlock-069-05-offer");
+    expect(l.results.run.hero).toBe("default");
+    expect(displays(l).filter((e) => e.xdm.eventType === "decisioning.propositionDisplay")).toHaveLength(0);
+    expect(displays(s)).toHaveLength(1);
+    // With the placement declared the library renders (AC3), so the placement is what decides.
+    const [, withPlacement] = await both({ config: { trackPageView: false }, placements: true }, {});
+    expect(withPlacement.results.run.hero).toContain("airlock-069-05-offer");
+  }, T);
+
+  for (const performanceOptimized of [true, false]) {
+    it(`AC10 (069-05): a failed boot, performanceOptimized ${performanceOptimized}: how martechLazy settles and what is sent, library versus stock`, async () => {
+      const run = (library) => replayFixture(browser, "s10-base", {
+        event: null, skipSteps: true, serve: library ? serveLib : { ...serveStock, "/martech/alloy.min.js": "throw new Error('airlock-069-05-load-failure');" }, bootOptions: library ? AIRLOCK_BOOT : {}, bodyHtml: heroHtml(true),
+        run: (page) => failedBootJourney(page, { performanceOptimized, ...(library ? { edgeDomain: "not a host/", airlock: { bundleUrl: "/rig/alloy.min.js", workerUrl: "/rig/chamber.js" } } : {}) }),
+      });
+      const [s, l] = await Promise.all([run(false), run(true)]);
+      // The same failure in both (stock: the Alloy file throws at load; library: bootAlloy rejects), no request, the page left visible.
+      for (const r of [s, l]) {
+        expect(r.results.run.init).toMatch(/^err:/);
+        expect(r.results.run.edgeCalls).toBe(0);
+        expect(r.results.run.bodyStyle).toBe("");
+        expect(posts(r.network)).toEqual([]);
+      }
+      // The difference: stock's martechLazy settles (it catches the failure and goes on); the library's rethrows the boot error.
+      expect(s.results.run.lazy).toBe("ok");
+      expect(l.results.run.lazy).toMatch(/^err:edgeDomain must be a bare host name/);
+    }, T);
+  }
 });
 
 // Hermetic (no browser): the wrapper's stock-command mapping.

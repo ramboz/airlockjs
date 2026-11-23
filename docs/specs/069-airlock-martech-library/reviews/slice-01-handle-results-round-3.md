@@ -16,7 +16,7 @@ The author saved this text from the reviewer's output. The reviewer returned `ap
 | Slice Reviews line said "no production code changed, so no round 3" | low-medium | fixed: names round 3 and what it changed |
 | Deviation log lacks the two edited 064-21 tests; stray punctuation | low | fixed: entry added, punctuation fixed |
 | Chromium wrapper arm had an unreachable `null` branch | nit | fixed: direct comparison |
-| b5 test "AC4a combined form" passes `propositions: []` (the bare form to stock) | low, pre-existing | fixed in this commit: test "AC4a: the combined { propositions, viewName } applyPropositions form, with a warmed view cache, gives the stock run's whole result and DOM" now uses a non-empty proposition and a warmed view, comparing the whole JSON result and the DOM in both arms |
+| b5 test "AC4a combined form" passes `propositions: []` (the bare form to stock) | low, pre-existing | fixed in the 069-03 AC4a commit: test "AC4a: the combined { propositions, viewName } applyPropositions form, with a warmed view cache, gives the stock run's whole result and DOM" now uses a non-empty proposition and a warmed view, comparing the whole JSON result and the DOM in both arms |
 | Early return ignores a disposed handle | nit | carried: matches stock; owner: none needed |
 
 Reviewer's verdict: the wrapper change is correct, `applyPersonalization` still renders the bare form, the tests fail without the change, `core/` and the ADR-0063 allowlist are untouched, no IDs or local paths.
