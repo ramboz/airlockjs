@@ -1884,7 +1884,7 @@ describe("createWrappedSdkHost — opt-out forwarding after refusal (068-02)", (
     meta: { state: { domain: "site.example", cookiesEnabled: true } },
   });
   const wait = () => new Promise((r) => setTimeout(r, 20));
-  function make(consent, { register, ...extra } = {}) {
+  function make(consent, extra = {}) {
     const chamber = makeFakeChamber();
     const dispatched = [];
     const diags = [];
@@ -1893,7 +1893,7 @@ describe("createWrappedSdkHost — opt-out forwarding after refusal (068-02)", (
       chamber, caps, consent, egressPurposes: ["analytics_storage", "personalization"], flushOnGrant: true, consentOptOut: OPT_OUT,
       endpointCeiling: [INTERACT, "https://adobedc.demdex.net/ee/v1/privacy/set-consent"], onDiagnostic: (d) => diags.push(d), ...extra,
     });
-    if (register !== false) host.expectOptOutConsent([JSON.parse(refusal()).consent]);
+    host.expectOptOutConsent([JSON.parse(refusal()).consent]);
     const fire = (id, url, body) => chamber.emit({ type: "intercepted-fetch", id, url, method: "POST", headers: {}, body });
     return { chamber, dispatched, diags, host, fire };
   }
@@ -2048,6 +2048,7 @@ describe("createWrappedSdkHost — the opt-out forward checks the registered con
     host.setConsent(consent);
     await wait();
     expect(dispatched).toHaveLength(0);
+    expect(host.getState().consentHeld).toBe(2);
   });
 
   it("a tampered refusal held after a denial is gone: a second refusal's registration and a grant send nothing of it", async () => {
@@ -2063,6 +2064,27 @@ describe("createWrappedSdkHost — the opt-out forward checks the registered con
     host.setConsent(consent);
     await wait();
     expect(dispatched).toHaveLength(0);
+  });
+
+  it("a refusal forwarded under a denial, then moved to pending by a diagnostic before the recheck, is never sent after a grant", async () => {
+    const consent = { ...DENIED };
+    const chamber = makeFakeChamber();
+    const dispatched = [];
+    const caps = { egress: { dispatch: async (req) => { dispatched.push(req); return { status: 200, statusText: "OK", headers: {}, body: "{}" }; } } };
+    const host = createWrappedSdkHost({
+      chamber, caps, consent, egressPurposes: ["analytics_storage", "personalization"], flushOnGrant: true, consentOptOut: OPT_OUT,
+      endpointCeiling: [INTERACT, "https://adobedc.demdex.net/ee/v1/privacy/set-consent"],
+      onDiagnostic: (d) => { if (d.disposition === "opt-out-forwarded") { consent.analytics_storage = "pending"; consent.personalization = "pending"; } },
+    });
+    host.expectOptOutConsent([CONSENT]);
+    chamber.emit({ type: "intercepted-fetch", id: 1, url: SET_CONSENT, method: "POST", headers: {}, body: body(CONSENT) });
+    await wait();
+    consent.analytics_storage = "granted";
+    consent.personalization = "granted";
+    host.setConsent(consent);
+    await wait();
+    expect(dispatched).toHaveLength(0);
+    expect(chamber.posted.filter((x) => x.type === "intercepted-fetch-response").map((x) => x.statusText)).toEqual(["held at the seal: consent"]);
   });
 
   it("an interact still parks while pending and flushes on a grant (the park exemption is for refusals only)", async () => {

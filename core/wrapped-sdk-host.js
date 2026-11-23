@@ -547,7 +547,7 @@ export function createWrappedSdkHost({
     if (!applyConsent((denied) => {
       // An opt-out-shaped request is never parked: a refusal held while pending must not be sent
       // after a later grant (068-03).
-      if (denied || disposed || !flushOnGrant || (consentOptOut && optOutParse(m, consentOptOut))) rejectHeld(m, "held at the seal: consent");
+      if (denied || disposed || !flushOnGrant || (consentOptOut && optOutParse(original, consentOptOut))) rejectHeld(m, "held at the seal: consent");
       else park(original);
     })) return;
 
@@ -584,7 +584,8 @@ export function createWrappedSdkHost({
       .then(() => {
         // Consent can change between the initial gate and this continuation.
         if (!applyConsent((denied) => {
-          if (denied || disposed || !flushOnGrant) {
+          // Same rule as the first gate: a refusal-shaped request is never parked (068-03).
+          if (denied || disposed || !flushOnGrant || (consentOptOut && optOutParse(original, consentOptOut))) {
             respond({ status: 0, statusText: "held at the seal: consent", body: "" });
           } else {
             settled = true;
@@ -882,7 +883,7 @@ function optOutParse(m, optOut) {
 
 /** Deep equality for JSON values: object key order is ignored, array order is kept. */
 function jsonEqual(a, b) {
-  if (a === b) return true;
+  if (Object.is(a, b)) return true;
   if (a == null || b == null || typeof a !== "object" || typeof b !== "object") return false;
   if (Array.isArray(a) !== Array.isArray(b)) return false;
   if (Array.isArray(a)) return a.length === b.length && a.every((v, i) => jsonEqual(v, b[i]));

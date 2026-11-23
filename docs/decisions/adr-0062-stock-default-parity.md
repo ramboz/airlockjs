@@ -1,7 +1,7 @@
 ---
 status: Accepted
 dependencies: [ADR-0003, ADR-0006, ADR-0007, ADR-0012, ADR-0013, ADR-0023, ADR-0061]
-last_verified: 2026-11-13
+last_verified: 2026-11-23
 frame_review: true
 ---
 
@@ -15,9 +15,9 @@ Amended (2026-11-13, spec 067-11, owner decision D4): helix-rum RUM sits outside
 
 Amended (2026-11-20, spec 068-02, owner decision): after an explicit refusal, the seam forwards the connector's declared opt-out signal (Alloy: `privacy/set-consent` carrying `collect: "n"`, without `query.identity.fetch`) so the vendor records the refusal. Everything else stays held or dropped, and a pending state does not qualify. This is a narrow exemption to exception (a), not a new ADR. See "Amendment: opt-out forwarding (2026-11-20)".
 
-Amended (2026-11-23, spec 068-03, owner decision): the opt-out forward is checked. The forwarded request's `consent` must equal a value the adapter registered, otherwise the request is held. Owner answer to "Record the core rule as an ADR-0062 amendment note, or as a new ADR?": "ADR-0062 amendment note (Recommended)". See "Amendment: opt-out forward is checked (2026-11-23)".
-
 Clarified (2026-11-20, spec 068-01): point 4's "hold and flush on grant" is implemented at the Alloy seam as well. A pending seam hold keeps the request and sends it once on grant; a denial or teardown drops it. The shared wrapped-SDK host makes this an opt-in (`flushOnGrant`, default off): only the Alloy seam opts in. The Google wrapped-SDK seam keeps its pending-reject contract ("never replays on grant") and is a tracked follow-up on the Google track, not changed here.
+
+Amended (2026-11-23, spec 068-03, owner decision): the opt-out forward is checked (gap found by the ADR-0064 review, 2026-11-20; the owner decided the form). The forwarded request's `consent` must equal a value the adapter registered, otherwise the request is held. A refusal-shaped request held while consent is pending is dropped, never parked, so it cannot be sent after a later grant (this narrows the 068-01 clarification below for that one request). Owner answer to "Record the core rule as an ADR-0062 amendment note, or as a new ADR?": "ADR-0062 amendment note (Recommended)". See "Amendment: opt-out forward is checked (2026-11-23)".
 
 Amends and partially supersedes ADR-0003, ADR-0006 (projection and cookie/storage clauses), ADR-0012 (ambient-context boundary note) and ADR-0013 (minimization claims). The clauses are listed under Recommended Decision. Everything else in those ADRs stands.
 
@@ -75,7 +75,7 @@ Adopt Option B.
 
 **Remaining risk.** `meta` is still forwarded unchecked. It mirrors per-session cookie state, so there is no fixed value to register and a structural check would be Alloy-specific. A hostile chamber could put data into `meta` of a refusal that goes to the already-allowlisted Adobe endpoint; the ceiling and config-integrity gates still apply. Keeping `meta` follows the 2026-11-20 choice.
 
-**Where it lives.** `core/wrapped-sdk-host.js` (the compare and the method, vendor-neutral); the Alloy adapter registers `shapeAlloyConsent(consent)`. Implemented by spec 068-03. The page's Adobe 2.0 object is registered on `vendor-adobe` (064-33).
+**Where it lives.** `core/wrapped-sdk-host.js` (the compare and the method, vendor-neutral); the Alloy adapter registers the wire `consent` array from `shapeAlloyConsent(consent)`. Implemented by spec 068-03. The page's Adobe 2.0 object is registered on `vendor-adobe` (064-33).
 
 ## Existing decisions
 
