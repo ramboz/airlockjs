@@ -10,7 +10,7 @@ import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { consentToVector, createAlloyCommandBridge } from "../adapters/eds/alloy-bridge.js";
 import { attachQueueShim } from "../rig/alloy-queue-shim.mjs";
 import { chromium } from "playwright";
-import { PAGE_SCRIPT, diffBodies, ensureAlloyBundle, loadFixture, replayFixture, splitRequestUrl } from "../rig/adobe-b1-replay.mjs";
+import { diffBodies, ensureAlloyBundle, loadFixture, replayFixture, splitRequestUrl } from "../rig/adobe-b1-replay.mjs";
 import { ensureMartechAsset, buildMartechLibrary } from "../rig/adobe-b5-martech.mjs";
 
 const real = process.env.AIRLOCK_REAL_CHROMIUM === "1";
@@ -115,14 +115,14 @@ describe.runIf(real)("spec 064-21: aem-martech through the airlock wrapper (real
   let stock;
   let ours;
   let fixtureCache;
-  const run = (serve, bootOptions) => replayFixture(browser, "s10-base", { event: null, skipSteps: true, serve, bootOptions, run: async (page) => { await ATTACH(page); return journey(page); } });
+  const run = (serve, bootOptions, boot = true) => replayFixture(browser, "s10-base", { event: null, skipSteps: true, serve, bootOptions, boot, run: async (page) => { await ATTACH(page); return journey(page); } });
   beforeAll(async () => {
     browser = await chromium.launch();
     const [index, acdl, alloy] = await Promise.all([ensureMartechAsset("index.js"), ensureMartechAsset("acdl.min.js"), ensureAlloyBundle()]);
     serveStock = { "/martech/index.js": index, "/martech/acdl.min.js": acdl, "/martech/alloy.min.js": alloy.toString("utf8") };
     serveAirlock = { "/martech/index.js": index, "/martech/acdl.min.js": acdl, "/martech/alloy.min.js": SHIM };
     fixtureCache = await loadFixture("s10-base");
-    stock = await run(serveStock, {});
+    stock = await run(serveStock, {}, false);
     ours = await run(serveAirlock, AIRLOCK_BOOT);
   }, T * 2);
   afterAll(async () => { await browser?.close(); });
@@ -182,7 +182,7 @@ describe.runIf(real)("spec 069-03: the Airlock martech library in the S10 differ
   let serveStock;
   let serveLib;
   const runLib = (extra = {}, serve = serveLib) => replayFixture(browser, "s10-base", { event: null, skipSteps: true, serve, bootOptions: AIRLOCK_BOOT, run: (page) => journey(page, { useHandle: true, ...extra }) });
-  const runStock = (extra = {}) => replayFixture(browser, "s10-base", { event: null, skipSteps: true, serve: serveStock, bootOptions: {}, run: (page) => journey(page, extra) });
+  const runStock = (extra = {}) => replayFixture(browser, "s10-base", { event: null, skipSteps: true, serve: serveStock, bootOptions: {}, boot: false, run: (page) => journey(page, extra) });
   beforeAll(async () => {
     browser = await chromium.launch();
     const [index, acdl, alloy, library] = await Promise.all([ensureMartechAsset("index.js"), ensureMartechAsset("acdl.min.js"), ensureAlloyBundle(), buildMartechLibrary()]);
@@ -230,7 +230,7 @@ describe.runIf(real)("spec 069-03: the Airlock martech library in the S10 differ
     }, T);
   }
 
-  const flow = (extra, library) => replayFixture(browser, "s10-base", { event: null, skipSteps: true, serve: library ? serveLib : serveStock, bootOptions: library ? AIRLOCK_BOOT : {}, run: (page) => flowJourney(page, library ? { useHandle: true, ...extra } : extra) });
+  const flow = (extra, library) => replayFixture(browser, "s10-base", { event: null, skipSteps: true, serve: library ? serveLib : serveStock, bootOptions: library ? AIRLOCK_BOOT : {}, boot: library, run: (page) => flowJourney(page, library ? { useHandle: true, ...extra } : extra) });
   const comparePosts = (l, s) => {
     const a = posts(l.network);
     const b = posts(s.network);
@@ -296,7 +296,7 @@ describe.runIf(real)("spec 069-03: the Airlock martech library in the S10 differ
     const bodyHtml = '<main><div id="z">orig</div><div id="o">orig</div></main>';
     const arm = (library) => replayFixture(browser, "s10-base", {
       event: null, skipSteps: true, serve: library ? serveLib : serveStock, // The library fetches only declared scopes (AC6): this placement makes it fetch `__view__`, which carries the warmed view cache.
-      bootOptions: library ? { ...AIRLOCK_BOOT, placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] } : {}, bodyHtml, respond,
+      bootOptions: library ? { ...AIRLOCK_BOOT, placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] } : {}, boot: library, bodyHtml, respond,
       run: (page) => page.evaluate(async ({ lib, own: prop, orgId, datastreamId }) => {
         const m = await (0, eval)('import("/martech/index.js")');
         m.initMartech({ orgId, datastreamId, edgeDomain: "edge.adobedc.net", defaultConsent: "pending", debugEnabled: false, thirdPartyCookiesEnabled: false, idMigrationEnabled: false, targetMigrationEnabled: false, clickCollectionEnabled: false }, { personalization: true, ...(lib ? { handle: window.__handle } : {}) });
@@ -423,7 +423,7 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
     const stats = { answered: 0 };
     const respond = offer ? withOffer(offer, stats) : undefined;
     const r = await replayFixture(browser, "s10-base", {
-      event: null, skipSteps: true, serve: library ? serveLib : serveStock, bootOptions: library ? { ...AIRLOCK_BOOT, ...(more.placements ? { placements: [{ scope: SCOPE, selector: "#hero", minHeight: 0 }] } : {}) } : {}, bodyHtml: heroHtml(!more.decorateAfter), respond,
+      event: null, skipSteps: true, serve: library ? serveLib : serveStock, bootOptions: library ? { ...AIRLOCK_BOOT, ...(more.placements ? { placements: [{ scope: SCOPE, selector: "#hero", minHeight: 0 }] } : {}) } : {}, boot: library, bodyHtml: heroHtml(!more.decorateAfter), respond,
       run: (page) => displayJourney(page, library ? { ...more, useHandle: true } : more),
     });
     r.answered = stats.answered;
@@ -597,7 +597,7 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
         const run = (library) => {
           const { serve, journey } = setup(library);
           return replayFixture(browser, "s10-base", {
-            event: null, skipSteps: true, serve, bootOptions: library ? AIRLOCK_BOOT : {}, bodyHtml: heroHtml(true),
+            event: null, skipSteps: true, serve, bootOptions: library ? AIRLOCK_BOOT : {}, boot: library, bodyHtml: heroHtml(true),
             run: (page) => failedBootJourney(page, { performanceOptimized, ...journey }),
           });
         };
@@ -730,28 +730,23 @@ describe("spec 064-21: the alloy command wrapper (hermetic)", () => {
   });
 });
 
-describe.runIf(real)("bug 006: the rig keeps the chamber's mirrored probe cookie out of a stock tag's reach (real Chromium)", () => {
-  it("drops the chamber's reconcile write of the getTld probe cookie and keeps the tag's own writes", async () => {
+// Bug 006: a stock arm that also booted a chamber let the chamber's mirrored Alloy probe cookie reach the stock tag.
+describe.runIf(real)("bug 006: a stock arm is a pure stock page (real Chromium)", () => {
+  it("boot: false loads no adapter, constructs no Worker and requests no chamber; the default still boots one", async () => {
     const browser = await chromium.launch();
     try {
-      const page = await (await browser.newContext()).newPage();
-      await page.route("https://probe.example/", (route) => route.fulfill({
-        contentType: "text/html",
-        body: `<!doctype html><script>${PAGE_SCRIPT}</script><script>
-          const reconcile = (v) => { document.cookie = v; };
-          const tag = (v) => { document.cookie = v; };
-          window.__mirror = () => reconcile("com.adobe.alloy.getTld=com.adobe.alloy.getTld; path=/");
-          window.__own = () => tag("com.adobe.alloy.getTld=1; path=/");
-          window.__other = () => reconcile("kept=1; path=/");
-        </script>`,
+      const probe = (page) => page.evaluate(() => ({
+        worker: typeof window.__worker,
+        adapter: typeof window.AirlockEds,
+        resources: performance.getEntriesByType("resource").map((e) => new URL(e.name).pathname),
       }));
-      await page.goto("https://probe.example/");
-      const has = (name) => page.evaluate((n) => document.cookie.includes(n + "="), name);
-      await page.evaluate(() => { window.__mirror(); window.__other(); });
-      expect(await has("com.adobe.alloy.getTld")).toBe(false);
-      expect(await has("kept")).toBe(true);
-      await page.evaluate(() => window.__own());
-      expect(await has("com.adobe.alloy.getTld")).toBe(true);
+      const stock = await replayFixture(browser, "s10-base", { event: null, skipSteps: true, boot: false, run: probe });
+      expect(stock.results.run.worker).toBe("undefined");
+      expect(stock.results.run.adapter).toBe("undefined");
+      expect(stock.results.run.resources).not.toContain("/rig/chamber.js");
+      expect(stock.results.run.resources).not.toContain("/rig/airlock-eds.js");
+      const booted = await replayFixture(browser, "s10-base", { event: null, skipSteps: true, run: probe });
+      expect(booted.results.run.worker).toBe("object");
     } finally { await browser.close(); }
   });
 });

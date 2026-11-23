@@ -52,7 +52,7 @@ const stockCall = (page, name, o) => page.evaluate(async ({ name, o }) => {
 
 /** The airlock arm: the page talks to the handle (`window.__handle`) or through the wrapper bridge. */
 const ours = (browser, respond, run, { boot = {}, body = ZONE, extraCookies = [], fixture = "s4-base" } = {}) => replayFixture(browser, fixture, { event: null, extraCookies, bodyHtml: body, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }], ...boot }, respond, run });
-const stock = (browser, respond, run, body = ZONE, fixture = "s4-base") => replayFixture(browser, fixture, { event: null, bodyHtml: body, respond, run });
+const stock = (browser, respond, run, body = ZONE, fixture = "s4-base") => replayFixture(browser, fixture, { event: null, boot: false, bodyHtml: body, respond, run });
 const handleCall = (page, fn, arg) => page.evaluate(async ({ fn, arg }) => {
   const h = window.__handle;
   try { return { ok: JSON.parse(JSON.stringify((await new Function("h", "arg", `return (${fn})(h, arg)`)(h, arg)) ?? null)) }; } catch (e) { return { err: String(e && e.message), plain: Object.getPrototypeOf(e) === Error.prototype }; }

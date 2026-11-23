@@ -54,7 +54,7 @@ const zoneDom = (page) => page.evaluate(() => document.getElementById("z").outer
 const PV_XDM = { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name: "airlock064-page" } } };
 /** Stock vs airlock on the same SYNTHETIC answer; each returns what \`probe(page)\` reads afterwards. */
 const stockVsAirlock = async (browser, payload, { probe, head = "", stockConfig = {}, bootExtra = {}, after, renderDecisions = true } = {}) => {
-  const stock = await replayFixture(browser, "s4-base", { event: null, headHtml: head, bodyHtml: ZONE, respond: synthetic(payload), run: async (page) => { await runStock(page, { renderDecisions, xdm: PV_XDM }, stockConfig); await page.waitForTimeout(600); return probe(page); } });
+  const stock = await replayFixture(browser, "s4-base", { event: null, boot: false, headHtml: head, bodyHtml: ZONE, respond: synthetic(payload), run: async (page) => { await runStock(page, { renderDecisions, xdm: PV_XDM }, stockConfig); await page.waitForTimeout(600); return probe(page); } });
   const ours = await replayFixture(browser, "s4-base", { event: null, headHtml: head, bodyHtml: '<div id="v"></div>' + ZONE, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }], ...bootExtra }, respond: synthetic(payload), run: async (page) => { await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x }), PV_XDM); await page.waitForTimeout(900); if (after) await after(page); return probe(page); } });
   return { stock, ours };
 };
@@ -268,7 +268,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       return { type: e.xdm.eventType, scopes: q ? q.decisionScopes || null : null, hasQuery: !!q, decisioning: (e.xdm._experience && e.xdm._experience.decisioning) || null };
     });
     const sequence = async (browser, payload, steps, { placements = [{ scope: "__view__", selector: "#v", minHeight: 0 }], stockScopes } = {}) => {
-      const stock = await replayFixture(browser, "s4-base", { event: null, bodyHtml: ZONE, respond: answerFirst(payload), run: async (page) => {
+      const stock = await replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: ZONE, respond: answerFirst(payload), run: async (page) => {
         const dom = [];
         for (const [i, s] of steps.entries()) {
           const options = { xdm: s.xdm, renderDecisions: s.renderDecisions, ...(i === 0 && stockScopes ? { decisionScopes: stockScopes } : {}) };
@@ -344,7 +344,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     it("a failed request on a cold cache sends no empty-view display, as stock", async () => {
       const failing = (req) => (req.method() === "POST" ? { status: 400, headers: { "content-type": "application/json", ...cors(req) }, body: JSON.stringify({ errors: [{ status: 400, title: "bad" }] }) } : { status: 204, headers: cors(req), body: "" });
       const post = (r) => r.network.filter((n) => n.method === "POST");
-      const stock = await replayFixture(browser, "s4-base", { event: null, bodyHtml: ZONE, respond: failing, run: (page) => runStock(page, { xdm: viewXdm("cart"), renderDecisions: true }).catch(() => "rejected") });
+      const stock = await replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: ZONE, respond: failing, run: (page) => runStock(page, { xdm: viewXdm("cart"), renderDecisions: true }).catch(() => "rejected") });
       const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + ZONE, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] }, respond: failing, run: async (page) => {
         await page.evaluate((x) => Promise.resolve(window.__handle.push({ event: "page_view", xdm: x, renderDecisions: true })).catch(() => {}), viewXdm("cart"));
         await page.waitForTimeout(1500);
@@ -396,7 +396,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
           await page.waitForTimeout(1200);
           return probe(page).catch(() => 0);
         };
-        await replayFixture(browser, "s4-base", key === "stock" ? { ...common, run } : { ...common, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] }, run }).catch(() => {});
+        await replayFixture(browser, "s4-base", key === "stock" ? { ...common, boot: false, run } : { ...common, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] }, run }).catch(() => {});
       }
       expect(navs.stock).toEqual(["https://redirect.example/landing"]);
       expect(navs.ours).toEqual(navs.stock);
@@ -456,7 +456,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     it("applyPropositions with metadata renders the held propositions like stock and notifies nothing itself", async () => {
       const props = [{ id: "ap1", scope: "web-page", scopeDetails: { decisionProvider: "TGT", activity: { id: "ap-act" } }, items: [{ id: "ai", schema: `${NS}html-content-item`, data: { content: "<em>applied</em>" } }] }];
       const metadata = { "web-page": { selector: "#a", actionType: "setHtml" } };
-      const stockRun = await replayFixture(browser, "s4-base", { event: null, bodyHtml: ZONE, respond: synthetic([]), run: async (page) => {
+      const stockRun = await replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: ZONE, respond: synthetic([]), run: async (page) => {
         await runStock(page, { xdm: PV_XDM });
         await page.evaluate(async ([p, m]) => { await window.stockAlloy("applyPropositions", { propositions: p, metadata: m }); }, [props, metadata]);
         await page.waitForTimeout(1500);
@@ -479,7 +479,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
   describe("AC2 click collection and notifications vs pinned stock Alloy 2.31.1 (SYNTHETIC page, no capture)", () => {
     const LINKS = '<div id="box"><a id="ext" href="https://destination.example/landing" onclick="return false"><span id="inner">Go there</span></a><a id="dl" href="/files/report.pdf" onclick="return false">Report</a><a id="inl" href="/other" onclick="return false">Other</a></div>';
     const click = async (browser, selector) => {
-      const stock = await replayFixture(browser, "s4-base", { event: null, bodyHtml: LINKS, bootOptions: { clickCollectionEnabled: false }, respond: synthetic([]), run: async (page) => { await runStock(page, { xdm: PV_XDM }); await page.click(selector); await page.waitForTimeout(800); } });
+      const stock = await replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: LINKS, bootOptions: { clickCollectionEnabled: false }, respond: synthetic([]), run: async (page) => { await runStock(page, { xdm: PV_XDM }); await page.click(selector); await page.waitForTimeout(800); } });
       const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml: LINKS, respond: synthetic([]), run: async (page) => { await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x }), PV_XDM); await page.waitForTimeout(600); await page.click(selector); await page.waitForTimeout(1000); } });
       const last = (r) => r.network.filter((n) => n.method === "POST").map((n) => n.body).filter((b) => /linkClicks/.test(b || ""));
       return { stock: last(stock), ours: last(ours) };
@@ -508,7 +508,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     /** Stock and airlock on `payload`: a push `xdm`, then `after` (a click). Returns every edge POST body in order, meta stripped, and the page DOM. */
     const journey = async (browser, payload, { xdm = PV_XDM, click = "#cta", after, bootExtra = {}, stockConfig = {} } = {}) => {
       const act = async (page) => { if (after) await after(page); else if (click) await page.click(click); await page.waitForTimeout(1000); return page.evaluate(() => document.getElementById("box").outerHTML); };
-      const stock = await replayFixture(browser, "s4-base", { event: null, bodyHtml: LINKS, bootOptions: { clickCollectionEnabled: false }, respond: synthetic(payload), run: async (page) => { await runStock(page, { renderDecisions: true, xdm }, stockConfig); await page.waitForTimeout(700); return act(page); } });
+      const stock = await replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: LINKS, bootOptions: { clickCollectionEnabled: false }, respond: synthetic(payload), run: async (page) => { await runStock(page, { renderDecisions: true, xdm }, stockConfig); await page.waitForTimeout(700); return act(page); } });
       const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + LINKS, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }], ...bootExtra }, respond: synthetic(payload), run: async (page) => { await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x }), xdm); await page.waitForTimeout(900); return act(page); } });
       const bodies = (r) => r.network.filter((n) => n.method === "POST").map((n) => noMeta(n.body));
       return { stock: bodies(stock), ours: bodies(ours), stockDom: stock.results.run, oursDom: ours.results.run };
@@ -647,7 +647,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
         if (drive) await drive(page, who); else if (who === "stock") await runStock(page, { renderDecisions: true, xdm: PV_XDM }).catch(() => {}); else await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x }), PV_XDM);
         await page.waitForTimeout(2500);
       };
-      const r = await replayFixture(browser, "s4-base", who === "stock" ? { ...common, run } : { ...common, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }], ...bootExtra }, run });
+      const r = await replayFixture(browser, "s4-base", who === "stock" ? { ...common, boot: false, run } : { ...common, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }], ...bootExtra }, run });
       return { trace, network: r.network.filter((n) => n.method === "POST"), diagnostics: r.diagnostics };
     };
     const displayOf = (network) => network.find((n) => /propositionDisplay/.test(n.body));
@@ -742,7 +742,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     });
     const both = async (payload, steps, { bootExtra = {}, applyOptions = {}, stockExtra = {} } = {}) => {
       const options = { responseBody: body(payload), ...applyOptions };
-      const stock = await replayFixture(browser, "s4-base", { event: null, bodyHtml: ZONE, respond: empty, run: (page) => stockArm(page, { ...options, ...stockExtra }, steps.map((s, i) => ({ xdm: s.xdm, renderDecisions: s.renderDecisions, ...(i === 0 ? { decisionScopes: ["__view__"] } : {}) }))) });
+      const stock = await replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: ZONE, respond: empty, run: (page) => stockArm(page, { ...options, ...stockExtra }, steps.map((s, i) => ({ xdm: s.xdm, renderDecisions: s.renderDecisions, ...(i === 0 ? { decisionScopes: ["__view__"] } : {}) }))) });
       const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + ZONE + SINK, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }], ...bootExtra }, respond: empty, run: (page) => ourArm(page, options, steps) });
       return { stock, ours };
     };
@@ -782,7 +782,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
         else await ourArm(page, options, steps).catch(() => {});
         await page.waitForTimeout(2500);
       };
-      const r = await replayFixture(browser, "s4-base", who === "stock" ? { event: null, bodyHtml: ZONE, respond: empty, run } : { event: null, bodyHtml: '<div id="v"></div>' + ZONE, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] }, respond: empty, run });
+      const r = await replayFixture(browser, "s4-base", who === "stock" ? { event: null, boot: false, bodyHtml: ZONE, respond: empty, run } : { event: null, bodyHtml: '<div id="v"></div>' + ZONE, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] }, respond: empty, run });
       return { trace, diagnostics: r.diagnostics };
     };
     const URL_TO = "https://redirect.example/landing";
@@ -813,7 +813,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       const run = async (who) => {
         const steps = [FIRST, { xdm: viewXdm("home"), renderDecisions: true }, { xdm: viewXdm("cart"), renderDecisions: true }];
         if (who === "stock") {
-          return replayFixture(browser, "s4-base", { event: null, bodyHtml: ZONE, respond: empty, run: async (page) => {
+          return replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: ZONE, respond: empty, run: async (page) => {
             await page.evaluate(() => { window.__alloyNS = ["stockAlloy"]; window.stockAlloy = function () { const a = arguments; return new Promise((res, rej) => window.stockAlloy.q.push([res, rej, a])); }; window.stockAlloy.q = []; });
             await page.evaluate(() => new Promise((res, rej) => { const s = document.createElement("script"); s.src = "/rig/alloy.min.js"; s.onload = res; s.onerror = rej; document.head.appendChild(s); }));
             return page.evaluate(async ({ first, next, steps, datastreamId }) => {
@@ -857,7 +857,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     /** Stock and ours get the same applied response and the same pushes (ours also declares `__view__`); `awaitApply:false` leaves the apply in flight. */
     const differential = async (steps, { awaitApply = true } = {}) => {
       const options = { responseBody: body([HOME, CART]) };
-      const stock = await replayFixture(browser, "s4-base", { event: null, bodyHtml: ZONE, respond: empty, run: (page) => page.evaluate(async ({ options, steps, datastreamId, awaitApply }) => {
+      const stock = await replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: ZONE, respond: empty, run: (page) => page.evaluate(async ({ options, steps, datastreamId, awaitApply }) => {
         window.__alloyNS = ["stockAlloy"];
         window.stockAlloy = function () { const a = arguments; return new Promise((res, rej) => window.stockAlloy.q.push([res, rej, a])); };
         window.stockAlloy.q = [];

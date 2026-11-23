@@ -63,21 +63,6 @@ for (const level of ["warn", "error"]) {
   const native = console[level].bind(console);
   console[level] = (...a) => { try { for (const x of a) if (x && typeof x === "object" && x.kind) window.__diag.push(JSON.parse(JSON.stringify(x))); } catch (e) {} native(...a); };
 }
-// Bug 006: the chamber mirrors its own Alloy's probe cookie (com.adobe.alloy.getTld) into the real jar for
-// a moment. A stock tag sharing the page that probes inside that window reads it back and settles on an
-// empty domain. The rig drops that one mirrored write; every other cookie write, including the tag's own
-// probe, goes through.
-{
-  const desc = Object.getOwnPropertyDescriptor(Document.prototype, "cookie");
-  Object.defineProperty(document, "cookie", {
-    configurable: true,
-    get() { return desc.get.call(this); },
-    set(v) {
-      if (/^com\\.adobe\\.alloy\\.getTld=/.test(String(v)) && /\\breconcile\\b/.test(new Error().stack || "")) return;
-      desc.set.call(this, v);
-    },
-  });
-}
 window.__observed = []; window.__responses = []; window.__results = new Map(); window.__seq = 0;
 const NativeWorker = window.Worker;
 window.Worker = class extends NativeWorker {
@@ -102,9 +87,13 @@ window.__command = (command, options) => new Promise((resolve) => {
 });
 `;
 
-const pageHtml = (bootOptions, title, bodyHtml = "", headHtml = "") => `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>${headHtml}
+// Bug 006: `boot: false` is a pure stock page: no adapter script and no chamber, so nothing but the stock tag touches the page.
+const pageHtml = (bootOptions, title, bodyHtml = "", headHtml = "", boot = true) => boot
+  ? `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>${headHtml}
 <script src="/rig/airlock-eds.js"></script><script>${PAGE_SCRIPT}</script></head><body>${bodyHtml}
-<script>AirlockEds.bootAlloy(${JSON.stringify(bootOptions)}).then((h) => { window.__handle = h; });</script></body></html>`;
+<script>AirlockEds.bootAlloy(${JSON.stringify(bootOptions)}).then((h) => { window.__handle = h; });</script></body></html>`
+  : `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title>${headHtml}
+<script>${PAGE_SCRIPT}</script></head><body>${bodyHtml}</body></html>`;
 
 /** The recorded page view: the capture page sent this XDM with `sendEvent`. */
 export const PAGE_VIEW = { event: "page_view", xdm: { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name: "airlock064-page" } } } };
@@ -119,12 +108,13 @@ const interactResponses = (fixture) => fixture.requests.filter((r) => r.method =
  *   `event: null` skips the default page-view push; `run(page)` drives a scenario of its own (064-19) and its value lands in `results.run`.
  *   064-20: `bodyHtml` / `headHtml` seed the replay page (a placement box, a link to click, a prehiding target).
  *   064-21: `serve` maps a page-origin path to the JavaScript text served there (the pinned `aem-martech` files and the bridge shim).
+ *   Bug 006: `boot: false` makes the page a pure stock page (no adapter, no chamber, no Worker); use it for every stock arm.
  *   `bootOptions` is merged into the bootAlloy options (a site opt-in such as a reduced `context`).
  *   064-26: `skipSteps` leaves the recorded getIdentity / appendIdentityToUrl steps to `run(page)`, which drives them through `handle.command`.
  *   064-18: `extraHosts` are further vendor hosts answered from the fixture (a first-party edge domain);
  *   `respond(request, index)` (may be async, 069-05) may return `{ status, headers, body }` to override the recorded answer.
  */
-export async function replayFixture(browser, name, { bootOptions = {}, title = "airlock064-page", seed = true, event = PAGE_VIEW, commands = [], extraHosts = [], respond = null, extraCookies = [], run = null, bodyHtml = "", headHtml = "", skipSteps = false, serve = {} } = {}) {
+export async function replayFixture(browser, name, { bootOptions = {}, title = "airlock064-page", seed = true, event = PAGE_VIEW, commands = [], extraHosts = [], respond = null, extraCookies = [], run = null, bodyHtml = "", headHtml = "", skipSteps = false, serve = {}, boot = true } = {}) {
   // 064-22: a caller may pass a synthetic fixture object instead of a recorded file stem.
   const fixture = typeof name === "object" ? name : await loadFixture(name);
   const { manifest, capture } = fixture;
@@ -177,7 +167,7 @@ export async function replayFixture(browser, name, { bootOptions = {}, title = "
         if (url.pathname === "/rig/alloy.min.js") return route.fulfill({ contentType: "text/javascript", body: bundle });
         if (Object.hasOwn(serve, url.pathname)) return route.fulfill({ contentType: "text/javascript", body: serve[url.pathname] });
         const opts = { datastreamId, orgId, consentHold: false, bundleUrl: `${pageUrl.origin}/rig/alloy.min.js`, workerUrl: "/rig/chamber.js", ...bootOptions };
-        return route.fulfill({ contentType: "text/html", body: pageHtml(opts, title, bodyHtml, headHtml) });
+        return route.fulfill({ contentType: "text/html", body: pageHtml(opts, title, bodyHtml, headHtml, boot) });
       }
       if (/adobedc\.(demdex|net)|edge\.adobedc\.net/.test(url.hostname) || extraHosts.includes(url.hostname)) {
         const headers = await req.allHeaders();
@@ -196,10 +186,10 @@ export async function replayFixture(browser, name, { bootOptions = {}, title = "
     });
 
     await page.goto(input.url, { referer: input.referrer || undefined, waitUntil: "load" });
-    await page.waitForFunction(() => window.__worker && window.__handle, null, { timeout: 15000 });
+    if (boot) await page.waitForFunction(() => window.__worker && window.__handle, null, { timeout: 15000 });
 
     const results = {};
-    const steps = capture.steps.map((s) => s.step);
+    const steps = boot ? capture.steps.map((s) => s.step) : [];
     if (steps.includes("sendEvent") && event) {
       await page.evaluate((evt) => window.__handle.push(evt), event);
       await page.waitForFunction(() => window.__observed.length > 0, null, { timeout: 5000 }).catch(() => {});

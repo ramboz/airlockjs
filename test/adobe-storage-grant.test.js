@@ -39,9 +39,9 @@ const loadAirlock = async (page, steps) => {
   if (steps.event) await page.evaluate((e) => window.__handle.push(e), { event: "page_view", xdm: steps.event.xdm });
 };
 
-const reload = async (page) => {
+const reload = async (page, boot = true) => {
   await page.reload({ waitUntil: "load" });
-  await page.waitForFunction(() => window.__worker && window.__handle, null, { timeout: 15000 });
+  if (boot) await page.waitForFunction(() => window.__worker && window.__handle, null, { timeout: 15000 });
 };
 
 const alloyKeys = (page) => page.evaluate(() => Object.fromEntries(Object.keys(localStorage).filter((k) => k.startsWith("com.adobe.alloy.")).map((k) => [k, localStorage.getItem(k)])));
@@ -53,7 +53,7 @@ const twoLoads = async (browser, fixture, { arm, steps, match, waitFirst = true,
   const cookies = ["identity", "consent"].map((n) => ({ name: `kndctr_908936ED5D35CC220A495CD4_AdobeOrg_${n}`, value: n === "consent" ? "general=in" : "fake-identity", domain: host }));
   const load = (page) => (arm === "stock" ? loadStock(page, steps) : loadAirlock(page, steps));
   const r = await replayFixture(browser, fixture, {
-    seed: false, event: null, respond: answer, extraCookies: cookies, ...opts,
+    seed: false, event: null, boot: arm !== "stock", respond: answer, extraCookies: cookies, ...opts,
     run: async (page) => {
       const seen = [[], []];
       let n = 0;
@@ -62,7 +62,7 @@ const twoLoads = async (browser, fixture, { arm, steps, match, waitFirst = true,
       for (let i = 0; waitFirst && i < 100 && !seen[0].length; i++) await page.waitForTimeout(100);
       const afterFirst = await alloyKeys(page);
       n = 1;
-      await reload(page);
+      await reload(page, arm !== "stock");
       await load(page);
       // Poll for a request that is expected on load 2; absence cannot be awaited, so keep a bounded settle.
       for (let i = 0; expectSecond && i < 100 && !seen[1].length; i++) await page.waitForTimeout(100);

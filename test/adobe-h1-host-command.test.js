@@ -262,6 +262,7 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
   it("SYNTHETIC differential vs stock 2.31.1: getLibraryInfo and createEventMergeId have the stock shape", async () => {
     const stock = await replayFixture(browser, "s3-base", {
       event: null,
+      boot: false,
       run: async (page) => page.evaluate(async () => {
         window.__alloyNS = ["stockAlloy"];
         window.stockAlloy = function () { const a = arguments; return new Promise((res, rej) => window.stockAlloy.q.push([res, rej, a])); };
@@ -378,7 +379,7 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
     const respond = await edgeAnswers();
     const body = await s3Body();
     const extraCookies = cookie ? [await staleCookie()] : [];
-    const stock = await replayFixture(browser, "s5-fresh", { skipSteps: true, event: null, respond, extraCookies, run: (page) => stockStatus(page, { ...stockCfg, body }) });
+    const stock = await replayFixture(browser, "s5-fresh", { skipSteps: true, event: null, boot: false, respond, extraCookies, run: (page) => stockStatus(page, { ...stockCfg, body }) });
     const ours = await replayFixture(browser, "s5-fresh", { skipSteps: true, event: null, respond, extraCookies, bootOptions: boot, run: (page) => ourStatus(page, body) });
     // named explicitly, so an all-resolved run cannot pass vacuously
     expect(stock.results.run.getIdentity).toBe(parked ? "pending" : "resolved");
@@ -390,7 +391,7 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
   it("no consent input (hold on, no vector): the labelled ADR-0062 hold difference, with a warning and a later command still settling", async () => {
     const respond = await edgeAnswers();
     const body = await s3Body();
-    const stock = await replayFixture(browser, "s5-fresh", { skipSteps: true, event: null, respond, run: (page) => stockStatus(page, { defaultConsent: "in", body }) });
+    const stock = await replayFixture(browser, "s5-fresh", { skipSteps: true, event: null, boot: false, respond, run: (page) => stockStatus(page, { defaultConsent: "in", body }) });
     const ours = await replayFixture(browser, "s5-fresh", { skipSteps: true, event: null, respond, bootOptions: { consentHold: null /* undoes the harness default of no hold */ }, run: (page) => ourStatus(page, body) });
     // stock has no hold: its default consent lets every command through and the identity is fetched
     expect(Object.values(stock.results.run).every((v) => v === "resolved")).toBe(true);
@@ -465,7 +466,7 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
 
   it("SYNTHETIC differential vs stock 2.31.1: applyResponse on the recorded S3 body has stock's keys and types throughout", async () => {
     const body = await s3Body();
-    const stock = await replayFixture(browser, "s3-base", { event: null, run: (page) => stockApplyResponse(page, { responseBody: body }) });
+    const stock = await replayFixture(browser, "s3-base", { event: null, boot: false, run: (page) => stockApplyResponse(page, { responseBody: body }) });
     const ours = await replayFixture(browser, "s3-base", { event: null, run: (page) => ourApplyResponse(page, { responseBody: body }) });
     expect(Object.keys(stock.results.run.shape)).toEqual(["decisions", "destinations", "propositions"]);
     expect(ours.results.run.shape).toEqual(stock.results.run.shape);
@@ -479,7 +480,7 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
     ["with personalization configured, where the boot option is wired", { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] }],
   ])("a boot-level renderDecisions:true does not change applyResponse %s: omitted renders nothing and sends nothing (SYNTHETIC body)", async (_label, extra) => {
     const html = '<div id="v"></div><div id="z26">orig</div>';
-    const stock = await replayFixture(browser, "s3-base", { event: null, bodyHtml: html, run: (page) => stockApplyResponse(page, { responseBody: DOM_ACTION_BODY }) });
+    const stock = await replayFixture(browser, "s3-base", { event: null, boot: false, bodyHtml: html, run: (page) => stockApplyResponse(page, { responseBody: DOM_ACTION_BODY }) });
     const ours = await replayFixture(browser, "s3-base", { event: null, bodyHtml: html, bootOptions: { renderDecisions: true, ...extra }, run: (page) => ourApplyResponse(page, { responseBody: DOM_ACTION_BODY }) });
     expect(stock.results.run.dom).toBe("orig");
     expect(ours.results.run.dom).toBe("orig");
@@ -492,6 +493,7 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
   it("applyResponse with renderDecisions:true: two recorded gaps against stock: no display notification, and `decisions` keeps the rendered proposition", async () => {
     const stock = await replayFixture(browser, "s3-base", {
       event: null,
+      boot: false,
       bodyHtml: '<div id="z26">orig</div>',
       run: async (page) => {
         const notified = page.waitForRequest((req) => /propositionDisplay/.test(req.postData() || ""), { timeout: 10000 });
@@ -546,6 +548,7 @@ describe.runIf(real)("064-26 the five commands through the real chamber (real Ch
   it("an Alloy validation error crosses as a plain Error with stock's name and message", async () => {
     const stock = await replayFixture(browser, "s3-base", {
       event: null,
+      boot: false,
       run: (page) => page.evaluate(async () => {
         window.__alloyNS = ["stockAlloy"];
         window.stockAlloy = function () { const a = arguments; return new Promise((res, rej) => window.stockAlloy.q.push([res, rej, a])); };
