@@ -1893,6 +1893,7 @@ describe("createWrappedSdkHost — opt-out forwarding after refusal (068-02)", (
       chamber, caps, consent, egressPurposes: ["analytics_storage", "personalization"], flushOnGrant: true, consentOptOut: OPT_OUT,
       endpointCeiling: [INTERACT, "https://adobedc.demdex.net/ee/v1/privacy/set-consent"], onDiagnostic: (d) => diags.push(d), ...extra,
     });
+    host.expectOptOutConsent([JSON.parse(refusal()).consent]);
     const fire = (id, url, body) => chamber.emit({ type: "intercepted-fetch", id, url, method: "POST", headers: {}, body });
     return { chamber, dispatched, diags, host, fire };
   }
@@ -1948,5 +1949,197 @@ describe("createWrappedSdkHost — opt-out forwarding after refusal (068-02)", (
     fire(7, SET_CONSENT, refusal());
     await wait();
     expect(dispatched).toHaveLength(0);
+  });
+});
+
+// Slice 068-03 (ADR-0062 amendment, 2026-11-23): the opt-out forward carries only a `consent`
+// value the adapter registered through `expectOptOutConsent`; core compares it as opaque JSON.
+describe("createWrappedSdkHost — the opt-out forward checks the registered consent (068-03)", () => {
+  const SET_CONSENT = "https://adobedc.demdex.net/ee/v1/privacy/set-consent?configId=x&requestId=y";
+  const INTERACT = "https://adobedc.demdex.net/ee/v1/interact";
+  const OPT_OUT = { path: "/privacy/set-consent", match: { path: ["consent", 0, "value", "collect", "val"], equals: "n" }, forward: ["consent", "meta"] };
+  const CONSENT = [{ standard: "Adobe", version: "2.0", value: { collect: { val: "n" } } }];
+  const PAGE_OBJECT = [{ standard: "Adobe", version: "2.0", value: { collect: { val: "n" }, metadata: { time: "2026-01-01T00:00:00Z" } } }];
+  const body = (consent) => JSON.stringify({ consent, query: { identity: { fetch: ["ECID"] } }, meta: { state: { a: 1 } } });
+  const wait = () => new Promise((r) => setTimeout(r, 20));
+  function make(consent, expected) {
+    const chamber = makeFakeChamber();
+    const dispatched = [];
+    const caps = { egress: { dispatch: async (req) => { dispatched.push(req); return { status: 200, statusText: "OK", headers: {}, body: "{}" }; } } };
+    const host = createWrappedSdkHost({
+      chamber, caps, consent, egressPurposes: ["analytics_storage", "personalization"], flushOnGrant: true, consentOptOut: OPT_OUT,
+      endpointCeiling: [INTERACT, "https://adobedc.demdex.net/ee/v1/privacy/set-consent"], onDiagnostic: () => {},
+    });
+    if (expected !== undefined) host.expectOptOutConsent(expected);
+    const fire = (id, b, url = SET_CONSENT) => chamber.emit({ type: "intercepted-fetch", id, url, method: "POST", headers: {}, body: b });
+    return { chamber, dispatched, host, fire };
+  }
+  const DENIED = { analytics_storage: "denied", personalization: "denied" };
+
+  it("forwards a consent equal to a registered value, ignoring object key order", async () => {
+    const reordered = [{ version: "2.0", value: { collect: { val: "n" } }, standard: "Adobe" }];
+    const { dispatched, fire } = make({ ...DENIED }, [CONSENT]);
+    fire(1, body(reordered));
+    await wait();
+    expect(dispatched).toHaveLength(1);
+  });
+
+  it("holds a consent the chamber changed (a changed field, an extra field, an extra entry, a different type)", async () => {
+    const changed = [{ standard: "Adobe", version: "2.0", value: { collect: { val: "n" } }, extra: "data" }];
+    const field = [{ standard: "Adobe", version: "9.9", value: { collect: { val: "n" } } }];
+    const entries = [...CONSENT, { standard: "IAB", version: "2.0", value: { gdprApplies: true } }];
+    const { dispatched, host, fire } = make({ ...DENIED }, [CONSENT]);
+    fire(1, body(changed));
+    fire(2, body(field));
+    fire(3, body(entries));
+    fire(4, body(JSON.stringify(CONSENT)));
+    fire(5, JSON.stringify({ query: {}, meta: {} }));
+    await wait();
+    expect(dispatched).toHaveLength(0);
+    expect(host.getState().consentHeld).toBe(5);
+  });
+
+  it("keeps array order significant", async () => {
+    const A = { standard: "Adobe", version: "2.0", value: { collect: { val: "n" }, a: 1 } };
+    const B = { standard: "Adobe", version: "2.0", value: { collect: { val: "n" }, b: 2 } };
+    const { dispatched, host, fire } = make({ ...DENIED }, [[A, B]]);
+    fire(1, body([B, A]));
+    fire(2, body([A, B]));
+    await wait();
+    expect(dispatched).toHaveLength(1);
+    expect(host.getState().consentHeld).toBe(1);
+  });
+
+  it("a registration replaced between the first gate and the deferred recheck holds the request", async () => {
+    const chamber = makeFakeChamber();
+    const dispatched = [];
+    const caps = { egress: { dispatch: async (req) => { dispatched.push(req); return { status: 200, statusText: "OK", headers: {}, body: "{}" }; } } };
+    const other = [{ standard: "Adobe", version: "2.0", value: { collect: { val: "n" }, other: 1 } }];
+    let host;
+    host = createWrappedSdkHost({
+      chamber, caps, consent: { ...DENIED }, egressPurposes: ["analytics_storage", "personalization"], flushOnGrant: true, consentOptOut: OPT_OUT,
+      endpointCeiling: [INTERACT, "https://adobedc.demdex.net/ee/v1/privacy/set-consent"],
+      onDiagnostic: (d) => { if (d.disposition === "opt-out-forwarded") host.expectOptOutConsent([other]); },
+    });
+    host.expectOptOutConsent([CONSENT]);
+    chamber.emit({ type: "intercepted-fetch", id: 1, url: SET_CONSENT, method: "POST", headers: {}, body: body(CONSENT) });
+    await wait();
+    expect(dispatched).toHaveLength(0);
+    expect(chamber.posted.filter((x) => x.type === "intercepted-fetch-response").map((x) => x.statusText)).toEqual(["held at the seal: consent"]);
+  });
+
+  it("holds a value whose type differs but still parses as a refusal", async () => {
+    const reg = [{ standard: "Adobe", version: "2.0", value: { collect: { val: "n" } } }];
+    const typed = [{ standard: "Adobe", version: 2, value: { collect: { val: "n" } } }];
+    const { dispatched, host, fire } = make({ ...DENIED }, [reg]);
+    fire(1, body(typed));
+    await wait();
+    expect(dispatched).toHaveLength(0);
+    expect(host.getState().consentHeld).toBe(1);
+  });
+
+  it("deep-copies the registration so later mutation of the caller's object changes nothing", async () => {
+    const reg = [{ standard: "Adobe", version: "2.0", value: { collect: { val: "n" } } }];
+    const { dispatched, host, fire } = make({ ...DENIED }, [reg]);
+    reg[0].value.extra = true;
+    fire(1, body(reg));
+    await wait();
+    expect(dispatched).toHaveLength(0);
+    host.expectOptOutConsent(undefined);
+    fire(2, body(CONSENT));
+    await wait();
+    expect(dispatched).toHaveLength(0);
+  });
+
+  it("with nothing registered (never called, cleared, or empty) the refusal is held", async () => {
+    const { dispatched, host, fire } = make({ ...DENIED });
+    fire(1, body(CONSENT));
+    host.expectOptOutConsent([CONSENT]);
+    host.expectOptOutConsent(null);
+    fire(2, body(CONSENT));
+    host.expectOptOutConsent([]);
+    fire(3, body(CONSENT));
+    await wait();
+    expect(dispatched).toHaveLength(0);
+  });
+
+  it("a later registration applies to the next request and replaces the earlier values", async () => {
+    const { dispatched, host, fire } = make({ ...DENIED }, [CONSENT]);
+    host.expectOptOutConsent([PAGE_OBJECT]);
+    fire(1, body(CONSENT));
+    fire(2, body(PAGE_OBJECT));
+    await wait();
+    expect(dispatched).toHaveLength(1);
+    expect(JSON.parse(dispatched[0].body).consent).toEqual(PAGE_OBJECT);
+  });
+
+  it("any one of several registered values is enough", async () => {
+    const { dispatched, fire } = make({ ...DENIED }, [PAGE_OBJECT, CONSENT]);
+    fire(1, body(CONSENT));
+    fire(2, body(PAGE_OBJECT));
+    await wait();
+    expect(dispatched).toHaveLength(2);
+  });
+
+  it("a refusal-shaped request held while pending is never sent after a later grant", async () => {
+    const consent = {};
+    const { dispatched, host, fire } = make(consent, [CONSENT]);
+    fire(1, body(CONSENT));
+    fire(2, body([{ ...CONSENT[0], extra: "x" }]));
+    await wait();
+    consent.analytics_storage = "granted";
+    consent.personalization = "granted";
+    host.setConsent(consent);
+    await wait();
+    expect(dispatched).toHaveLength(0);
+    expect(host.getState().consentHeld).toBe(2);
+  });
+
+  it("a tampered refusal held after a denial is gone: a second refusal's registration and a grant send nothing of it", async () => {
+    const consent = { ...DENIED };
+    const { dispatched, host, fire } = make(consent, [CONSENT]);
+    const tampered = [{ ...CONSENT[0], extra: "data" }];
+    fire(1, body(tampered));
+    await wait();
+    host.expectOptOutConsent([tampered, PAGE_OBJECT]);
+    host.setConsent(consent);
+    consent.analytics_storage = "granted";
+    consent.personalization = "granted";
+    host.setConsent(consent);
+    await wait();
+    expect(dispatched).toHaveLength(0);
+  });
+
+  it("a refusal forwarded under a denial, then moved to pending by a diagnostic before the recheck, is never sent after a grant", async () => {
+    const consent = { ...DENIED };
+    const chamber = makeFakeChamber();
+    const dispatched = [];
+    const caps = { egress: { dispatch: async (req) => { dispatched.push(req); return { status: 200, statusText: "OK", headers: {}, body: "{}" }; } } };
+    const host = createWrappedSdkHost({
+      chamber, caps, consent, egressPurposes: ["analytics_storage", "personalization"], flushOnGrant: true, consentOptOut: OPT_OUT,
+      endpointCeiling: [INTERACT, "https://adobedc.demdex.net/ee/v1/privacy/set-consent"],
+      onDiagnostic: (d) => { if (d.disposition === "opt-out-forwarded") { consent.analytics_storage = "pending"; consent.personalization = "pending"; } },
+    });
+    host.expectOptOutConsent([CONSENT]);
+    chamber.emit({ type: "intercepted-fetch", id: 1, url: SET_CONSENT, method: "POST", headers: {}, body: body(CONSENT) });
+    await wait();
+    consent.analytics_storage = "granted";
+    consent.personalization = "granted";
+    host.setConsent(consent);
+    await wait();
+    expect(dispatched).toHaveLength(0);
+    expect(chamber.posted.filter((x) => x.type === "intercepted-fetch-response").map((x) => x.statusText)).toEqual(["held at the seal: consent"]);
+  });
+
+  it("an interact still parks while pending and flushes on a grant (the park exemption is for refusals only)", async () => {
+    const consent = {};
+    const { dispatched, host, fire } = make(consent, [CONSENT]);
+    fire(1, JSON.stringify({ events: [] }), INTERACT);
+    await wait();
+    consent.analytics_storage = "granted";
+    consent.personalization = "granted";
+    host.setConsent(consent);
+    await wait();
+    expect(dispatched).toHaveLength(1);
   });
 });
