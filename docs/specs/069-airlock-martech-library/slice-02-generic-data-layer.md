@@ -43,7 +43,7 @@ Written under ADR-0065 after the owner's 2026-11-21 direction: no ACDL as is, Op
 Built `adapters/eds/martech-datalayer.js` (pure, no imports; `createDataLayer`, `FORWARD_SKIP_EVENTS`, `MAX_DEPTH`, `MAX_PUSH_NODES`, `MAX_HELD_EVENTS`). No `core/` change; the ADR-0063 allowlist files are untouched. AC2's Proxy-trap clause is reworded and moved to 069-04 (`slice-04-proxy-trap-free-detection.md`, a real file). Round 1 of the three reviews returned changes-requested (saved in `reviews/slice-02-generic-data-layer-*.md`); every finding is fixed or carried there, and the slice is DONE with every AC met as reworded.
 
 **Tests per AC** (H = hermetic, `test/adobe-069-02-datalayer.test.js`, 53 tests; C = real Chromium, `test/adobe-069-02-datalayer-chromium.test.js`, 11 tests, gated by `AIRLOCK_REAL_CHROMIUM=1`, GATING step in `browser-oracle`; the stock arm is the real ACDL 3.0.1 and the pinned `aem-martech` source with a recording `alloy` stub):
-- AC1: H "AC1" (3 tests: no global, bad push, state push); C no window global and no `acdl.min.js` request.
+- AC1: H "AC1" (4 tests: no global, no global with the names absent, bad push, state push); C no window global and no `acdl.min.js` request.
 - AC2: H "AC2" (6 tests: getter, Proxy value traps, prototype/cycle/depth, 10 vs 10,000 visit counts, no hook before return and drain in a separate task, shared queue order).
 - AC3: H "AC3" (8 tests incl. live reference, pollution, core projection difference, hook copy); C corpus of 13 groups, `getState()` and `getState(path)` equal ACDL's.
 - AC4: H "AC4" (5 tests); C `analytics` true and false bodies vs stock, `shouldProcessEvent` false and throwing.
@@ -75,7 +75,7 @@ Built `adapters/eds/martech-datalayer.js` (pure, no imports; `createDataLayer`, 
 - Pollution: `UNSAFE` emptied -> "no push pollutes Object.prototype" red.
 - Function push: calling the function -> "a function push is never executed" red.
 - O(1)/no page code: folding and calling the hook inside `push` -> 4 tests red (no hook before return, visit counter, event data fold, `shouldProcessEvent`); a state-size-dependent walk -> "10 keys and of 10,000" red.
-- No-global: proxy writing `adobeDataLayer` by default -> custom-name test red; `createDataLayer` writing a global -> AC1 test red.
+- No-global: proxy writing `adobeDataLayer` by default -> custom-name test red; `createDataLayer` writing a global (even with `globalThis.adobeDataLayer = globalThis.adobeDataLayer || []`, which the pre-stubbed test alone missed) -> the names-absent AC1 test red (revert-checked 2026-11-23).
 - Denylist/forward: forwarding the whole payload -> "only xdm and data ... strips a denylisted key" red; removing the skip list -> "page_view is sent to Alloy once" red.
 
 **Core denylist depth (AC8):** core strips top-level `params` keys and dotted host paths (e.g. `data.promo_secret`); default names nested under `data`/`xdm` are not stripped today. The test pins this, not a copy of the list.

@@ -2,7 +2,7 @@
 round: 1
 verdict: changes-requested
 reviewer: Opus 5.5 jig:reviewer (fresh, read-only)
-reviewed_at: 2026-11-22T19:13:14Z
+reviewed_at: 2026-11-22T19:02:17Z
 prompt_source: "the 069-03 build commit (2801d9cc; pushed with the round-1 fix commit)"
 scope: spec compliance of slice 069-03 (adapters/eds/martech.js, THIRD_PARTY_NOTICES.md, its tests) against its acceptance criteria, Definition of Done and ADR-0065
 ---

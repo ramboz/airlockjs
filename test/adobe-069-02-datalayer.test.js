@@ -20,6 +20,21 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("069-02 AC1: the generic mechanism, no global", () => {
+  it("with the page-global names absent, create/attach/push/getState create none", async () => {
+    const names = ["adobeDataLayer", "alloy", "__alloyNS", "acdl"];
+    for (const n of names) expect(n in globalThis).toBe(false);
+    const before = Object.keys(globalThis).sort();
+    const dl = make();
+    dl.attach();
+    dl.push({ event: "e", xdm: { a: 1 } });
+    dl.push({ page: { name: "p" } });
+    dl.getState();
+    dl.getState("page.name");
+    await tick();
+    for (const n of names) expect(n in globalThis).toBe(false);
+    expect(Object.keys(globalThis).sort()).toEqual(before);
+  });
+
   it("creating, pushing and reading state touch no page global", async () => {
     const reads = [];
     const sentinel = new Proxy({}, { get: (_t, k) => { reads.push(String(k)); return undefined; }, set: (_t, k) => { reads.push(`set ${String(k)}`); return true; }, has: (_t, k) => { reads.push(`has ${String(k)}`); return false; } });

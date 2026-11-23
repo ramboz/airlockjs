@@ -2,9 +2,9 @@
 round: 3
 verdict: approved
 reviewer: Opus 5.5 jig:reviewer (fresh, read-only)
-reviewed_at: 2026-11-23T15:33:00Z
+reviewed_at: 2026-11-23T15:30:30Z
 prompt_source: "the wrapper follow-up diff 0bb97347..b2b91133 (pushed in the commits that carry it), given in the prompt as a diff file the reviewer read from disk; the review file is squashed into the round-3 docs commit"
-scope: the wrapper follow-up for the bare applyPropositions (owner decision 2026-11-22, "Library renders, wrapper matches stock (Recommended)")
+scope: the wrapper follow-up for the bare applyPropositions (owner decision 2026-11-23, "Library renders, wrapper matches stock (Recommended)")
 ---
 
 # Slice 069-01 round-3 review
