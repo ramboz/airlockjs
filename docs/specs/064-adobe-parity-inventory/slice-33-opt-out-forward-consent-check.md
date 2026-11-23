@@ -43,4 +43,4 @@ Reviews: three fresh Opus 5.5 reviews, 2 rounds, all approved; see `reviews/slic
 
 ## Notes
 
-Found by the ADR-0064 review: the 068-02 forward sends the `consent` subtree unchecked. Pre-existing, but 064-30 routes the page's richer object through it. This slice changes `core/`, so it stays vendor-neutral and is named in the ADR-0062 amendment.
+Found by the ADR-0064 review: the 068-02 forward sends the `consent` subtree unchecked. Pre-existing, but 064-30 routes the page's richer object through it. The core part moved to 068-03 on main (named in the ADR-0062 amendment); this slice is adapter-only.
