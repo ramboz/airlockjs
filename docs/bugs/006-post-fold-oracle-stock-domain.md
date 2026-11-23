@@ -128,6 +128,10 @@ The strict "5 consecutive green job attempts" bar is not met because bug 007 kee
 
 ## Carried findings
 
+- **Redirect request/navigate order flake in the b4 064-24 test** (low). CI run 45290811216 attempt 1 (head 0e9559c9)
+  failed `adobe-b4-personalization.test.js:668` with `['request','navigate','request']` instead of
+  `['request','request','navigate']`; attempt 2 was green. It is an event-order diff, not `meta.state.domain`, and the
+  failing arm was not printed. Not investigated here. Owner: coordinator 23 (with bug 007's order class).
 - **Chamber mirror visible in the page jar** (low). The chamber's `reconcile` makes Alloy's transient
   `com.adobe.alloy.getTld` probe cookie visible in the real page jar for about 15 ms; stock writes and removes it
   within one synchronous task, so no other script sees it. Owner: coordinator 23, to be decided as overflow slice 064-35. Not fixed here.
