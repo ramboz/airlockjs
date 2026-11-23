@@ -274,28 +274,43 @@ describe.runIf(real)("spec 069-03: the Airlock martech library in the S10 differ
     expect(l.results.run.globals.alloy).toBe("undefined");
   }, T);
 
-  it("AC4a: the combined { propositions, viewName } applyPropositions form gives the stock run's result", async () => {
-    const stockRun = replayFixture(browser, "s10-base", {
-      event: null, skipSteps: true, serve: serveStock, bootOptions: {},
-      run: (page) => page.evaluate(async () => {
+  it("AC4a: the combined { propositions, viewName } applyPropositions form, with a warmed view cache, gives the stock run's whole result and DOM", async () => {
+    const NS = "https://ns.adobe.com/personalization/";
+    const dom = (id, html) => ({ type: "setHtml", selector: id, content: html });
+    const proposition = (id, scope, data, scopeType) => ({ id, scope, scopeDetails: { decisionProvider: "TGT", activity: { id: `act-${id}` }, ...(scopeType ? { characteristics: { scopeType } } : {}) }, items: [{ id: `i-${id}`, schema: `${NS}dom-action`, data }] });
+    const cart = proposition("v-cart", "cart", dom("#z", "<b>airlock-069-03-view</b>"), "view");
+    const pageWide = { id: "pw", scope: "__view__", scopeDetails: { decisionProvider: "TGT", activity: { id: "act-pw" }, characteristics: { eventToken: "t" } }, items: [{ id: "pw-0", schema: `${NS}default-content-item`, meta: {} }] };
+    const own = proposition("own", "own", dom("#o", "<i>airlock-069-03-own</i>"));
+    // SYNTHETIC answer (no capture): the warm-up fetch carries the view-scoped proposition; set-consent falls through to the fixture.
+    const respond = (req) => {
+      if (req.method() !== "POST" || !/propositionFetch|pageViews/.test(req.postData() || "")) return null;
+      const origin = req.headers().origin || "*";
+      const headers = { "content-type": "application/json", "access-control-allow-origin": origin, "access-control-allow-credentials": "true", "access-control-allow-headers": "*", "access-control-allow-methods": "POST, GET, OPTIONS" };
+      return { status: 200, headers, body: JSON.stringify({ requestId: "00000000-0000-0000-0000-000000000069", handle: [{ type: "personalization:decisions", payload: [pageWide, cart], eventIndex: 0 }] }) };
+    };
+    const bodyHtml = '<main><div id="z">orig</div><div id="o">orig</div></main>';
+    const arm = (library) => replayFixture(browser, "s10-base", {
+      event: null, skipSteps: true, serve: library ? serveLib : serveStock, bootOptions: library ? { ...AIRLOCK_BOOT, placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] } : {}, bodyHtml, respond,
+      run: (page) => page.evaluate(async ({ lib, own: prop, orgId, datastreamId }) => {
         const m = await (0, eval)('import("/martech/index.js")');
-        m.initMartech({ orgId: "x", datastreamId: "y", defaultConsent: "pending" }, { personalization: true });
+        m.initMartech({ orgId, datastreamId, edgeDomain: "edge.adobedc.net", defaultConsent: "pending", debugEnabled: false, thirdPartyCookiesEnabled: false, idMigrationEnabled: false, targetMigrationEnabled: false, clickCollectionEnabled: false }, { personalization: true, ...(lib ? { handle: window.__handle } : {}) });
         await m.updateUserConsent({ collect: true, personalize: true, marketing: false, share: false });
-        return window.alloy("applyPropositions", { propositions: [], viewName: "home" }).then((r) => `ok:${JSON.stringify(r)}`, (e) => `err:${String(e.message).split("\n")[0]}`);
-      }),
+        const settle = (p) => p.then((r) => { const { destinations, ...rest } = JSON.parse(JSON.stringify(r ?? null)); return { ok: rest }; }, (e) => ({ err: String(e.message).split("\n")[0] }));
+        const target = () => (lib ? m.getAirlockHandle() : window.alloy);
+        const call = (name, o) => (lib ? target()[name](o) : window.alloy(name, o));
+        const warm = await settle(call("sendEvent", { renderDecisions: false, xdm: { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name: "airlock-069-03" } } } }));
+        const combined = await settle(call("applyPropositions", { propositions: [prop], viewName: "cart" }));
+        const miss = await settle(call("applyPropositions", { propositions: [prop], viewName: "nowhere" }));
+        return { warm, combined, miss, dom: document.body.innerText };
+      }, { lib: library, own, orgId: ORG, datastreamId: DATASTREAM }),
     });
-    const libRun = replayFixture(browser, "s10-base", {
-      event: null, skipSteps: true, serve: serveLib, bootOptions: AIRLOCK_BOOT,
-      run: (page) => page.evaluate(async () => {
-        const m = await (0, eval)('import("/martech/index.js")');
-        m.initMartech({ orgId: "x", datastreamId: "y", defaultConsent: "pending" }, { handle: window.__handle, personalization: true });
-        await m.updateUserConsent({ collect: true, personalize: true, marketing: false, share: false });
-        return m.getAirlockHandle().applyPropositions({ propositions: [], viewName: "home" }).then((r) => `ok:${JSON.stringify(r)}`, (e) => `err:${String(e.message).split("\n")[0]}`);
-      }),
-    });
-    const [s, l] = await Promise.all([stockRun, libRun]);
-    process.stderr.write(`combined applyPropositions: stock=${s.results.run} library=${l.results.run}\n`);
-    expect(l.results.run).toBe(s.results.run);
+    const [s, l] = await Promise.all([arm(false), arm(true)]);
+    expect(l.results.run).toEqual(s.results.run);
+    expect(s.results.run.warm.ok.propositions.map((p) => p.id)).toEqual(["pw"]);
+    expect(s.results.run.combined.ok.propositions.map((p) => p.id).sort()).toEqual(["own", "v-cart"]);
+    expect(s.results.run.miss.ok.propositions.map((p) => p.id)).toEqual(["own"]);
+    expect(s.results.run.dom).toContain("airlock-069-03-view");
+    expect(s.results.run.dom).toContain("airlock-069-03-own");
   }, T);
 });
 
