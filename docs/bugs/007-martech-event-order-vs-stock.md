@@ -1,5 +1,5 @@
 ---
-status: REVIEWED
+status: DONE
 tier: standard
 severity: medium
 regression_test: bug 007: the page-view collect and the event interact are matched against stock in either start order
@@ -144,7 +144,7 @@ testing the concurrency), sorting requests or normalising bodies (would hide a c
 
 ## Proof
 
-Loaded 24-run sample (16 hogs, 8 arm-pairs, real Chromium): in a second, independent loaded 24-run sample (same load; the per-run counts differ from the table above, which is a different sample) the strict oracle (library vs stock, index by index) failed 6/24 runs, the aligned oracle 0/24 (`oracle-load16.jsonl` in the session files), AC4 0/24. Red witnessed 2026-11-24 via `bug.py`; real-Chromium b5 file 17 passed; `npm test` and `npm run lint` green. **Residual risk, outside this fix:** the library's main-thread dispatch inverted the two sends in 2/24 loaded runs while stock's SDK invocation never did, and AC4 no longer detects a library-side reorder of page view vs event. Not diagnosed here; reported to coordinator 24 as the owner of follow-up scope.
+CI on the fix head 76eac8d7: run 45449703358 (hermetic-oracle and browser-oracle) green on 2026-11-24, plus four more runs of the same commit on scratch branches: 45478434297, 45478444479 and 45478453195 green, 45478439719 red only on 069-03 AC1 `meta.state.domain` (the bug 006 getTld class, not a 007 assertion; all 007 and 069-05 AC1/AC4 assertions passed in all five runs); the pre-fix base run 45443473671 passed on attempt 2 as well, so the flake is probabilistic and the loaded local sample is the discriminating evidence. Loaded 24-run sample (16 hogs, 8 arm-pairs, real Chromium): in a second, independent loaded 24-run sample (same load; the per-run counts differ from the table above, which is a different sample) the strict oracle (library vs stock, index by index) failed 6/24 runs, the aligned oracle 0/24 (`oracle-load16.jsonl` in the session files), AC4 0/24. Red witnessed 2026-11-24 via `bug.py`; real-Chromium b5 file 17 passed; `npm test` and `npm run lint` green. **Residual risk, outside this fix:** the library's main-thread dispatch inverted the two sends in 2/24 loaded runs while stock's SDK invocation never did, and AC4 no longer detects a library-side reorder of page view vs event. Not diagnosed here; reported to coordinator 24 as the owner of follow-up scope.
 
 ## Learning
 
