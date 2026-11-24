@@ -169,3 +169,14 @@ A comparison oracle must only assert orders the reference itself keeps; measure 
 ## Main recheck
 
 - 2026-11-24 - `origin/vendor-adobe@4e6189f9` -> reproduces: 069-05 personalization-off AC1/AC4 compare request order index by index; stock-vs-stock under load (16 CPU hogs, 8 arm-pairs, 24 runs, real Chromium) starts interact before collect in 14/24 runs, so the strict order assertion fails on a stock run alone. origin/main (67daba40) has no rig/ or b5 test; the oracle exists only on vendor-adobe.
+
+## Reopened diagnosis (acceptance hold)
+
+Status: DIAGNOSING. Static diagnosis only; no loaded re-run yet, so the mechanism below is a code-grounded leading hypothesis, not a witnessed one.
+
+- **Boundary mismatch.** The loaded sample's "SDK invoke" column is a page-side wrapper on `fetch`/`sendBeacon`. Stock: that wrapper IS the SDK call. Library: it is main-thread egress, after the worker's shim and the bridge hop, so the two columns are different boundaries. The comparable library boundary is the chamber shim call (`navigator.sendBeacon` / intercepted `fetch` in `connectors/alloy/alloy-chamber.worker.js`), which already records `summary.fetchCalls` in invocation order.
+- **Likely real defect (2/24).** The shim's `sendBeacon` posts to the bridge only after `data.text().then(send)` when the body is a Blob (as Alloy sends it), while the interact `fetch` posts to the bridge synchronously. A page view (`documentUnloading`, collect) issued before a linkClicks (interact) can therefore reach main egress after it. Stock has no such hop.
+- **Not yet shown.** That this inversion occurs at the shim boundary, or that the Blob read is the cause; to confirm, record the shim call order vs main egress order in a loaded run.
+- **Red-test candidate (core, `connectors/alloy/alloy-chamber.worker.js`).** Hermetic: in the worker shim, call `navigator.sendBeacon(url, new Blob([body]))` then `fetch(url2, {method: "POST", body})` in the same tick and assert the posted `intercepted-fetch` messages are in call order. Expected red today (beacon posts a microtask+ later).
+- **Oracle side.** Keep the concurrent journey and the request-start multiset; add an assertion on shim-call order (collect then interact), independent of request-start order.
+- **Landing.** Core fix on `main` first, then ff into `vendor-adobe`. Craft/bug-review to be redone on the final source with true identities.
