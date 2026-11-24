@@ -112,8 +112,8 @@ guard and the CI sample below is the proof for the compares.
 
 ## Proof
 
-Fix head sample (fb1ee84f; the shipped head c803c513 differs only by review polish: dead stock `bootOptions`
-removed, a `boot:false` guard, a positive control in the test), six scratch refs, same window as a control at
+Fix head sample (fb1ee84f; the final source 86df6daa differs only by review polish: dead stock `bootOptions`
+removed, a `boot:false` guard, a positive control and the `T` timeout in the test), six scratch refs, same window as a control at
 7fb8fae7:
 
 - Fix runs 45286852280, 45286863429, 45286872434, 45286877442: fully green.
@@ -159,6 +159,6 @@ Recorded in `docs/memory/learnings.md`: "A stock arm must be a pure stock page".
 
 ## Reviews
 
-`docs/bugs/reviews/bug-006-bug-review.md` (approved, round 1) and `docs/bugs/reviews/bug-006-craft.md` (round 3 approved after fixes in c803c513 and 86df6daa). No security pass: test and rig only.
+`docs/bugs/reviews/bug-006-bug-review.md` (approved, round 2 on the final source) and `docs/bugs/reviews/bug-006-craft.md` (round 3 approved after fixes in c803c513 and 86df6daa). No security pass: test and rig only.
 
-The bug-review ran once, on fb1ee84f (reviewer agent 47169c82, event 2026-11-23T23:15:45Z). It was not re-run on the final source; c803c513 and 86df6daa were covered only by the craft rounds 2 and 3. Reviewer verdict words are recorded as the reviewers returned them (approved).
+The bug-review ran twice. Round 1 ran on fb1ee84f only (reviewer agent 47169c82, 2026-11-23T23:15:45Z). Round 2 ran on the full final diff 7fb8fae7..a3b108cd (fresh reviewer agent df3970e8-f178-448a-aa86-371e1a16922c, read 2026-11-24T16:47:51Z) and returned pass. Verdict words: earlier rounds returned approved; round 2 returned the prompt-format word pass (frontmatter carries pass plus reviewer_verdict approved, per the tool vocabulary).
