@@ -1,5 +1,5 @@
 ---
-status: FIXING
+status: REVIEWED
 tier: standard
 severity: medium
 regression_test: bug 007: the page-view collect and the event interact are matched against stock in either start order
@@ -7,7 +7,7 @@ main_repro_checked_at: 2026-11-24
 main_repro_ref: origin/vendor-adobe@4e6189f9
 main_repro_result: reproduces
 red_confirmed_at: 2026-11-24
-green_confirmed_at:
+green_confirmed_at: 2026-11-24
 fix_class: local_patch
 security_surface: false
 escalated_to:
