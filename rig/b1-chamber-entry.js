@@ -34,10 +34,11 @@ self.addEventListener("message", async (event) => {
     // Bug 007: a scripted run of beacon / fetch calls made back to back in the chamber. `slow` / `reject` shape a Blob-like body.
     if (m.command === "rig:calls") {
       for (const c of m.options.calls) {
-        if (c.kind === "fetch") self.fetch(c.url, { method: "POST", body: c.body || "{}" }).catch(() => {});
+        if (c.kind === "fetch") self.fetch(c.url, { method: "POST", body: c.body || "{}" }).catch(() => { /* the rig only orders posts; a refused fetch is visible in the network record */ });
         else {
           let body = c.body || "{}";
-          if (c.kind === "blob") body = { text: () => new Promise((resolve, reject) => setTimeout(() => (c.reject ? reject(new Error("blob read failed")) : resolve(c.body || "{}")), c.slow || 0)) };
+          if (c.kind === "plain-text") body = { text: () => c.body || "{}" };
+          else if (c.kind === "blob") body = { text: () => new Promise((resolve, reject) => setTimeout(() => (c.reject ? reject(new Error("blob read failed")) : resolve(c.body || "{}")), c.slow || 0)) };
           self.window.navigator.sendBeacon(c.url, body);
         }
       }

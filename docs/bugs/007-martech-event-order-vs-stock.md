@@ -18,13 +18,7 @@ claimed_by: martech-event-order-bug-007
 
 # Bug 007: martech-event-order-vs-stock
 
-> **Acceptance ON HOLD (2026-11-24, coordinator 24).** The status was DONE at 7c427008 and is reopened to DIAGNOSING. `bug.py` has no
-> `DONE` back-edge, so the frontmatter status was edited by hand (disclosed here). Why: (1) the oracle change relaxes 069-05 AC4's
-> wording (event/page-view order equals stock's) instead of stopping on that conflict, so it must not stand as accepted; (2) the
-> library's 2/24 egress-dispatch inversions against 0/24 stock SDK invocations are an unresolved behaviour difference that the
-> multiset hides; (3) craft was recorded on 3441eeb5 and not on the final source (b1f7b889 and the 38e3b07a test rename), and the
-> review files lack agent identities, round frontmatter and read times. The oracle change at 7c427008 stays on vendor-adobe only as
-> an interim; nothing below is a closure claim.
+> **Status note (2026-11-24, coordinator 24).** Acceptance of the oracle-only fix (7c427008) was put on hold and the bug reopened by hand (`bug.py` has no DONE back-edge). Diagnosis then witnessed a real shim ordering defect and the bounded production fix was authorized; this record now carries that root cause, fix and evidence. Reviews of the oracle-only change (3441eeb5 craft, b1f7b889 bug-review) are superseded by the reviews of the final source listed under Proof.
 
 ## Symptom
 
@@ -76,7 +70,7 @@ Both are defined relative to the stock run; neither asks for a stable order beyo
 Two findings, kept apart.
 
 1. **Oracle (stock-vs-stock).** Stock Alloy alone starts the page-view `collect` and the `linkClicks` `interact` in either order under load (SDK invocation fixed 24/24, request start inverted 14/24). The layer between the SDK call and request start is not named (Chromium scheduling versus Playwright interception is not separated by the evidence). Comparing the arms index by index was unsound; the request-start multiset match at 76eac8d7 addresses only this.
-2. **Library shim defect (witnessed).** `connectors/alloy/alloy-chamber.worker.js` `navigator.sendBeacon` posts to the bridge only after `data.text().then(send)` when the body is a Blob (Alloy 2.31.1 sends `new Blob([body])`; page view goes to `collect` by `documentUnloading` beacon), while `fetch` posted synchronously. A beacon issued before a fetch therefore reached the bridge, and main egress, after it. Witnessed in real Chromium with a synthetic chamber scenario (`sendBeacon(url, new Blob(...))` then `fetch` in one tick: bridge order `fetch, beacon` 3/3 red before the fix). Loaded b5 correlation (24 runs, 8 parallel pairs, 16 CPU hogs, bridge post order observed at the chamber tee): pre-fix 1/24 runs posted `interact` before `collect`, post-fix 0/24; stock SDK invocation was collect-first 24/24 in both samples. So the shim defect is shown to produce a library-only inversion at the bridge. The earlier 2/24 count was measured at main-thread egress and was not the same boundary; this sample measures the bridge post and is the comparable one. Not claimed: that the Blob read is the only source of every inversion ever seen.
+2. **Library shim defect (witnessed).** `connectors/alloy/alloy-chamber.worker.js` `navigator.sendBeacon` posts to the bridge only after `data.text().then(send)` when the body is a Blob (Alloy 2.31.1 sends `new Blob([body])`; page view goes to `collect` by `documentUnloading` beacon), while `fetch` posted synchronously. A beacon issued before a fetch therefore reached the bridge, and main egress, after it. Witnessed in real Chromium with a synthetic chamber scenario (`sendBeacon(url, new Blob(...))` then `fetch` in one tick: bridge order `fetch, beacon` 3/3 red before the fix). Loaded b5 correlation (24 runs, 8 parallel pairs, 16 CPU hogs, bridge post order observed at the chamber tee): pre-fix 1/24 runs posted `interact` before `collect`, post-fix 0/24; stock SDK invocation was collect-first 24/24 in both samples. So the shim defect is shown to produce a library-only inversion at the bridge. The earlier 2/24 count was taken at main-thread egress (a page-side wrapper), where main dispatch runs synchronously on receipt of each bridge post, so it is effectively the same order as the bridge post and is a separate sample of the same pre-fix defect; the 1/24 sample reads the bridge post directly at the chamber tee. Not claimed: that the Blob read is the only source of every inversion ever seen.
 
 Residual uncertainty: request-start order in the library arm still varies under load (post-fix 2/24 interact first, same as stock's 14/24), because it is decided after the bridge (main dispatch, Playwright, Chromium). The ordering fix does not and cannot control it.
 
@@ -132,6 +126,9 @@ AC4 boundary: AC4 says the event/page-view order equals stock's. That is now ass
 - `fetch` shim, Blob-bodied beacon, string/other-bodied beacon (`navigator.sendBeacon`): changed (all go through the ordered queue).
 - `XMLHttpRequest` and `Image` shims: left alone (not in the witnessed path; Alloy 2.31.1 uses fetch/sendBeacon for edge calls).
 - 069-05 AC1 and AC4: oracle keeps the request-start multiset for the witnessed pair and adds `expectInvocationOrder`; AC2, AC3, AC6, AC11, personalization-on callers and 069-03 loops stay strict. Spec ACs not edited.
+- Consent granted during a pending Blob read: a later fetch can be posted after the grant, but the seal evaluates consent at main dispatch and Alloy gates on consent itself, so this is the same decision as an unqueued post at that moment; the window is one Blob read.
+- Beacon ids are assigned when posted (fetch ids at call time): ids are unique, and the host does not order by id.
+- A `text()` that returns a non-promise is wrapped (`Promise.resolve`) and posts in place; a `text()` that never settles would hold later posts (chamber-local; unchanged consent/egress policy), residual accepted.
 - b2 egress consent seal: re-checked at main dispatch; the revocation-during-Blob-read test asserts the beacon is held at the seal.
 - Concurrent journey: unchanged by decision.
 - b4 064-24 redirect flake: out of scope, owned by the coordinator.
@@ -143,7 +140,7 @@ AC4 boundary: AC4 says the event/page-view order equals stock's. That is now ass
 
 ## Regression test
 
-`bug 007: the bridge posts calls in the order the tag made them` (real Chromium, synthetic chamber scenario, `test/adobe-b2-egress.test.js`): slow Blob beacon then fetch then fetch; slow Blob then fast Blob then fetch; slow Blob, fetch, string beacon; rejected Blob read then fetch; no-pending synchronous order; consent revoked during a Blob read (held at the seal). Revert-check: with the worker change stashed, the four ordering/error tests are red (4 failed, 2 passed: the no-pending path and the seal test hold on the old code by design); restored, all 29 b2 tests are green. The b5 AC1/AC4 `expectInvocationOrder` catches the pre-fix loaded inversion (1/24, invFail=1) and is 0/24 post-fix.
+`bug 007: the bridge posts calls in the order the tag made them` (real Chromium, synthetic chamber scenario, `test/adobe-b2-egress.test.js`): slow Blob beacon then fetch then fetch; slow Blob then fast Blob then fetch; slow Blob, fetch, string beacon; rejected Blob read then fetch; no-pending synchronous order; consent revoked during a Blob read (held at the seal). Revert-check: with the worker change stashed, the four ordering/error tests are red (4 failed, 2 passed: the no-pending path and the seal test hold on the old code by design); restored, all 29 b2 tests are green. The deterministic b2 describe is the regression test; the b5 `expectInvocationOrder` is supporting evidence only (about 1/24 chance to fail on pre-fix code under load) and catches the pre-fix loaded inversion (1/24, invFail=1) and is 0/24 post-fix.
 
 ## Proof
 

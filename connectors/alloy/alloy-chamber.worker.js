@@ -279,7 +279,7 @@ docBack.location = locationShim;
 /* ---- bridge order (bug 007): calls reach the main thread in the order the tag made them ----
  * A beacon with a Blob body can only be posted once the Blob is read. Until then a slot holds its place,
  * so a later beacon or fetch is not posted ahead of it. Nothing waits on a network response, and with no
- * pending slot a call posts synchronously as before. A post that throws is rethrown on a later task so
+ * pending slot a call posts synchronously as before. A post that throws is rethrown on a microtask so
  * it is still reported, and does not hold the calls behind it. */
 const bridgeQueue = [];
 function flushBridgeQueue() {
@@ -318,7 +318,7 @@ const navBack = {
         // A Blob body (Alloy's) is read asynchronously; its place in the bridge order is taken now (bug 007).
         const read = data.text();
         const fill = reserveBridgeSlot();
-        read.then((body) => fill(() => send(body)), () => fill(() => send(undefined)));
+        Promise.resolve(read).then((body) => fill(() => send(body)), () => fill(() => send(undefined)));
       } else {
         const body = data == null ? undefined : String(data);
         postInOrder(() => send(body));
