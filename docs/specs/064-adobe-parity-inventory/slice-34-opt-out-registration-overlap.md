@@ -2,6 +2,7 @@
 status: DONE
 dependencies: [064-33, 068-03]
 last_verified: 2026-11-24
+review_reopened_at: 2026-11-24T22:50:26Z
 ---
 
 ## Slice 064-34 — an opt-out in flight for a superseded consent update still forwards
@@ -22,6 +23,14 @@ last_verified: 2026-11-24
 
 **Anti-horizontal-phasing check:** Vertical: two quick consent updates through the chamber to both forwarded requests on the wire.
 
+### Deviation log
+
+Replaced the first pass's never-consumed generation list with request-correlated consumption (the matched generation and older ones leave on dispatch) after the acceptance hold; ADR-0062 is untouched apart from a dated Corrections entry. Details in Findings.
+
+### Reconciliation sweep
+
+Reconciled: spec.md, CHANGELOG, slice-33 annotations, ADR-0062 Corrections, the status board and the slice-34 history file. No core/ change, so nothing lands on main first.
+
 ## Notes
 
 Found by the 064-33 craft review. Any change to how `core/` stores registrations lands on main first (vendor-neutral); an adapter-only approach (registering both generations until the next request) needs no core change.
@@ -39,3 +48,5 @@ Found by the 064-33 craft review. Any change to how `core/` stores registrations
 **Residuals.** An update whose request never leaves (a rejected object whose retry never comes, a refusal the page withdrew, or a chamber that sends nothing) keeps its generation until a later request consumes it; each new distinct update adds one generation, so with no request reaching `dispatch` at all the list grows by the page's own distinct updates, and the next request that gets through clears everything up to its match; there is no timer or cap, and it never lets a value the page did not give through. Not checked against the bundle: whether Alloy stores a consent whose request failed on the network (the repeat skip assumes it does; if not, the repeat is held, the safe side). Accepted edge: a vector retry that arrives after a newer update's request has consumed its generation is held, which matches stock's final state (the older value would overwrite the newer). The vector retry after a rejected object followed by the same vector again as a later update can also linger (Alloy stored it already), bounded to that one generation. A compromised chamber can send such a not-yet-consumed page value while consent is denied. Consumption assumes Alloy sends consent requests in order, which its task queue guarantees; the oldest-match rule errs toward keeping registrations.
 
 **Reviews (Opus 5.5, `reviews/slice-34-*.md`).** Original round 1 and 2 wording is kept in `reviews/slice-34-history.md`; the current verdict files are the round 3 results on the full final diff, recorded with `review.py record-review`. Scout was unavailable to reviewers; they read the provided source and diff. The first design (generations that retire only when a *newer* generation's request leaves) was put on hold: matched generations were never consumed, so repeated values could stay registered forever. This remediation is the third and last round.
+
+**Quality gate.** Servo `quality-gate` skill (`gate.py . --json`) on the final source: exit 0, status pass, composite 1.0, threshold 1.0. (`oracle.sh` alone is not that receipt.)

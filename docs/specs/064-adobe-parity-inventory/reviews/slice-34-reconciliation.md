@@ -1,15 +1,14 @@
 ---
-slice: "064-34: an opt-out in flight for a superseded consent update still forwards"
+slice: 064-34 — an opt-out in flight for a superseded consent update still forwards
 pass: reconciliation
-round: 2
-verdict: approved
-reviewer: r34-reconciliation-2 (claude-opus-5.5, jig:reviewer, synchronous task; no separate id returned)
-reviewed_at: 2026-11-24T22:14Z
-prompt_source: round-2 diff of cd4fba06 against a9e52864 plus the changed files in the checkout; the author saved the reviewer's text
+verdict: pass
+reviewer: jig:reviewer (claude-opus-5.5)
+reviewed_at: 2026-11-24T22:50:39Z
+prompt_source: round 3: complete final diff bcaccab7..HEAD plus the mission constraint (no ever-growing replay allowlist), Scout unavailable
 ---
 
-Round 1 (94ccfcb9-db2a-4921-beb6-2707debd7d66 (claude-opus-5.5, jig:reviewer), read 2026-11-24T22:09Z, verdict: changes-requested (docs not yet written)) was on a9e52864 (the full diff plus the new real-Chromium test). Round 2 is above.
+Round 3 (agent 8d6a8829-e221-40e3-ba42-a5e5c12d34db, claude-opus-5.5, jig:reviewer, no Scout; read by the author 2026-11-24T22:50Z on HEAD c258caed, full diff bcaccab7..c258caed).
 
-Round 1 listed the docs that had to change. All are written: slice Findings and status (design, AC-to-test map, hermetic vs real-Chromium honesty, deviations, residuals), the 064-33 annotations, spec.md, the board, CHANGELOG and the ADR-0062 clause. Landing rule: adapter-only, no `core/` change, vendor-adobe.
+First return: "needs-changes — the code matches the request-correlated design and the ADR stays append-only, but the slice Findings and the index.js comment overstate that an already-sent value is held when replayed (false when the page re-sends the value Alloy already stored); correct that, name it in Residuals with a test, and fix the low-severity leftover wording." Fixed in c258caed.
 
-Round 2 findings: low, the slice and spec cite these review files, which are now saved; low, the mutation counts were checked by tracing, not run by the reviewer (the author ran them).
+Final return: "pass — the identical-update skip now survives consumption (`lastUpdateKey`) and a test pins it; lifetime is request-correlated with no timer, no cap and no growth after settlement; the docs, comments, ADR Corrections entry and slice-33 note match the final code. Before closing, correct the AC1 mutation counts, which look stale by one test (traced at 6 and 4)." Counts re-run: 6 / 4 / 1 (abc501da).

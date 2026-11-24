@@ -1,21 +1,14 @@
 ---
-slice: "064-34: an opt-out in flight for a superseded consent update still forwards"
+slice: 064-34 — an opt-out in flight for a superseded consent update still forwards
 pass: compliance
-round: 2
-verdict: approved
-reviewer: eda1e065-ca0e-417d-ba3e-f9f05549e85b (claude-opus-5.5, jig:reviewer)
-reviewed_at: 2026-11-24T22:12Z
-prompt_source: round-2 diff of cd4fba06 against a9e52864 plus the changed files in the checkout; the author saved the reviewer's text
+verdict: pass
+reviewer: jig:reviewer (claude-opus-5.5)
+reviewed_at: 2026-11-24T22:50:38Z
+prompt_source: round 3: complete final diff bcaccab7..HEAD plus the mission constraint (no ever-growing replay allowlist), Scout unavailable
 ---
 
-Round 1 (ddb21947-5b0e-4536-a407-4c3294c362b8 (claude-opus-5.5, jig:reviewer), read 2026-11-24T22:09Z, verdict: approved) was on a9e52864 (the full diff plus the new real-Chromium test). Round 2 is above.
+Round 3 (agent 735263e3-aacb-4677-b109-674bfbdcc355, claude-opus-5.5, jig:reviewer, no Scout; read by the author 2026-11-24T22:50Z on HEAD c258caed, full diff bcaccab7..c258caed).
 
-Round 1 findings and dispositions:
-- Medium, `findLastIndex` over-retires on a repeated value (A,B,A): fixed in cd4fba06 (oldest match, `findIndex`) with a test that fails under `findLastIndex`.
-- Medium, a compromised chamber can send a superseded page value until a newer generation's request retires it: accepted residual, recorded in the slice Findings and the ADR-0062 clause (values are the page's own and consent must be denied).
-- Low, `JSON.stringify` compare is key-order sensitive: fixed (`canon`, key-order-free) with a test that fails without it.
-- Low, unbounded generations: accepted residual, recorded.
-- Medium (honesty), the real-Chromium overlap test is green on the 064-33 code too: stated in the slice Findings.
-- Info, the reordered 064-33 test and the changed 068-03 AC4 expectations: logged as deviations.
+First return: "needs-changes — lifecycle is request-correlated with no timer, cap or growing allowlist, core/ is untouched, AC1/AC2 met; but the identical-update skip compares against the last live generation instead of Alloy's last stored/sent consent, so a value repeated after settlement is re-registered without a request and a replay of it forwards (bounded at one generation)". Fixed in c258caed (`lastUpdateKey`, hermetic test).
 
-Round 2 findings (all low, accepted and recorded): a generation whose values are a subset of an older one's stays until a distinct value arrives; `canon(sent)` sits outside the `try` (a chamber can only break its own request); generations are unbounded while no request leaves; the duplicate-guard line has no test of its own.
+Final return: "pass — the identical-update skip now keys on a last-update value that survives consumption (`lastUpdateKey`), pinned by a hermetic test that fails without it; lifecycle is request-correlated with no timer, cap or post-settlement growth, core/ untouched, AC1/AC2 met, residual edges (no-dispatch growth by page-given distinct updates, rejected-object vector retry lingering one generation, late vector retry held) honestly disclosed; low: refresh the mutation counts after the new test." Mutation counts refreshed (6 / 4 / 1) in abc501da.
