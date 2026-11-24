@@ -99,6 +99,41 @@ const normalised = (text) => {
 };
 const posts = (network) => network.filter((n) => n.method === "POST");
 const pathOf = (n) => new URL(n.url).pathname;
+
+const isPznQueryField = (p) => /^events\[0\]\.query\.personalization\.(decisionScopes|schemas|surfaces)\[/.test(p);
+const sameBody = (x, y) => diffBodies(normalised(x.body), normalised(y.body)).filter((p) => !isPznQueryField(p)).length === 0;
+const edgeCall = (n) => pathOf(n).split("/").pop();
+/**
+ * Bug 007. In the personalization-off journey the page-view `collect` and the `linkClicks` `interact` are independent sends: stock
+ * itself starts them in either order under load (the SDK invokes them in a fixed order, the browser starts them in either). Returns
+ * the library's requests re-aligned to stock's order, after asserting what must stay strict: `set-consent` is first in both arms
+ * and is the only request before the two sends, both arms have the same count, and each of stock's two sends is matched to a
+ * library request with the same URL (requestId aside) and an equal body, so a changed body, event, event order, a missing or a
+ * duplicated request still fails. Event order inside a request is part of the body and is not normalised.
+ */
+const alignIndependentSends = (lib, stock) => {
+  expect(edgeCall(stock[0])).toBe("set-consent");
+  expect(edgeCall(lib[0])).toBe("set-consent");
+  expect(lib.map(edgeCall).sort()).toEqual(stock.map(edgeCall).sort());
+  const left = lib.slice(1);
+  const aligned = stock.slice(1).map((sr) => {
+    expect(["collect", "interact"]).toContain(edgeCall(sr));
+    const i = left.findIndex((lr) => splitRequestUrl(lr.url).stable === splitRequestUrl(sr.url).stable && sameBody(lr, sr));
+    if (i < 0) {
+      const same = left.find((lr) => splitRequestUrl(lr.url).stable === splitRequestUrl(sr.url).stable);
+      expect(same, `no library ${edgeCall(sr)} request matches stock's`).toBeDefined();
+      expect(diffBodies(normalised(same.body), normalised(sr.body)).filter((p) => !isPznQueryField(p))).toEqual([]);
+    }
+    return left.splice(i, 1)[0];
+  });
+  return [lib[0], ...aligned];
+};
+/** The library's requests equal stock's: same URLs (requestId aside) and bodies in the same order, except `independent` sends (bug 007). */
+const compareRequests = (lib, stock, { independent = false } = {}) => {
+  const a = independent ? alignIndependentSends(lib, stock) : lib;
+  expect(a.map((n) => splitRequestUrl(n.url).stable)).toEqual(stock.map((n) => splitRequestUrl(n.url).stable));
+  for (let k = 0; k < stock.length; k += 1) expect(diffBodies(normalised(a[k].body), normalised(stock[k].body)).filter((p) => !isPznQueryField(p))).toEqual([]);
+};
 /** A SYNTHETIC edge answer (no capture): CORS headers for the page's origin and a fixed requestId; `payload` is the decisions array. */
 const syntheticAnswer = (req, payload, delay = 0) => {
   const origin = req.headers().origin || "*";
@@ -437,19 +472,18 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
   let offerRun;
   const offerNoPageView = () => { offerRun = offerRun || both({ config: { trackPageView: false }, placements: true }, {}); return offerRun; };
   const bodiesOf = (r) => posts(r.network).map((n) => JSON.parse(n.body));
-  const eventTypes = (r) => bodiesOf(r).flatMap((b) => (b.events || []).map((e) => e.xdm && e.xdm.eventType));
+  const eventTypesOf = (requests) => requests.flatMap((n) => (JSON.parse(n.body).events || []).map((e) => e.xdm && e.xdm.eventType));
+  const eventTypes = (r) => eventTypesOf(posts(r.network));
   const fetchQuery = (r) => bodiesOf(r).map((x) => x.events && x.events[0].query && x.events[0].query.personalization).find(Boolean);
   /**
    * Same requests in the same order (path, query string without requestId), equal bodies (cookie order aside) except the three fetch
    * query fields, and the page shows the same. With `fetch` (default) the fetch request must exist in both arms and its scopes,
-   * surfaces and schemas are asserted explicitly (AC6): they are the one place the library differs.
+   * surfaces and schemas are asserted explicitly (AC6): they are the one place the library differs. With `independent` the page-view
+   * collect and the event interact may start in either order (bug 007); everything else stays strict.
    */
-  const sameAsStock = (s, l, { fetch = true } = {}) => {
-    const a = posts(l.network);
+  const sameAsStock = (s, l, { fetch = true, independent = false } = {}) => {
     const b = posts(s.network);
-    expect(a.map((n) => splitRequestUrl(n.url).stable)).toEqual(b.map((n) => splitRequestUrl(n.url).stable));
-    const pzn = (p) => /^events\[0\]\.query\.personalization\.(decisionScopes|schemas|surfaces)\[/.test(p);
-    for (let k = 0; k < b.length; k += 1) expect(diffBodies(normalised(a[k].body), normalised(b[k].body)).filter((p) => !pzn(p))).toEqual([]);
+    compareRequests(posts(l.network), b, { independent });
     if (fetch) {
       const sq = fetchQuery(s);
       const lq = fetchQuery(l);
@@ -478,7 +512,7 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
 
   it("AC1 (069-05): personalization off, martechLazy called before awaiting sendEvent, sends the stock run's requests", async () => {
     const [s, l] = await personalizationOff();
-    expect(sameAsStock(s, l, { fetch: false })).toBeGreaterThanOrEqual(3);
+    expect(sameAsStock(s, l, { fetch: false, independent: true })).toBeGreaterThanOrEqual(3);
     expect(eventTypes(l)).toContain("web.webinteraction.linkClicks");
   }, T);
 
@@ -487,7 +521,9 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
     const order = eventTypes(s);
     expect(order).toContain("web.webpagedetails.pageViews");
     expect(order).toContain("web.webinteraction.linkClicks");
-    expect(eventTypes(l)).toEqual(order);
+    // The page view and the event are independent sends and stock itself starts them in either order under load (bug 007); the
+    // events inside each request, and every event, must still equal stock's.
+    expect(eventTypesOf(alignIndependentSends(posts(l.network), posts(s.network)))).toEqual(order);
   }, T);
 
   it("AC9 (069-05): personalization off, an event sent before martechLazy: stock rejects it (alloy not configured yet), the library queues and sends it", async () => {
@@ -750,4 +786,40 @@ describe.runIf(real)("bug 006: a stock arm is a pure stock page (real Chromium)"
       expect(booted.results.run.resources).toContain("/rig/airlock-eds.js");
     } finally { await browser.close(); }
   }, T);
+});
+
+describe("bug 007: the page-view collect and the event interact are matched against stock in either start order (hermetic)", () => {
+  const post = (call, events, extra = {}) => ({ method: "POST", url: `https://edge.adobedc.net/ee/${call === "set-consent" ? "v1/privacy" : "or2/v1"}/${call}?configId=ds&requestId=${crypto.randomUUID()}`, body: JSON.stringify({ events: events.map((eventType) => ({ xdm: { eventType } })), meta: { state: { entries: [] } }, ...extra }) });
+  const consent = () => post("set-consent", []);
+  const collect = (...ev) => post("collect", ev.length ? ev : ["web.webpagedetails.pageViews"]);
+  const interact = (...ev) => post("interact", ev.length ? ev : ["web.webinteraction.linkClicks"]);
+  const stock = (...order) => order.map((f) => f());
+
+  it("accepts both witnessed stock orders against either library order", () => {
+    for (const stockOrder of [[collect, interact], [interact, collect]]) {
+      for (const libOrder of [[collect, interact], [interact, collect]]) {
+        const s = [consent(), ...stock(...stockOrder)];
+        const l = [consent(), ...stock(...libOrder)];
+        compareRequests(l, s, { independent: true });
+      }
+    }
+  });
+  it("rejects a changed event, a changed body field and a changed event order inside a request", () => {
+    const s = [consent(), collect(), interact()];
+    expect(() => compareRequests([consent(), collect(), interact("web.webinteraction.other")], s, { independent: true })).toThrow();
+    expect(() => compareRequests([consent(), collect(), post("interact", ["web.webinteraction.linkClicks"], { query: { x: 1 } })], s, { independent: true })).toThrow();
+    const two = [consent(), collect("a", "b"), interact()];
+    expect(() => compareRequests([consent(), collect("b", "a"), interact()], two, { independent: true })).toThrow();
+  });
+  it("rejects a missing request and a duplicated request", () => {
+    const s = [consent(), collect(), interact()];
+    expect(() => compareRequests([consent(), collect()], s, { independent: true })).toThrow();
+    expect(() => compareRequests([consent(), collect(), interact(), interact()], s, { independent: true })).toThrow();
+    expect(() => compareRequests([consent(), collect(), collect()], s, { independent: true })).toThrow();
+  });
+  it("rejects a consent ordering violation", () => {
+    const s = [consent(), collect(), interact()];
+    expect(() => compareRequests([collect(), consent(), interact()], s, { independent: true })).toThrow();
+    expect(() => compareRequests([interact(), collect(), consent()], s, { independent: true })).toThrow();
+  });
 });

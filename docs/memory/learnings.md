@@ -81,3 +81,5 @@ A consent read before a Promise continuation is not authorization for the later 
 
 ## A stock arm must be a pure stock page
 A compare arm that is meant to be stock Alloy must load no adapter, construct no Worker and request no chamber. Booting a chamber on the stock page lets its mirrored writes (the transient `com.adobe.alloy.getTld` probe cookie, visible for about 15 ms) race stock Alloy's own apex probe, which then returns an empty domain only on loaded runners. Use `replayFixture` with `boot: false` for every stock arm; filtering the chamber's writes in the page keeps the contamination and changes what the library arms exercise. See `rig/adobe-b1-replay.mjs` and bug 006.
+
+- **Bug 007:** an oracle that compares against a reference must only assert orders the reference itself keeps; measure reference-vs-reference variance under load before asserting a sequence, and relax only the demonstrated independent pair.
