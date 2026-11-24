@@ -313,7 +313,7 @@ describe("064-33: the opt-out forward carries only the consent the adapter regis
   });
 });
 
-// Slice 064-34: two same-tick consent updates keep both registrations until a newer update's request leaves.
+// Slice 064-34: two same-tick consent updates keep their registrations until a request carrying each one's consent leaves.
 // HERMETIC (fake Worker, mocked fetch); the real-Chromium half is test/adobe-064-34-consent-refusal-chromium.test.js.
 describe("064-34: an opt-out in flight for a superseded consent update still forwards", () => {
   const SET_CONSENT = `https://adobedc.demdex.net/ee/v1/privacy/set-consent?configId=${DS}`;
@@ -392,6 +392,17 @@ describe("064-34: an opt-out in flight for a superseded consent update still for
     send(worker, "d3", SECOND);
     await tick(60);
     expect(forwarded()).toEqual([FIRST, SECOND]);
+  });
+
+  it("the same update given again after its request left adds nothing (Alloy sends no request for it), so a replay is held", async () => {
+    const { handle, worker } = await boot();
+    handle.setAdobeConsent(FIRST);
+    send(worker, "g1", FIRST);
+    await tick(30);
+    handle.setAdobeConsent(FIRST);
+    send(worker, "g2", FIRST);
+    await tick(60);
+    expect(forwarded()).toEqual([FIRST]);
   });
 
   it("after settlement the registration does not grow: repeated A/B cycles each forward once, a replay of a sent value is held", async () => {

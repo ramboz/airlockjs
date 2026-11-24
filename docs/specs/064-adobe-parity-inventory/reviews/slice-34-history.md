@@ -15,17 +15,7 @@ These approvals were later put on hold by the coordinator: the design let genera
 
 ## Saved summary: compliance
 
-
-## Saved summary: craft
-
-
-## Saved summary: reconciliation
-
-
-
-## Saved summary: compliance
-
-Round 1 (ddb21947-5b0e-4536-a407-4c3294c362b8 (claude-opus-5.5, jig:reviewer), read 2026-11-24T22:10:15Z (exact times in the table above), verdict: approved) was on a9e52864 (the full diff plus the new real-Chromium test). Round 2 is above.
+Round 1 (ddb21947-5b0e-4536-a407-4c3294c362b8 (claude-opus-5.5, jig:reviewer), read 2026-11-24T22:10:15Z (exact times in the table above), verdict: approved) was on a9e52864 (the full diff plus the new real-Chromium test).
 
 Round 1 findings and dispositions:
 - Medium, `findLastIndex` over-retires on a repeated value (A,B,A): fixed in cd4fba06 (oldest match, `findIndex`) with a test that fails under `findLastIndex`.
@@ -39,7 +29,7 @@ Round 2 findings (all low, accepted and recorded): a generation whose values are
 
 ## Saved summary: craft
 
-Round 1 (cdc0d2eb-220f-4785-96b1-95a455022593 (claude-opus-5.5, jig:reviewer), read 2026-11-24T22:10:15Z (exact times in the table above), verdict: changes-requested) was on a9e52864 (the full diff plus the new real-Chromium test). Round 2 is above.
+Round 1 (cdc0d2eb-220f-4785-96b1-95a455022593 (claude-opus-5.5, jig:reviewer), read 2026-11-24T22:10:15Z (exact times in the table above), verdict: changes-requested) was on a9e52864 (the full diff plus the new real-Chromium test).
 
 Round 1 findings and dispositions:
 - High, `findLastIndex` over-retires on repeated values: fixed (oldest match), tested.
@@ -53,7 +43,7 @@ Round 2 findings: medium, the key-reorder half of the repeated-value test did no
 
 ## Saved summary: reconciliation
 
-Round 1 (94ccfcb9-db2a-4921-beb6-2707debd7d66 (claude-opus-5.5, jig:reviewer), read 2026-11-24T22:10:15Z (exact times in the table above), verdict: changes-requested (docs not yet written)) was on a9e52864 (the full diff plus the new real-Chromium test). Round 2 is above.
+Round 1 (94ccfcb9-db2a-4921-beb6-2707debd7d66 (claude-opus-5.5, jig:reviewer), read 2026-11-24T22:10:15Z (exact times in the table above), verdict: changes-requested (docs not yet written)) was on a9e52864 (the full diff plus the new real-Chromium test).
 
 Round 1 listed the docs that had to change. All are written: slice Findings and status (design, AC-to-test map, hermetic vs real-Chromium honesty, deviations, residuals), the 064-33 annotations, spec.md, the board, CHANGELOG and the ADR-0062 clause. Landing rule: adapter-only, no `core/` change, vendor-adobe.
 
