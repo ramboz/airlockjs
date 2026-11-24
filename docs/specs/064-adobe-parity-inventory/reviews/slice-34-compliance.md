@@ -7,7 +7,7 @@ reviewed_at: 2026-11-24T22:50:38Z
 prompt_source: round 3: complete final diff bcaccab7..HEAD plus the mission constraint (no ever-growing replay allowlist), Scout unavailable
 ---
 
-Round 3 (agent 735263e3-aacb-4677-b109-674bfbdcc355, claude-opus-5.5, jig:reviewer, no Scout; read by the author 2026-11-24T22:50Z on HEAD c258caed, full diff bcaccab7..c258caed).
+Round 3 (agent 735263e3-aacb-4677-b109-674bfbdcc355, claude-opus-5.5, jig:reviewer, no Scout; final output read 2026-11-24T22:49:50.650Z on HEAD c258caed; the frontmatter reviewed_at is the record-write time, not the read time, full diff bcaccab7..c258caed).
 
 First return: "needs-changes — lifecycle is request-correlated with no timer, cap or growing allowlist, core/ is untouched, AC1/AC2 met; but the identical-update skip compares against the last live generation instead of Alloy's last stored/sent consent, so a value repeated after settlement is re-registered without a request and a replay of it forwards (bounded at one generation)". Fixed in c258caed (`lastUpdateKey`, hermetic test).
 

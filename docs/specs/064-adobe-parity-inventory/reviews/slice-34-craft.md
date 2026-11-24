@@ -9,7 +9,7 @@ substrate: not-shown
 applied_skill: none
 ---
 
-Round 3 (agent e28d4f1c-f514-408a-aa2b-a931a098a158, claude-opus-5.5, jig:reviewer, no Scout; read by the author 2026-11-24T22:50Z on HEAD c258caed, full diff bcaccab7..c258caed).
+Round 3 (agent e28d4f1c-f514-408a-aa2b-a931a098a158, claude-opus-5.5, jig:reviewer, no Scout; final output read 2026-11-24T22:49:43.425Z on HEAD c258caed; the frontmatter reviewed_at is the record-write time, not the read time, full diff bcaccab7..c258caed).
 
 First return: "needs-changes" (medium: the duplicate-update comment and skip held only while the previous generation was live). Fixed in c258caed.
 

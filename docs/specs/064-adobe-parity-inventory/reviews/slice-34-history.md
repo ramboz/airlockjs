@@ -48,3 +48,8 @@ Round 1 (94ccfcb9-db2a-4921-beb6-2707debd7d66 (claude-opus-5.5, jig:reviewer), r
 Round 1 listed the docs that had to change. All are written: slice Findings and status (design, AC-to-test map, hermetic vs real-Chromium honesty, deviations, residuals), the 064-33 annotations, spec.md, the board, CHANGELOG and the ADR-0062 clause. Landing rule: adapter-only, no `core/` change, vendor-adobe.
 
 Round 2 findings: low, the slice and spec cite these review files, which are now saved; low, the mutation counts were checked by tracing, not run by the reviewer (the author ran them).
+
+## Round 3 read times and process notes
+
+Final round-3 outputs were read at: reconciliation 22:49:41.825Z, craft 22:49:43.425Z, compliance 22:49:50.650Z (2026-11-24). The first needs-changes returns are preserved in the round-3 review files. Process omission, recorded without rewriting history: commit abc501da lacked the required Co-authored-by trailer; later commits carry it.
+
