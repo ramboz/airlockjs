@@ -370,6 +370,18 @@ describe("064-34: an opt-out in flight for a superseded consent update still for
     expect(forwarded()).toEqual([reordered, SECOND, FIRST]);
   });
 
+  it("retirement compares key-order-free: a key-reordered newer request retires the older update", async () => {
+    const { handle, worker } = await boot();
+    handle.setAdobeConsent(FIRST);
+    handle.setAdobeConsent(SECOND);
+    const reorderedSecond = [{ version: "2.0", value: { personalize: { content: { val: "n" } }, collect: { val: "n" } }, standard: "Adobe" }];
+    send(worker, "k1", reorderedSecond);
+    await tick(30);
+    send(worker, "k2", FIRST);
+    await tick(60);
+    expect(forwarded()).toEqual([reorderedSecond]);
+  });
+
   it("a request for the newest update leaves nothing else retired, and a later update still adds", async () => {
     const { handle, worker } = await boot();
     handle.setAdobeConsent(FIRST);

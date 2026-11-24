@@ -2046,7 +2046,8 @@ export async function bootAlloy(opts = {}) {
   // forwards an opt-out only while consent is denied, so a stale value cannot widen what leaves. A generation
   // retires when a request carrying a newer generation's consent leaves (the oldest generation holding that value
   // counts, so a value repeated in a later generation never retires one still in flight; Alloy sends its consent
-  // requests in order, so older ones are done or dropped). A page that sends one value twice in a row adds no generation. There is no timer, and
+  // requests in order, so older ones are done or dropped). A page that sends one value twice in a row adds no
+  // generation. There is no timer, and
   // the newest generation always stays. A value no update produced is in no generation, so it is held as before.
   let pageConsentObject = null;
   let optOutGenerations = [];

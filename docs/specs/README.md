@@ -216,7 +216,7 @@ do not grant live authority.
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-31 — stock `alloy()` wrapper parity (re-scoped against ADR-0065: its ACs moved to 069-01 and 069-03 or dropped) | **DONE** (by reference) |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-32 — first push query edge cases match stock | READY_FOR_IMPLEMENTATION |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-33 — the opt-out forward carries only the consent the page gave | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-34 — an opt-out in flight for a superseded consent update still forwards | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-34 — an opt-out in flight for a superseded consent update still forwards | DONE |  |
 | [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-01 — the handle returns what stock returns (`sendEvent` result, hook argument, `viewName`, consent outcome) | DONE |  |
 | [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-02 — Airlock's generic data layer (no ACDL) plus an opt-in `adobeDataLayer` migration proxy | DONE (AC2 Proxy-trap clause -> 069-04) |  |
 | [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-03 — `adapters/eds/martech.js`: the `aem-martech` exports on the `bootAlloy` handle | **DONE** |  |

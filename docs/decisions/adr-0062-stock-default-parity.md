@@ -75,7 +75,7 @@ Adopt Option B.
 
 **Remaining risk.** `meta` is still forwarded unchecked. It mirrors per-session cookie state, so there is no fixed value to register and a structural check would be Alloy-specific. A hostile chamber could put data into `meta` of a refusal that goes to the already-allowlisted Adobe endpoint; the ceiling and config-integrity gates still apply. Keeping `meta` follows the 2026-11-20 choice. Two edges stay: a refusal the host receives after a grant has already landed is sent as stock Alloy does (the grant set-consent follows, so Adobe's final state is granted), and a request whose `collect: "n"` sits outside the declared entry is not refusal-shaped, so it parks while pending like any request. Neither lets a request the connector declares as a refusal be sent later.
 
-**Where it lives.** `core/wrapped-sdk-host.js` (the compare and the method, vendor-neutral); the Alloy adapter registers the wire `consent` array from `shapeAlloyConsent(consent)`. Implemented by spec 068-03. The page's Adobe 2.0 object is registered on `vendor-adobe` (064-33).
+**Where it lives.** `core/wrapped-sdk-host.js` (the compare and the method, vendor-neutral); the Alloy adapter registers the wire `consent` array from `shapeAlloyConsent(consent)`. Implemented by spec 068-03. The page's Adobe 2.0 object is registered on `vendor-adobe` (064-33), kept per consent update until a request carrying a newer update's consent leaves (064-34); core still replaces on each call.
 
 ## Existing decisions
 
