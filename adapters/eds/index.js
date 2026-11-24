@@ -2042,10 +2042,11 @@ export async function bootAlloy(opts = {}) {
   // 064-33: while a page object is posted to the chamber, it is registered too (the vector-shaped consent
   // stays registered for the chamber's one retry after Alloy rejects the object).
   // 064-34: each update adds a generation instead of replacing the last, so a request still in flight for an
-  // update a newer one superseded keeps its registration. Every value is one the page itself gave. A generation
-  // retires when a request carrying a NEWER generation's consent leaves (the newest generation holding that value counts) (Alloy sends its consent requests in
-  // order, so the older ones are done or dropped); no timer, and the newest generation always stays. A value no
-  // update produced is in no generation, so it is held as before.
+  // update a newer one superseded keeps its registration. Every value is one the page itself gave, and the host
+  // forwards an opt-out only while consent is denied, so a stale value cannot widen what leaves. A generation
+  // retires when a request carrying a newer generation's consent leaves (the newest generation holding that value
+  // counts; Alloy sends its consent requests in order, so older ones are done or dropped). There is no timer, and
+  // the newest generation always stays. A value no update produced is in no generation, so it is held as before.
   let pageConsentObject = null;
   let optOutGenerations = [];
   const registerOptOutConsent = () => host.expectOptOutConsent(optOutGenerations.flat());
