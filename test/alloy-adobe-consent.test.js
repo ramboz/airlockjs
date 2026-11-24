@@ -263,13 +263,12 @@ describe("064-33: the opt-out forward carries only the consent the adapter regis
     expect(forwarded().map((b) => b.consent)).toEqual([[REFUSAL]]);
   });
 
-  it("the chamber's one retry with the vector-shaped consent still forwards after the object path", async () => {
+  it("the chamber's one retry with the vector-shaped consent forwards when Alloy rejected the object (no object request left)", async () => {
     const { handle, worker } = await boot();
     handle.setAdobeConsent([REFUSAL]);
-    send(worker, "r1", [REFUSAL]);
     send(worker, "r2", VECTOR_REFUSAL);
     await tick(60);
-    expect(forwarded().map((b) => b.consent)).toEqual([[REFUSAL], VECTOR_REFUSAL]);
+    expect(forwarded().map((b) => b.consent)).toEqual([VECTOR_REFUSAL]);
   });
 
   it("the 064-30 fallback registers the vector, not the unreadable object", async () => {
@@ -306,8 +305,9 @@ describe("064-33: the opt-out forward carries only the consent the adapter regis
     const { handle, worker } = await boot();
     handle.setAdobeConsent([REFUSAL]);
     handle.setConsent({ ...DENIED });
-    send(worker, "s1", VECTOR_REFUSAL);
-    send(worker, "s2", [REFUSAL]); // the vector is in the object's generation too, so it retires nothing
+    send(worker, "s1", VECTOR_REFUSAL); // the boot generation's value: consumes only that generation
+    send(worker, "s2", [REFUSAL]); // the page object's generation is still unsent, so it forwards
+    send(worker, "s3", [REFUSAL]); // ...once: the request consumed it
     await tick(60);
     expect(forwarded().map((b) => b.consent)).toEqual([VECTOR_REFUSAL, [REFUSAL]]);
   });
@@ -382,7 +382,7 @@ describe("064-34: an opt-out in flight for a superseded consent update still for
     expect(forwarded()).toEqual([reorderedSecond]);
   });
 
-  it("a request for the newest update leaves nothing else retired, and a later update still adds", async () => {
+  it("a value already sent is held when replayed, and a later update still adds", async () => {
     const { handle, worker } = await boot();
     handle.setAdobeConsent(FIRST);
     send(worker, "d1", FIRST);
@@ -391,7 +391,23 @@ describe("064-34: an opt-out in flight for a superseded consent update still for
     send(worker, "d2", FIRST);
     send(worker, "d3", SECOND);
     await tick(60);
-    expect(forwarded()).toEqual([FIRST, FIRST, SECOND]);
+    expect(forwarded()).toEqual([FIRST, SECOND]);
+  });
+
+  it("after settlement the registration does not grow: repeated A/B cycles each forward once, a replay of a sent value is held", async () => {
+    const { handle, worker } = await boot();
+    const cycles = 25;
+    for (let i = 0; i < cycles; i++) {
+      handle.setAdobeConsent(FIRST);
+      handle.setAdobeConsent(SECOND);
+      send(worker, `p${i}a`, FIRST);
+      send(worker, `p${i}b`, SECOND);
+      await tick(30);
+    }
+    send(worker, "late1", FIRST);
+    send(worker, "late2", SECOND);
+    await tick(60);
+    expect(forwarded()).toHaveLength(2 * cycles);
   });
 });
 

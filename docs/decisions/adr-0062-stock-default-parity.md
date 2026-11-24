@@ -75,7 +75,7 @@ Adopt Option B.
 
 **Remaining risk.** `meta` is still forwarded unchecked. It mirrors per-session cookie state, so there is no fixed value to register and a structural check would be Alloy-specific. A hostile chamber could put data into `meta` of a refusal that goes to the already-allowlisted Adobe endpoint; the ceiling and config-integrity gates still apply. Keeping `meta` follows the 2026-11-20 choice. Two edges stay: a refusal the host receives after a grant has already landed is sent as stock Alloy does (the grant set-consent follows, so Adobe's final state is granted), and a request whose `collect: "n"` sits outside the declared entry is not refusal-shaped, so it parks while pending like any request. Neither lets a request the connector declares as a refusal be sent later.
 
-**Where it lives.** `core/wrapped-sdk-host.js` (the compare and the method, vendor-neutral); the Alloy adapter registers the wire `consent` array from `shapeAlloyConsent(consent)`. Implemented by spec 068-03. The page's Adobe 2.0 object is registered on `vendor-adobe` (064-33), kept per consent update until a request carrying a newer update's consent leaves (064-34); core still replaces on each call.
+**Where it lives.** `core/wrapped-sdk-host.js` (the compare and the method, vendor-neutral); the Alloy adapter registers the wire `consent` array from `shapeAlloyConsent(consent)`. Implemented by spec 068-03. The page's Adobe 2.0 object is registered on `vendor-adobe` (064-33).
 
 ## Existing decisions
 
@@ -151,3 +151,7 @@ Round 2 returned NEEDS-CHANGES. Folded into the body: findings 3 to 7. Findings 
 - **No-consent-input default** (round 2, finding 1): answered, the site holds and warns. Slice: Alloy `egressPurposes`-empty case (ADR-0013:84), plus the diagnostic warning on every track.
 - **Alloy pending-drop becomes hold-and-flush** (finding 2): required slice (spec 045-02 refinement), under point 4.
 - **Stock-context channel design and the configurable Alloy `context`** (round 1, findings 2 and 4): required slices under points 2 and 3. The Adobe inventory checks the stock default list against the pinned 2.31.1 bytes.
+
+## Corrections
+
+- **2026-11-24 (slice 064-34).** The "Where it lives" paragraph above says the adapter registers the wire `consent` array and, on `vendor-adobe`, the page's Adobe 2.0 object (064-33). Since 064-34 the Adobe adapter registers one generation per consent update (the page object, if any, plus the vector) and passes core the union; a generation is consumed when a request carrying its consent leaves (oldest match, key-order-free, with every older generation). Core is unchanged and still replaces the registration on each `expectOptOutConsent` call. The decision itself is unchanged.

@@ -2043,12 +2043,14 @@ export async function bootAlloy(opts = {}) {
   // stays registered for the chamber's one retry after Alloy rejects the object).
   // 064-34: each update adds a generation instead of replacing the last, so a request still in flight for an
   // update a newer one superseded keeps its registration. Every value is one the page itself gave, and the host
-  // forwards an opt-out only while consent is denied, so a stale value cannot widen what leaves. A generation
-  // retires when a request carrying a newer generation's consent leaves (the oldest generation holding that value
-  // counts, so a value repeated in a later generation never retires one still in flight; Alloy sends its consent
-  // requests in order, so older ones are done or dropped). A page that sends one value twice in a row adds no
-  // generation. There is no timer, and
-  // the newest generation always stays. A value no update produced is in no generation, so it is held as before.
+  // forwards an opt-out only while consent is denied, so a stale value cannot widen what leaves.
+  // Lifetime is request-correlated: Alloy runs setConsent through a serialized task queue and sends a request only
+  // when the consent differs from the last one it stored, so a request leaving means its update is settled (an object
+  // Alloy rejects sends none; the chamber's vector retry is then the request). When a request leaves, the oldest
+  // generation holding its value and every older one are consumed, so a value already sent is held when replayed.
+  // A page that sends one value twice in a row adds no generation (Alloy sends no request for it). No timer, no cap;
+  // only updates whose request never left linger, and the next request matching a later generation clears them.
+  // A value no update produced is in no generation, so it is held as before.
   let pageConsentObject = null;
   let optOutGenerations = [];
   const registerOptOutConsent = () => host.expectOptOutConsent(optOutGenerations.flat());
@@ -2062,13 +2064,13 @@ export async function bootAlloy(opts = {}) {
     registerOptOutConsent();
   };
   const retireOptOutGenerations = (body) => {
-    if (optOutGenerations.length < 2 || typeof body !== "string") return;
+    if (!optOutGenerations.length || typeof body !== "string") return;
     let sent;
     try { sent = JSON.parse(body).consent; } catch { return; }
     if (sent === undefined) return;
     const want = canon(sent);
     const at = optOutGenerations.findIndex((g) => g.some((v) => canon(v) === want));
-    if (at > 0) { optOutGenerations = optOutGenerations.slice(at); registerOptOutConsent(); }
+    if (at >= 0) { optOutGenerations = optOutGenerations.slice(at + 1); registerOptOutConsent(); }
   };
   addOptOutGeneration();
   const apex = probeApexDomain(resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).narrowed ? resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).names : null);
