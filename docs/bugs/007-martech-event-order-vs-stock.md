@@ -128,7 +128,7 @@ testing the concurrency), sorting requests or normalising bodies (would hide a c
 **Disposition per affected site:**
 
 - 069-05 AC1 (personalization off): changed, uses `independent`.
-- 069-05 AC4: changed. The cross-request order of page view vs event is no longer asserted (stock does not keep it under load); event identity and the event order inside each request still equal stock's. Recorded as a deviation from the AC4 wording, not an amendment of the spec.
+- 069-05 AC4: changed. The cross-request order of page view vs event is no longer asserted (stock does not keep it under load); event identity and the event order inside each request still equal stock's. Not an amendment of the spec: the deviation from the AC4 wording is for the 069-05 reconciliation to record (coordinator 24).
 - AC2, AC3, AC6, AC11, the personalization-on callers and the 069-03 loops: left strict (not observed varying; stock-order dependent by design).
 - Concurrent journey: unchanged by decision.
 - b4 064-24 redirect flake: out of scope, owned by the coordinator.
@@ -140,11 +140,11 @@ testing the concurrency), sorting requests or normalising bodies (would hide a c
 
 ## Regression test
 
-`bug 007: the page-view collect and the event interact are matched against stock in either start order` (hermetic, in `test/adobe-b5-martech.test.js`). It accepts both stock permutations; sibling tests reject a changed event, body or in-request event order, a missing or duplicate request, and consent ordering violations. Revert-check: with alignment disabled the accepting test is red (1 failed, 3 passed).
+`bug 007: the page-view collect and the event interact are matched against stock in either start order` (hermetic, in `test/adobe-b5-martech.test.js`). It accepts both stock permutations; sibling tests reject a changed event, body or in-request event order, a missing or duplicate request, and consent ordering violations. Revert-check: with alignment disabled the accepting test is red (2 failed, 3 passed across the 5 hermetic tests).
 
 ## Proof
 
-Loaded 24-run sample (16 hogs, 8 arm-pairs, real Chromium): the strict oracle (library vs stock, index by index) fails 6/24, the aligned oracle 0/24 (stock itself started interact first in 14/24 runs), AC4 0/24. Red witnessed 2026-11-24 via `bug.py`; real-Chromium b5 file 17 passed; `npm test` and `npm run lint` green. **Residual risk, outside this fix:** the library's main-thread dispatch inverted the two sends in 2/24 loaded runs while stock's SDK invocation never did, and AC4 no longer detects a library-side reorder of page view vs event. Not diagnosed here; reported to coordinator 24 as the owner of follow-up scope.
+Loaded 24-run sample (16 hogs, 8 arm-pairs, real Chromium): in a second, independent loaded 24-run sample (same load; the per-run counts differ from the table above, which is a different sample) the strict oracle (library vs stock, index by index) failed 6/24 runs, the aligned oracle 0/24 (`oracle-load16.jsonl` in the session files), AC4 0/24. Red witnessed 2026-11-24 via `bug.py`; real-Chromium b5 file 17 passed; `npm test` and `npm run lint` green. **Residual risk, outside this fix:** the library's main-thread dispatch inverted the two sends in 2/24 loaded runs while stock's SDK invocation never did, and AC4 no longer detects a library-side reorder of page view vs event. Not diagnosed here; reported to coordinator 24 as the owner of follow-up scope.
 
 ## Learning
 

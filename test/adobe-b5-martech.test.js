@@ -823,7 +823,7 @@ describe("bug 007: the page-view collect and the event interact are matched agai
     rejects([consent(), collect(), interact(), interact()], s);
     rejects([consent(), collect(), collect()], s);
   });
-  it("rejects stock that is not consent plus one collect and one interact, and ties of identical sends are matched once each", () => {
+  it("rejects stock that is not consent plus one collect and one interact", () => {
     rejects([consent(), collect(), interact()], [consent(), collect(), interact(), interact()]);
     rejects([consent(), collect(), collect()], [consent(), collect(), collect()]);
     rejects([collect(), interact(), consent()], [collect(), interact(), consent()]);
