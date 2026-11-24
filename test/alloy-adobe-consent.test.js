@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { bootAlloy, createAlloyCommandBridge, classifyAdobeConsent } from "../adapters/eds/index.js";
+import { shapeAlloyConsent } from "../connectors/alloy/consent.js";
 
 // Slice 064-30 (ADR-0064): the stock Adobe consent path. HERMETIC tests: a fake Worker records what the
 // adapter posts; the chamber's own handling is exercised against the real worker file in the second half.
@@ -305,10 +306,66 @@ describe("064-33: the opt-out forward carries only the consent the adapter regis
     const { handle, worker } = await boot();
     handle.setAdobeConsent([REFUSAL]);
     handle.setConsent({ ...DENIED });
-    send(worker, "s1", [REFUSAL]);
-    send(worker, "s2", VECTOR_REFUSAL);
+    send(worker, "s1", VECTOR_REFUSAL);
+    send(worker, "s2", [REFUSAL]); // the object's request left after the newer vector's: retired (064-34)
     await tick(60);
     expect(forwarded().map((b) => b.consent)).toEqual([VECTOR_REFUSAL]);
+  });
+});
+
+// Slice 064-34: two same-tick consent updates keep both registrations until a newer update's request leaves.
+// HERMETIC (fake Worker, mocked fetch); the real-Chromium half is test/adobe-064-34-consent-refusal-chromium.test.js.
+describe("064-34: an opt-out in flight for a superseded consent update still forwards", () => {
+  const SET_CONSENT = `https://adobedc.demdex.net/ee/v1/privacy/set-consent?configId=${DS}`;
+  const FIRST = [adobe({ collect: { val: "n" }, share: { val: "y" } })];
+  const SECOND = [REFUSAL];
+  const send = (worker, id, consent) => worker.emit({ type: "intercepted-fetch", id, url: SET_CONSENT, method: "POST", headers: {}, body: JSON.stringify({ consent, meta: { state: {} } }) });
+  const forwarded = () => fetchMock.mock.calls.filter((c) => String(c[0]).includes("/privacy/set-consent")).map((c) => JSON.parse(c[1].body).consent);
+
+  it("setAdobeConsent then setConsent: both requests forward, a never-registered one is held", async () => {
+    const { handle, worker } = await boot();
+    const DENIED = { analytics_storage: "denied", personalization: "denied" };
+    handle.setAdobeConsent(FIRST);
+    handle.setConsent({ ...DENIED });
+    send(worker, "a1", FIRST);
+    send(worker, "a2", [adobe({ collect: { val: "n" }, marketing: { any: { val: "y" } } })]);
+    send(worker, "a3", shapeAlloyConsent(DENIED).consent);
+    await tick(60);
+    expect(forwarded()).toEqual([FIRST, shapeAlloyConsent(DENIED).consent]);
+  });
+
+  it("two setAdobeConsent calls: both requests forward, a never-registered one is held", async () => {
+    const { handle, worker } = await boot();
+    handle.setAdobeConsent(FIRST);
+    handle.setAdobeConsent(SECOND);
+    send(worker, "b1", FIRST);
+    send(worker, "b2", [adobe({ collect: { val: "n" }, personalize: { content: { val: "y" } } })]);
+    send(worker, "b3", SECOND);
+    await tick(60);
+    expect(forwarded()).toEqual([FIRST, SECOND]);
+  });
+
+  it("a superseded registration retires once a newer update's request has left", async () => {
+    const { handle, worker } = await boot();
+    handle.setAdobeConsent(FIRST);
+    handle.setAdobeConsent(SECOND);
+    send(worker, "c1", SECOND);
+    await tick(30);
+    send(worker, "c2", FIRST);
+    await tick(60);
+    expect(forwarded()).toEqual([SECOND]);
+  });
+
+  it("a request for the newest update leaves nothing else retired, and a later update still adds", async () => {
+    const { handle, worker } = await boot();
+    handle.setAdobeConsent(FIRST);
+    send(worker, "d1", FIRST);
+    await tick(30);
+    handle.setAdobeConsent(SECOND);
+    send(worker, "d2", FIRST);
+    send(worker, "d3", SECOND);
+    await tick(60);
+    expect(forwarded()).toEqual([FIRST, FIRST, SECOND]);
   });
 });
 

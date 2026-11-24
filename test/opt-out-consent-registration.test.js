@@ -47,9 +47,10 @@ describe("068-03 AC4 — bootAlloy registers the vector-shaped consent", () => {
   it("re-registers on handle.setConsent (the CMP onChange and a direct call both land here), grant then refusal", async () => {
     const handle = await bootAlloy(entry({ consent: { analytics_storage: "denied" } }));
     handle.setConsent({ analytics_storage: "granted" });
-    expect(registered.at(-1)).toEqual([wire("y")]);
+    // 064-34: each update adds a generation; none has been retired because no request has left yet.
+    expect(registered.at(-1)).toEqual([wire("n"), wire("y")]);
     handle.setConsent({ analytics_storage: "denied" });
-    expect(registered.at(-1)).toEqual([wire("n")]);
+    expect(registered.at(-1)).toEqual([wire("n"), wire("y"), wire("n")]);
   });
 
   it("registers nothing with no consent vector and consentHold:false", async () => {

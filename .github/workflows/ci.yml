@@ -147,6 +147,12 @@ jobs:
         env:
           AIRLOCK_REAL_CHROMIUM: "1"
 
+      - name: GATING — 064-34 consent refusal on the wire equals the registered object (real Chromium, pinned Alloy 2.31.1)
+        # SYNTHETIC answers: the set-consent refusal for the page's Adobe 2.0 object, alone and two updates in one tick, against the stock tag.
+        run: npx vitest run test/adobe-064-34-consent-refusal-chromium.test.js
+        env:
+          AIRLOCK_REAL_CHROMIUM: "1"
+
       - name: GATING — 069-02 generic data layer vs ACDL 3.0.1 and aem-martech (real Chromium)
         # SYNTHETIC pushes: getState corpus against real ACDL, event mapping/blocks/eager phase against the pinned aem-martech 1aa3dee3, the opt-in proxy on a real page.
         run: npx vitest run test/adobe-069-02-datalayer-chromium.test.js

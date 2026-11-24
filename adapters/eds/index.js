@@ -1807,7 +1807,7 @@ export async function bootAlloy(opts = {}) {
     if (!consentRef || !v) return;
     consentInputWired = true;
     Object.assign(consentRef, v);
-    registerOptOutConsent();
+    addOptOutGeneration();
     host.setConsent(consentRef);
   };
 
@@ -1817,6 +1817,7 @@ export async function bootAlloy(opts = {}) {
       // main-thread fetch (ADR-0004). The host runs the endpoint/consent/config
       // gates BEFORE calling this, so a held interact never reaches the network.
       async dispatch(req) {
+        retireOptOutGenerations(req.body);
         const watch = redirectWatches.size ? [...redirectWatches].find((w) => w.matches(req.body)) : undefined;
         if (watch) redirectWatches.delete(watch);
         // 064-18 (AC1/AC3): the seam-sanitized transport init (cache / credentials / referrerPolicy /
@@ -2037,12 +2038,30 @@ export async function bootAlloy(opts = {}) {
   const storageGrant = resolveStorageGrant(stockStorage.names, storageGrantNarrowing);
   const storageSeed = storageGrant.active ? scopeSeedStorage(pageStorage(), storageGrant.areas) : null;
   // 068-03: the consent value Alloy's refusal request carries on the wire, registered so the
-  // host forwards an opt-out only when it matches (re-registered on every setConsent below).
+  // host forwards an opt-out only when it matches.
   // 064-33: while a page object is posted to the chamber, it is registered too (the vector-shaped consent
   // stays registered for the chamber's one retry after Alloy rejects the object).
+  // 064-34: each update adds a generation instead of replacing the last, so a request still in flight for an
+  // update a newer one superseded keeps its registration. Every value is one the page itself gave. A generation
+  // retires when a request carrying a NEWER generation's consent leaves (the newest generation holding that value counts) (Alloy sends its consent requests in
+  // order, so the older ones are done or dropped); no timer, and the newest generation always stays. A value no
+  // update produced is in no generation, so it is held as before.
   let pageConsentObject = null;
-  const registerOptOutConsent = () => host.expectOptOutConsent(consentRef ? [...(pageConsentObject ? [pageConsentObject] : []), shapeAlloyConsent(consentRef).consent] : []);
-  registerOptOutConsent();
+  let optOutGenerations = [];
+  const registerOptOutConsent = () => host.expectOptOutConsent(optOutGenerations.flat());
+  const addOptOutGeneration = () => {
+    optOutGenerations.push(consentRef ? [...(pageConsentObject ? [pageConsentObject] : []), shapeAlloyConsent(consentRef).consent] : []);
+    registerOptOutConsent();
+  };
+  const retireOptOutGenerations = (body) => {
+    if (optOutGenerations.length < 2 || typeof body !== "string") return;
+    let sent;
+    try { sent = JSON.parse(body).consent; } catch { return; }
+    if (sent === undefined) return;
+    const at = optOutGenerations.findLastIndex((g) => g.some((v) => JSON.stringify(v) === JSON.stringify(sent)));
+    if (at > 0) { optOutGenerations = optOutGenerations.slice(at); registerOptOutConsent(); }
+  };
+  addOptOutGeneration();
   const apex = probeApexDomain(resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).narrowed ? resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).names : null);
   host.init({ cookie: seedCookie, config, bundleUrl, consent: consentRef, ...(apex ? { apex } : {}), ...(storageSeed ? { storage: storageSeed } : {}) });
 
