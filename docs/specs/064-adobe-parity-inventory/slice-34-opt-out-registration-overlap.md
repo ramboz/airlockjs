@@ -39,3 +39,5 @@ Found by the 064-33 craft review. Any change to how `core/` stores registrations
 **Residuals.** Generations grow while no request carrying a distinct consent leaves (bounded by the page's updates). Retirement assumes Alloy sends consent requests in order; the oldest-match rule errs toward keeping registrations. A compromised chamber can send a superseded page value (one the page gave, while consent is denied) until a newer generation's request retires it.
 
 **Reviews (Opus 5.5, `reviews/slice-34-*.md`).**
+- Round 1 (a9e52864): compliance approved, craft changes-requested, reconciliation changes-requested (docs pending). The craft and compliance findings on repeated values (over-retirement) and key-order compare led to the cd4fba06 fix.
+- Round 2: compliance, craft and reconciliation approved; the remaining low findings are accepted and listed in each file. Maximum rounds not exceeded.
