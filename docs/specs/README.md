@@ -186,7 +186,7 @@ do not grant live authority.
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-01 — T1: close the command inventory | ABANDONED |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-02 — T2: datastream setting list and completeness table | **DONE** |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-03 — B0: capture tooling | **DONE** |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-04 — CAP: the capture session | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 🔬 064-04 — CAP: the capture session | **DONE** |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-05 — B1: configure, getLibraryInfo, page-view sendEvent (pilot) | ABANDONED |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-06 — B2: custom sendEvent, mergeId, onBeforeEventSend | ABANDONED |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-07 — B3: response handling and applyResponse | ABANDONED |  |
@@ -199,29 +199,24 @@ do not grant live authority.
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-14 — B10: push, conversation and debug | ABANDONED |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-15 — B7: compatibility report and perf budget | READY_FOR_IMPLEMENTATION |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-16 — B8: release check wiring | READY_FOR_IMPLEMENTATION |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-17 — B1: Environment snapshot and storage seeding (pilot) | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-18 — B2: Egress bridge | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-19 — B3: Command coverage and callbacks | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-20 — B4: Personalization and host DOM | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-23 — SPA view cache and first-event-only decisionScopes | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-24 — Redirect display notification | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-25 — Interact notification parity | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-21 — B5: aem-martech, ACDL and Launch | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-22 — B6: Out-of-default-surface disposition | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-26 — H1: Host command entry | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-27 — Alloy storage grant | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-28 — applyResponse warms the host view cache | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-29 — first push after applyResponse matches stock | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-30 — stock Adobe consent path (set-consent body and host match stock; ADR-0064) | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-31 — stock `alloy()` wrapper parity (re-scoped against ADR-0065: its ACs moved to 069-01 and 069-03 or dropped) | **DONE** (by reference) |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-17 — B1: Environment snapshot and storage seeding (pilot) | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-18 — B2: Egress bridge | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-19 — B3: Command coverage and callbacks | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-20 — B4: Personalization and host DOM | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-21 — B5: aem-martech, ACDL and Launch | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-22 — B6: Out-of-default-surface disposition | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-23 — SPA view cache and first-event-only decisionScopes | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-24 — Redirect display notification | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-25 — Interact notification parity | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-26 — H1: Host command entry | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-27 — Alloy storage grant | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-28 — applyResponse warms the host view cache | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-29 — first push after applyResponse matches stock | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-30 — stock Adobe consent path (set-consent body and host match stock) | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-31 — stock `alloy()` wrapper parity (identity list, `sendEvent` result, hook argument, configure diagnostics, `setConsent` promise) | **DONE** |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-32 — first push query edge cases match stock | READY_FOR_IMPLEMENTATION |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-33 — the opt-out forward carries only the consent the page gave | DONE |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-34 — an opt-out in flight for a superseded consent update still forwards | DONE |  |
-| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-01 — the handle returns what stock returns (`sendEvent` result, hook argument, `viewName`, consent outcome) | DONE |  |
-| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-02 — Airlock's generic data layer (no ACDL) plus an opt-in `adobeDataLayer` migration proxy | DONE (AC2 Proxy-trap clause -> 069-04) |  |
-| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-03 — `adapters/eds/martech.js`: the `aem-martech` exports on the `bootAlloy` handle | **DONE** |  |
-| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-04 — trap-free rejection of a pushed `Proxy` (overflow of 069-02 AC2) | READY_FOR_IMPLEMENTATION |  |
-| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-05 — real-Chromium display flows of the library (required for 069-03 AC6) | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-33 — the opt-out forward carries only the consent the page gave | **DONE** |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-34 — an opt-out in flight for a superseded consent update still forwards | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01: ADR status lines and docs rewording | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-02: Consent hold on every track, with a no-consent-input warning | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-03: Alloy holds and flushes, and an empty `egressPurposes` holds and warns | **DONE** |  |
@@ -236,7 +231,12 @@ do not grant live authority.
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-12: Default localStorage and sessionStorage grant is the stock set | **DONE** |  |
 | [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-01: A pending seam hold flushes on grant | **DONE** |  |
 | [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-02: Forward the opt-out after an explicit refusal | **DONE** |  |
-| [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-03: The opt-out forward carries only the consent the adapter registered | **DONE** |  |
+| [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-03: The opt-out forward carries only the consent the adapter registered (core and main adapter) | **DONE** |  |
+| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-01 — the handle returns what stock returns (`sendEvent` result, hook argument, `viewName`, consent outcome) | **DONE** |  |
+| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-02 — Airlock's generic data layer, plus an opt-in `adobeDataLayer` migration proxy | **DONE** |  |
+| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-03 — `adapters/eds/martech.js`: the `aem-martech` exports on the `bootAlloy` handle | **DONE** |  |
+| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-04 — Trap-free rejection of a pushed `Proxy` | READY_FOR_IMPLEMENTATION |  |
+| [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-05 — Real-Chromium display flows of the martech library (required for 069-03 AC6) | **DONE** |  |
 
 ## Deferred slices
 
@@ -273,7 +273,7 @@ do not grant live authority.
 
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
-- **14** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
+- **15** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **109** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **52** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
