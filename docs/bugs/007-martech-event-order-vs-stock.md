@@ -113,7 +113,7 @@ testing the concurrency), sorting requests or normalising bodies (would hide a c
 
 ## Fix
 
-`connectors/alloy/alloy-chamber.worker.js`: a shim-local ordered bridge queue. A Blob-bodied `sendBeacon` reserves its slot at call time and fills it when `Blob.text()` resolves; later `fetch` and beacon posts wait behind a still-pending slot and are posted in call order. With nothing pending the post is synchronous as before. A rejected read posts the beacon with an empty body, as before, and releases later calls; an exception in a queued post is rethrown (not swallowed) and never blocks the queue. No wait on network responses; consent and egress policy are untouched (main-side seal decides at dispatch, so a delay cannot bypass it).
+`connectors/alloy/alloy-chamber.worker.js`: a shim-local ordered bridge queue. A Blob-bodied `sendBeacon` reserves its slot at call time and fills it when `Blob.text()` resolves; later `fetch` and beacon posts wait behind a still-pending slot and are posted in call order. With nothing pending the post is synchronous as before. The read is wrapped in `Promise.resolve`, so a `text()` returning a non-promise posts in place; a `text()` that never settles would hold later posts of that chamber (accepted, chamber-local residual). A rejected read posts the beacon with an empty body, as before, and releases later calls; an exception in a queued post is rethrown (not swallowed) and never blocks the queue. No wait on network responses; consent and egress policy are untouched (main-side seal decides at dispatch, so a delay cannot bypass it).
 
 `rig/b1-chamber-entry.js`: `rig:calls`, a rig command that makes ordered `fetch`/Blob/string-beacon calls inside the chamber.
 
@@ -140,7 +140,7 @@ AC4 boundary: AC4 says the event/page-view order equals stock's. That is now ass
 
 ## Regression test
 
-`bug 007: the bridge posts calls in the order the tag made them` (real Chromium, synthetic chamber scenario, `test/adobe-b2-egress.test.js`): slow Blob beacon then fetch then fetch; slow Blob then fast Blob then fetch; slow Blob, fetch, string beacon; rejected Blob read then fetch; no-pending synchronous order; consent revoked during a Blob read (held at the seal). Revert-check: with the worker change stashed, the four ordering/error tests are red (4 failed, 2 passed: the no-pending path and the seal test hold on the old code by design); restored, all 29 b2 tests are green. The deterministic b2 describe is the regression test; the b5 `expectInvocationOrder` is supporting evidence only (about 1/24 chance to fail on pre-fix code under load) and catches the pre-fix loaded inversion (1/24, invFail=1) and is 0/24 post-fix.
+`bug 007: the bridge posts calls in the order the tag made them` (real Chromium, synthetic chamber scenario, `test/adobe-b2-egress.test.js`): slow Blob beacon then fetch then fetch; slow Blob then fast Blob then fetch; slow Blob, fetch, string beacon; rejected Blob read then fetch; non-promise `text()` then fetch; no-pending synchronous order; consent revoked during a Blob read (held at the seal). Revert-check: with the base (f38ce3b9) worker restored, 5 of 30 b2 tests are red (the three ordering sequences, the rejected read and the non-promise `text()`; the no-pending path and the seal test hold on the old code by design); with the fix, all 30 b2 tests are green. The deterministic b2 describe is the regression test; the b5 `expectInvocationOrder` is supporting evidence only (about 1/24 chance to fail on pre-fix code under load) and catches the pre-fix loaded inversion (1/24, invFail=1) and is 0/24 post-fix.
 
 ## Proof
 
@@ -148,7 +148,7 @@ Pending: exact-head CI and the reviews are recorded below when complete.
 
 ## Learning
 
-A comparison oracle must only assert orders the reference itself keeps, and an ordering claim has to be measured at the same causal boundary in both arms; a measured library-vs-stock difference at a different boundary is not evidence either way.
+A comparison oracle must only assert orders the reference itself keeps, and an ordering claim has to be measured at the same causal boundary in both arms; compare two boundaries only with a stated mapping between them (here main dispatch is synchronous on each bridge post, so the 2/24 and 1/24 samples agree).
 
 ## Release log
 

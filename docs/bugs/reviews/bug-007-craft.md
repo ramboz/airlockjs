@@ -2,17 +2,9 @@
 bug: 007
 pass: craft
 verdict: pass
-reviewer: jig:reviewer (Opus 5.5, round 1)
-reviewed_at: 2026-11-24T17:32:05Z
-prompt_source: pr-review skill craft pass; diff 4e6189f9..3441eeb5
+reviewer: jig:reviewer agent e5aa601e-f16e-422f-bd2a-3b9c158814a1 (claude-opus-5.5), round 2 of 3, prompt commit 66164a35; recorded when the result was read
+reviewed_at: 2026-11-24T20:58:32Z
+prompt_source: pr-review skill craft pass
 ---
 
-VERDICT: approved, recorded as `pass` (craft, round 1, reviewed on 3441eeb5; its should-fix items were applied in b1f7b889 and re-read by the round 2 and 3 bug reviewers on the final head).
-
-FINDINGS
-- should-fix, helper wider than the documented pair and no leftover check: FIXED (exact stock shape asserted, count equality).
-- should-fix, bare toThrow in negatives: FIXED (`rejects` asserts an AssertionError).
-- should-fix, missing hermetic cases for stock shape: FIXED.
-- readability, AC4 title said the order matched stock's: FIXED (title and comment state the independent sends).
-- doc, 6/24 vs 14/24 numbers: FIXED (two samples labelled).
-- No local paths or private IDs in committed files; strict stock comparison stays outside personalization-off AC1/AC4.
+Round 2 on HEAD 66164a35. Pass. Non-promise text() finding fixed with a test; assertion on A's body added afterwards. Accepted residual: never-settling text().

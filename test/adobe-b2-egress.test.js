@@ -186,6 +186,7 @@ describe.runIf(real)("064-18 egress bridge (real Chromium)", () => {
     it("a body whose text() is not a promise posts in place and does not wedge later calls", async () => {
       const r = await run(browser, [call("plain-text", "A"), call("fetch", "B")]);
       expect(order(r)).toEqual(["A", "B"]);
+      expect(r.observed.find((o) => o.url.includes("n=A")).body).toBe("{}");
     }, T);
 
     it("with no Blob pending, calls post in call order as before", async () => {
