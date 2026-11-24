@@ -1,8 +1,9 @@
 ---
-status: DONE
+status: IN_PROGRESS
 dependencies: [064-33, 068-03]
 last_verified: 2026-11-24
-review_reopened_at: 2026-11-24T22:50:26Z
+review_reopened_at: 2026-11-24T23:14:42Z
+claimed_by: overlapping-consent-updates-064-34
 ---
 
 ## Slice 064-34 — an opt-out in flight for a superseded consent update still forwards
@@ -50,3 +51,8 @@ Found by the 064-33 craft review. Any change to how `core/` stores registrations
 **Reviews (Opus 5.5, `reviews/slice-34-*.md`).** Original round 1 and 2 wording is kept in `reviews/slice-34-history.md`; the current verdict files are the round 3 results on the full final diff, recorded with `review.py record-review`. Scout was unavailable to reviewers; they read the provided source and diff. The first design (generations that retire only when a *newer* generation's request leaves) was put on hold: matched generations were never consumed, so repeated values could stay registered forever. This remediation is the third and last round.
 
 **Quality gate.** Servo `quality-gate` skill (`gate.py . --json`) on the final source: exit 0, status pass, composite 1.0, threshold 1.0. (`oracle.sh` alone is not that receipt.)
+
+**Open bug (found after the round-3 passes; slice reopened).** The repeat skip (`lastUpdateKey`) assumed Alloy also treats a repeat of a failed update as nothing to send. Pinned Alloy 2.31.1 does not: `setConsent` runs `lookup(consent)`, then `addTask(() => isNew() ? send : resolve).then(() => s.save())`, and `save()` (the consentHashes write) runs only after the request resolves, so a network failure or non-2xx answer (Alloy throws) stores nothing. Alloy's own retry covers only HTTP 429/502/503/504 (up to 3 attempts, same sender, before the outcome); a rejected fetch is thrown with no retry on this path. Real Chromium, stock arm, SYNTHETIC: the first `/privacy/set-consent` POST aborted, then the same refusal set twice gave 2 set-consent POSTs, so stock sends the repeat. Our adapter consumed the generation at dispatch and `lastUpdateKey` then skips the page's repeat, so Alloy's repeat request is held: a legitimate retry is dropped. Introduced by this slice's `lastUpdateKey` (c258caed); not an accepted residual. Probe script kept in the session artifacts, not the repo.
+
+Fix assessment (no source change yet; needs the owner's review-cap exception): clear `lastUpdateKey` in dispatch only when the failed request is a set-consent whose consent key equals the current `lastUpdateKey`. An unconditional reset on any failed request would be wrong when an older failed request races a newer update: A's request fails after the page gave B, `lastUpdateKey` is B, and a reset would let a repeat of B register a generation Alloy never sends. Alloy serializes the queue, so A failing leaves B's request to send, and a later A repeat registers normally because `lastUpdateKey` is B, not A.
+
