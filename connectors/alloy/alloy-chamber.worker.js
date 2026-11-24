@@ -276,6 +276,28 @@ const locationShim = {
 };
 docBack.location = locationShim;
 
+/* ---- bridge order (bug 007): calls reach the main thread in the order the tag made them ----
+ * A beacon with a Blob body can only be posted once the Blob is read. Until then a slot holds its place,
+ * so a later beacon or fetch is not posted ahead of it. Nothing waits on a network response, and with no
+ * pending slot a call posts synchronously as before. A post that throws is rethrown on a later task so
+ * it is still reported, and does not hold the calls behind it. */
+const bridgeQueue = [];
+function flushBridgeQueue() {
+  while (bridgeQueue.length && bridgeQueue[0].run) {
+    const { run } = bridgeQueue.shift();
+    try { run(); } catch (err) { queueMicrotask(() => { throw err; }); }
+  }
+}
+function postInOrder(run) {
+  if (bridgeQueue.length === 0) return void run();
+  bridgeQueue.push({ run });
+}
+function reserveBridgeSlot() {
+  const slot = { run: null };
+  bridgeQueue.push(slot);
+  return (run) => { slot.run = run; flushBridgeQueue(); };
+}
+
 /* ---- navigator shim — R-004 ---- */
 const navBack = {
   userAgent: (self.navigator && self.navigator.userAgent) || "airlock-chamber",
@@ -292,8 +314,15 @@ const navBack = {
       });
     };
     try {
-      if (data != null && typeof data.text === "function") data.text().then(send, () => send(undefined));
-      else send(data == null ? undefined : String(data));
+      if (data != null && typeof data.text === "function") {
+        // A Blob body (Alloy's) is read asynchronously; its place in the bridge order is taken now (bug 007).
+        const read = data.text();
+        const fill = reserveBridgeSlot();
+        read.then((body) => fill(() => send(body)), () => fill(() => send(undefined)));
+      } else {
+        const body = data == null ? undefined : String(data);
+        postInOrder(() => send(body));
+      }
     } catch (e) { return false; }
     return true;
   },
@@ -353,16 +382,18 @@ self.fetch = (url, opts = {}) => {
   const id = "af-" + (++fetchSeq);
   return new Promise((resolve, reject) => {
     pendingFetches.set(id, { resolve, reject });
-    try {
-      // Hand the request to the orchestrator on main (the parallel dispatcher).
-      post("intercepted-fetch", { id, url: u, method, headers, body, init });
-    } catch (err) {
-      // No main channel to dispatch through — the ONLY path that could do a real
-      // worker fetch, and it is counted (workerRealFetchCalls). Never taken for
-      // alloy, which always has the main channel; here as an honest dead-man guard.
-      pendingFetches.delete(id);
-      guardedRealFetch(url, opts).then(resolve, reject);
-    }
+    postInOrder(() => {
+      try {
+        // Hand the request to the orchestrator on main (the parallel dispatcher).
+        post("intercepted-fetch", { id, url: u, method, headers, body, init });
+      } catch (err) {
+        // No main channel to dispatch through — the ONLY path that could do a real
+        // worker fetch, and it is counted (workerRealFetchCalls). Never taken for
+        // alloy, which always has the main channel; here as an honest dead-man guard.
+        pendingFetches.delete(id);
+        guardedRealFetch(url, opts).then(resolve, reject);
+      }
+    });
   });
 };
 

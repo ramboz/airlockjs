@@ -31,6 +31,18 @@ self.addEventListener("message", async (event) => {
   try {
     // Rig-only probes for the 064-18 transport: a beacon and an element load made inside the chamber.
     if (m.command === "rig:sendBeacon") return post({ type: "rig-command-result", id: m.id, result: self.window.navigator.sendBeacon(m.options.url, m.options.body) });
+    // Bug 007: a scripted run of beacon / fetch calls made back to back in the chamber. `slow` / `reject` shape a Blob-like body.
+    if (m.command === "rig:calls") {
+      for (const c of m.options.calls) {
+        if (c.kind === "fetch") self.fetch(c.url, { method: "POST", body: c.body || "{}" }).catch(() => {});
+        else {
+          let body = c.body || "{}";
+          if (c.kind === "blob") body = { text: () => new Promise((resolve, reject) => setTimeout(() => (c.reject ? reject(new Error("blob read failed")) : resolve(c.body || "{}")), c.slow || 0)) };
+          self.window.navigator.sendBeacon(c.url, body);
+        }
+      }
+      return post({ type: "rig-command-result", id: m.id, result: true });
+    }
     if (m.command === "rig:loadElement") {
       const el = self.document.createElement(m.options.tag);
       el.src = m.options.url;

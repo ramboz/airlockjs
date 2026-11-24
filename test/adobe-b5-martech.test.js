@@ -129,6 +129,21 @@ const alignIndependentSends = (lib, stock) => {
   });
   return [lib[0], ...aligned];
 };
+/**
+ * Bug 007 / 069-05 AC4: the causal order, asserted where both arms are comparable. Stock's SDK invokes the page-view `collect` before
+ * the event's `interact` (page-side fetch/sendBeacon calls, `sdkCalls`); the library's equivalent is the order the chamber posts them
+ * to the bridge (`observed`). Both must be collect then interact: this is what catches a shim that lets a later call overtake an
+ * earlier one, while the request-start order the network shows stays permissive for the witnessed pair. Residual: the library's
+ * observation point is the worker's post, not the SDK call inside the chamber; the shim posts synchronously for fetch and in call
+ * order for beacons, so the two are the same sequence by construction and by the b2 regressions.
+ */
+const expectInvocationOrder = (s, l) => {
+  const keep = (names) => names.filter((n) => n === "collect" || n === "interact");
+  const stockOrder = keep(s.results.run.sdkCalls);
+  const libOrder = keep(l.observed.map((o) => edgeCall(o)));
+  expect(stockOrder, "stock SDK invokes collect, then interact").toEqual(["collect", "interact"]);
+  expect(libOrder, "library posts collect, then interact, to the bridge").toEqual(stockOrder);
+};
 /** The library's requests equal stock's: same URLs (requestId aside) and bodies in the same order, except `independent` sends (bug 007). */
 const compareRequests = (lib, stock, { independent = false } = {}) => {
   const a = independent ? alignIndependentSends(lib, stock) : lib;
@@ -383,6 +398,16 @@ const edgeQuiet = async (seen, quietMs = 1600, capMs = 8000) => {
 const displayJourney = async (page, opts = {}) => {
   const seen = watchEdge(page);
   const result = await page.evaluate(async ({ orgId, datastreamId, scope, more }) => {
+    // Stock arm only: record the order in which the SDK invokes fetch / sendBeacon (bug 007). The library arm has no page-side SDK;
+    // its equivalent boundary is the chamber's bridge posts (`observed`).
+    window.__sdkCalls = [];
+    if (!more.useHandle) {
+      const note = (u) => { try { window.__sdkCalls.push(new URL(String(u), location.href).pathname.split("/").pop()); } catch { /* not a URL */ } };
+      const realFetch = window.fetch;
+      window.fetch = function (u, ...rest) { note(u && u.url ? u.url : u); return realFetch.call(this, u, ...rest); };
+      const realBeacon = navigator.sendBeacon.bind(navigator);
+      navigator.sendBeacon = (u, d) => { note(u); return realBeacon(u, d); };
+    }
     const m = await (0, eval)('import("/martech/index.js")');
     const personalization = more.personalization !== false;
     m.initMartech({
@@ -415,7 +440,7 @@ const displayJourney = async (page, opts = {}) => {
     return { early };
   }, { orgId: ORG, datastreamId: DATASTREAM, scope: SCOPE, more: opts });
   await edgeQuiet(seen);
-  const state = await page.evaluate(() => ({ hero: (document.getElementById("hero") || { innerHTML: null }).innerHTML, globals: { alloy: typeof window.alloy, adobeDataLayer: typeof window.adobeDataLayer } }));
+  const state = await page.evaluate(() => ({ sdkCalls: window.__sdkCalls, hero: (document.getElementById("hero") || { innerHTML: null }).innerHTML, globals: { alloy: typeof window.alloy, adobeDataLayer: typeof window.adobeDataLayer } }));
   return { ...result, ...state };
 };
 
@@ -515,6 +540,7 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
     const [s, l] = await personalizationOff();
     expect(sameAsStock(s, l, { fetch: false, independent: true })).toBeGreaterThanOrEqual(3);
     expect(eventTypes(l)).toContain("web.webinteraction.linkClicks");
+    expectInvocationOrder(s, l);
   }, T);
 
   it("AC4 (069-05): personalization off, the event after martechLazy carries stock's events and event order (the page view and the event are independent sends, bug 007)", async () => {
@@ -525,6 +551,7 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
     // Stock itself starts the page view and the event in either order under load (bug 007), so the cross-request order is not asserted;
     // every event and the event order inside each request must still equal stock's.
     expect(eventTypesOf(alignIndependentSends(posts(l.network), posts(s.network)))).toEqual(order);
+    expectInvocationOrder(s, l);
   }, T);
 
   it("AC9 (069-05): personalization off, an event sent before martechLazy: stock rejects it (alloy not configured yet), the library queues and sends it", async () => {

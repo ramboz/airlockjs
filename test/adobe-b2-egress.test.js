@@ -153,6 +153,52 @@ describe.runIf(real)("064-18 egress bridge (real Chromium)", () => {
     }
   });
 
+  // Bug 007 (real Chromium, synthetic chamber scenario): calls the tag makes back to back reach the main thread in call order,
+  // even when an earlier beacon's Blob body is still being read. The observation point is the bridge post, not network request start.
+  describe("bug 007: the bridge posts calls in the order the tag made them", () => {
+    const COLLECT = "https://edge.adobedc.net/ee/or2/v1/collect?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297";
+    const INTERACT = "https://edge.adobedc.net/ee/or2/v1/interact?configId=23190fa7-9e6b-4250-b87b-abcdc8ebc297";
+    const order = (r) => r.observed.map((o) => new URL(o.url).searchParams.get("n")).filter(Boolean);
+    const call = (kind, n, extra = {}) => ({ kind, url: `${kind === "fetch" ? INTERACT : COLLECT}&n=${n}`, ...extra });
+    const run = (browser, calls, opts = {}) => replayFixture(browser, "s1-base", { event: null, commands: [{ command: "rig:calls", options: { calls } }], ...opts });
+
+    it("slow Blob beacon A, fetch B, fetch C: A B C", async () => {
+      const r = await run(browser, [call("blob", "A", { slow: 80 }), call("fetch", "B"), call("fetch", "C")]);
+      expect(order(r)).toEqual(["A", "B", "C"]);
+    }, T);
+
+    it("slow Blob beacon A, fast Blob beacon B, fetch C: A B C", async () => {
+      const r = await run(browser, [call("blob", "A", { slow: 80 }), call("blob", "B", { slow: 0 }), call("fetch", "C")]);
+      expect(order(r)).toEqual(["A", "B", "C"]);
+    }, T);
+
+    it("slow Blob beacon A, fetch B, string-body beacon C: A B C", async () => {
+      const r = await run(browser, [call("blob", "A", { slow: 80 }), call("fetch", "B"), call("beacon", "C")]);
+      expect(order(r)).toEqual(["A", "B", "C"]);
+    }, T);
+
+    it("a Blob read that fails still posts its beacon in place, and later calls are not held", async () => {
+      const r = await run(browser, [call("blob", "A", { slow: 20, reject: true }), call("fetch", "B")]);
+      expect(order(r)).toEqual(["A", "B"]);
+      expect(r.observed.find((o) => o.url.includes("n=A")).body ?? "").toBe("");
+    }, T);
+
+    it("with no Blob pending, calls post in call order as before", async () => {
+      const r = await run(browser, [call("fetch", "A"), call("beacon", "B"), call("fetch", "C")]);
+      expect(order(r)).toEqual(["A", "B", "C"]);
+    }, T);
+
+    it("consent revoked while a Blob is being read: the seal still holds the beacon when it is posted", async () => {
+      const r = await run(browser, [call("blob", "A", { slow: 100 })], {
+        bootOptions: { consent: { analytics_storage: "granted" } },
+        run: (page) => page.evaluate(() => window.__handle.setConsent({ analytics_storage: "denied" })),
+      });
+      expect(r.network.some((n) => n.url.includes("n=A"))).toBe(false);
+      expect(r.observed.some((o) => o.url.includes("n=A"))).toBe(true);
+      expect(r.responses.some((x) => x.status === 0 && x.statusText === "held at the seal: consent")).toBe(true);
+    }, T);
+  });
+
   describe("AC4: an unknown handle type is loud", () => {
     it("emits an error diagnostic for a type outside the known list", async () => {
       const body = JSON.stringify({ requestId: "x", handle: [{ type: "state:store", payload: [] }, { type: "brand:new", payload: [] }] });
