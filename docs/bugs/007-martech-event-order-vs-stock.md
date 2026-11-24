@@ -151,7 +151,9 @@ AC4 boundary: AC4 says the event/page-view order equals stock's. That is now ass
 - Gates before the final docs commits: eslint clean; full `AIRLOCK_REAL_CHROMIUM=1 npm test` 3406 passed; 5 consecutive b5 runs 45/45.
 - Reviews (final source, round 2 of 3, Opus 5.5, prompt commit 66164a35): bug-review pass (agent 76ea7679), craft pass (agent e5aa601e), security pass (agent 11b73b13); round-1 reviews on 727425a5 found the non-promise `text()` wedge, fixed in 66164a35. Read times are the recording times in `docs/bugs/reviews/`.
 - Original reported repro (the loaded b5 personalization-off journey, library vs stock) re-run on the fixed source: `repro007b.py` 24 loaded runs, assertion-green with bridge order 24/24; 5 consecutive unloaded b5 runs 45/45; final-head full suite 3407 passed, eslint clean.
-- Exact-head CI: reported in the coordinator handoff.
+- Final production-state CI at ce835c05 (production source identical from 66164a35; later commits are test-body assertion and docs only): five runs, four fully green: 45487849881 (vendor-adobe, both jobs), 45489931688, 45489940627, 45489944682 (scratch branches `scratch-bug-007-final-1/3/4`). 45489937020 (`scratch-bug-007-final-2`): browser-oracle (the b2/b5 jobs) green, hermetic-oracle red on `test/oracle-ga4.test.js` "exits non-zero when a golden fixture is broken, and is restorable" (38s gate-flip proof; unrelated to this bug, attributed and not fixed). The browser-oracle job is green in all five, so five assertion-green samples of the b5 journey on the final production state.
+- Quality gate at ce835c05 (servo `quality-gate/gate.py .`, `AIRLOCK_REAL_CHROMIUM=1`): `composite=1.0 threshold=1.0 status=pass exit=0`; eslint clean; full suite 3407 passed (run on the tree at 66164a35 production source plus the test-body assertion).
+- Correlation sample files (session files, not committed) hold aggregate counts only, not labeled per-run logs: pre-fix bridge order collect>interact 23/24 (one inversion), post-fix 24/24; library request-start collect>interact 22/24 and interact>collect 2/24 post-fix (stock varies similarly).
 
 ## Learning
 
