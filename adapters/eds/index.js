@@ -2048,7 +2048,8 @@ export async function bootAlloy(opts = {}) {
   // when the consent differs from the last one it stored, so a request leaving means its update is settled (an object
   // Alloy rejects sends none; the chamber's vector retry is then the request). When a request leaves, the oldest
   // generation holding its value and every older one are consumed, so a value already sent is held when replayed.
-  // A page that gives the same update twice in a row adds no generation, even after the first was consumed (Alloy sends no request for it). No timer, no cap;
+  // A page that gives the same update twice in a row adds no generation, even after the first was consumed
+  // (Alloy sends no request for it). No timer, no cap;
   // only updates whose request never left linger, and the next request matching a later generation clears them.
   // A value no update produced is in no generation, so it is held as before.
   let pageConsentObject = null;
