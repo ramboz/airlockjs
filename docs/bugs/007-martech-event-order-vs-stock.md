@@ -1,5 +1,5 @@
 ---
-status: DONE
+status: DIAGNOSING
 tier: standard
 severity: medium
 regression_test: bug 007: the page-view collect and the event interact are matched against stock in either start order
@@ -7,7 +7,8 @@ main_repro_checked_at: 2026-11-24
 main_repro_ref: origin/vendor-adobe@4e6189f9
 main_repro_result: reproduces
 red_confirmed_at: 2026-11-24
-green_confirmed_at: 2026-11-24
+green_confirmed_at:
+review_reopened_at: 2026-11-24T20:36:00Z
 fix_class: local_patch
 security_surface: false
 escalated_to:
@@ -16,6 +17,14 @@ claimed_by: martech-event-order-bug-007
 ---
 
 # Bug 007: martech-event-order-vs-stock
+
+> **Acceptance ON HOLD (2026-11-24, coordinator 24).** The status was DONE at 7c427008 and is reopened to DIAGNOSING. `bug.py` has no
+> `DONE` back-edge, so the frontmatter status was edited by hand (disclosed here). Why: (1) the oracle change relaxes 069-05 AC4's
+> wording (event/page-view order equals stock's) instead of stopping on that conflict, so it must not stand as accepted; (2) the
+> library's 2/24 egress-dispatch inversions against 0/24 stock SDK invocations are an unresolved behaviour difference that the
+> multiset hides; (3) craft was recorded on 3441eeb5 and not on the final source (b1f7b889 and the 38e3b07a test rename), and the
+> review files lack agent identities, round frontmatter and read times. The oracle change at 7c427008 stays on vendor-adobe only as
+> an interim; nothing below is a closure claim.
 
 ## Symptom
 
@@ -58,8 +67,9 @@ Both are defined relative to the stock run; neither asks for a stable order beyo
 
 ## Hypotheses
 
-- H1: the 068-03 no-park change reordered the library's queued sends. Falsified: stock alone shows both orders, with no
-  library code involved, and the library's serial queue changed nothing for the stock arm.
+- H1: the 068-03 no-park change reordered the library's queued sends. **Open.** Stock alone shows both request-start orders, so
+  the old oracle was unsound for stock-vs-stock; that does not clear the library, whose egress dispatch inverted in 2/24 runs
+  (instrumentation not yet shown comparable to stock's SDK boundary).
 - H2: the recorder in `rig/adobe-b1-replay.mjs` (headers awaited before the push) mis-orders near-simultaneous requests.
   Falsified: push order equals the browser's request-start order in 48/48 arms.
 - [x] H3 (leading): the two sends have no defined relative start order, so a strict order compare of the two arms is
@@ -73,9 +83,10 @@ The oracle asserts an order the system under test does not guarantee. In the per
 either order: its SDK invokes them in a fixed order (24/24) but the requests start inverted in 14/24 runs. The variation
 therefore enters between the page-visible SDK call and the request start. The evidence cannot separate Chromium's own
 scheduling from Playwright's route interception, so the layer is not named further. The library arm shows the same two
-orders (6/24 inverted at request start, 2/24 already at its egress dispatch). `sameAsStock` compared the arms index by
-index, so a stock run that happened to start inverted, or a library run that did, failed AC1/AC4 without any behavioural
-difference. Enumeration closing the set: the only assertions that compare the arms' request order are `sameAsStock`'s
+orders at request start (6/24 inverted); its egress dispatch was inverted in 2/24, measured at the main-thread wrapper, which is
+not proven to be the same boundary as stock's SDK call (open question under diagnosis). `sameAsStock` compared the arms index by
+index, so a stock run that started inverted failed AC1/AC4 on stock alone; whether the library has a real ordering difference is
+not yet established. Enumeration closing the set: the only assertions that compare the arms' request order are `sameAsStock`'s
 URL-list `toEqual` and per-index body loop (one definition in this file, called from the 069-05 tests) and AC4's
 `eventTypes` `toEqual`; `grep -n "sameAsStock\|eventTypes(l)" test/adobe-b5-martech.test.js` returns the complete set
 because both helpers are file-local.
@@ -131,6 +142,7 @@ testing the concurrency), sorting requests or normalising bodies (would hide a c
 - 069-05 AC4: changed. The cross-request order of page view vs event is no longer asserted (stock does not keep it under load); event identity and the event order inside each request still equal stock's. Not an amendment of the spec: the deviation from the AC4 wording is for the 069-05 reconciliation to record (coordinator 24).
 - AC2, AC3, AC6, AC11, the personalization-on callers and the 069-03 loops: left strict (not observed varying; stock-order dependent by design).
 - Concurrent journey: unchanged by decision.
+- (Reopened: this accounting is superseded by the hold above.)
 - b4 064-24 redirect flake: out of scope, owned by the coordinator.
 
 ## Already tried
