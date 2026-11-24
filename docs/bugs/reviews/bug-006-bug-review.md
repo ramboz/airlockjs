@@ -3,7 +3,7 @@ bug: 006
 pass: bug-review
 round: 2
 verdict: pass
-reviewer_verdict: approved
+reviewer_verdict: pass
 reviewer: jig:reviewer (Opus 5.5, agent df3970e8-f178-448a-aa86-371e1a16922c round 2; agent 47169c82-e09e-41df-a1ab-ad75be68fa2f round 1)
 reviewed_at: 2026-11-24T16:47:51Z
 prompt_source: pushed commits fb1ee84f..a3b108cd; diff 7fb8fae7..a3b108cd (round 2, final source); the author saved its text
@@ -11,7 +11,7 @@ prompt_source: pushed commits fb1ee84f..a3b108cd; diff 7fb8fae7..a3b108cd (round
 
 # Round 2 (final source, 7fb8fae7..a3b108cd)
 
-The fresh reviewer returned `VERDICT: pass`, recorded here as approved. `reviewed_at` is the agent's completion event, read in this session.
+The fresh reviewer returned `VERDICT: pass` (recorded as pass; prior rounds said approved). `reviewed_at` is the agent's completion event, read in this session.
 It confirmed the fix is structural (`replayFixture({ boot: false })`), every stock-arm caller in b5, b4, h1, 069-01 and storage-grant passes
 `boot: false`, the regression test fails on the old rig, and the positive control and `T` timeout are present. It found no production-code change.
 
