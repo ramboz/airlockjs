@@ -302,14 +302,14 @@ describe("064-33: the opt-out forward carries only the consent the adapter regis
     expect(forwarded().map((b) => b.consent)).toEqual([[REFUSAL]]);
   });
 
-  it("a later handle.setConsent drops the page object from the registration", async () => {
+  it("a later handle.setConsent keeps the page object registered while its request may be in flight (064-34)", async () => {
     const { handle, worker } = await boot();
     handle.setAdobeConsent([REFUSAL]);
     handle.setConsent({ ...DENIED });
     send(worker, "s1", VECTOR_REFUSAL);
-    send(worker, "s2", [REFUSAL]); // the object's request left after the newer vector's: retired (064-34)
+    send(worker, "s2", [REFUSAL]); // the vector is in the object's generation too, so it retires nothing
     await tick(60);
-    expect(forwarded().map((b) => b.consent)).toEqual([VECTOR_REFUSAL]);
+    expect(forwarded().map((b) => b.consent)).toEqual([VECTOR_REFUSAL, [REFUSAL]]);
   });
 });
 
@@ -354,6 +354,20 @@ describe("064-34: an opt-out in flight for a superseded consent update still for
     send(worker, "c2", FIRST);
     await tick(60);
     expect(forwarded()).toEqual([SECOND]);
+  });
+
+  it("a value repeated in a later update does not retire one still in flight, and a key-reordered request still matches", async () => {
+    const { handle, worker } = await boot();
+    handle.setAdobeConsent(FIRST);
+    handle.setAdobeConsent(SECOND);
+    handle.setAdobeConsent(FIRST);
+    handle.setAdobeConsent(FIRST);
+    const reordered = [{ standard: "Adobe", version: "2.0", value: { share: { val: "y" }, collect: { val: "n" } } }];
+    send(worker, "e1", reordered);
+    send(worker, "e2", SECOND);
+    send(worker, "e3", FIRST);
+    await tick(60);
+    expect(forwarded()).toEqual([reordered, SECOND, FIRST]);
   });
 
   it("a request for the newest update leaves nothing else retired, and a later update still adds", async () => {

@@ -2044,14 +2044,20 @@ export async function bootAlloy(opts = {}) {
   // 064-34: each update adds a generation instead of replacing the last, so a request still in flight for an
   // update a newer one superseded keeps its registration. Every value is one the page itself gave, and the host
   // forwards an opt-out only while consent is denied, so a stale value cannot widen what leaves. A generation
-  // retires when a request carrying a newer generation's consent leaves (the newest generation holding that value
-  // counts; Alloy sends its consent requests in order, so older ones are done or dropped). There is no timer, and
+  // retires when a request carrying a newer generation's consent leaves (the oldest generation holding that value
+  // counts, so a value repeated in a later generation never retires one still in flight; Alloy sends its consent
+  // requests in order, so older ones are done or dropped). A page that sends one value twice in a row adds no generation. There is no timer, and
   // the newest generation always stays. A value no update produced is in no generation, so it is held as before.
   let pageConsentObject = null;
   let optOutGenerations = [];
   const registerOptOutConsent = () => host.expectOptOutConsent(optOutGenerations.flat());
+  // Key-order-free, like the host's own comparison, so a re-serialised value still matches.
+  const canon = (v) => JSON.stringify(v, (_k, x) => (x && typeof x === "object" && !Array.isArray(x) ? Object.fromEntries(Object.entries(x).sort(([a], [b]) => (a < b ? -1 : 1))) : x));
   const addOptOutGeneration = () => {
-    optOutGenerations.push(consentRef ? [...(pageConsentObject ? [pageConsentObject] : []), shapeAlloyConsent(consentRef).consent] : []);
+    const values = consentRef ? [...(pageConsentObject ? [pageConsentObject] : []), shapeAlloyConsent(consentRef).consent] : [];
+    const last = optOutGenerations.at(-1);
+    if (last && canon(last) === canon(values)) return;
+    optOutGenerations.push(values);
     registerOptOutConsent();
   };
   const retireOptOutGenerations = (body) => {
@@ -2059,7 +2065,8 @@ export async function bootAlloy(opts = {}) {
     let sent;
     try { sent = JSON.parse(body).consent; } catch { return; }
     if (sent === undefined) return;
-    const at = optOutGenerations.findLastIndex((g) => g.some((v) => JSON.stringify(v) === JSON.stringify(sent)));
+    const want = canon(sent);
+    const at = optOutGenerations.findIndex((g) => g.some((v) => canon(v) === want));
     if (at > 0) { optOutGenerations = optOutGenerations.slice(at); registerOptOutConsent(); }
   };
   addOptOutGeneration();
