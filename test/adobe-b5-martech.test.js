@@ -107,17 +107,18 @@ const edgeCall = (n) => pathOf(n).split("/").pop();
  * Bug 007. In the personalization-off journey the page-view `collect` and the `linkClicks` `interact` are independent sends: stock
  * itself starts them in either order under load (the SDK invokes them in a fixed order, the browser starts them in either). Returns
  * the library's requests re-aligned to stock's order, after asserting what must stay strict: `set-consent` is first in both arms
- * and is the only request before the two sends, both arms have the same count, and each of stock's two sends is matched to a
- * library request with the same URL (requestId aside) and an equal body, so a changed body, event, event order, a missing or a
- * duplicated request still fails. Event order inside a request is part of the body and is not normalised.
+ * and is the only request before the two sends, stock is exactly one `collect` and one `interact`, both arms have the same count, and
+ * each of stock's two sends is matched to a library request with the same URL (requestId aside) and an equal body, so a changed
+ * body, event, event order, a missing or a duplicated request still fails. Event order inside a request is part of the body and is not normalised.
  */
 const alignIndependentSends = (lib, stock) => {
+  expect(stock.map(edgeCall), "stock is set-consent, then one collect and one interact").toHaveLength(3);
+  expect(stock.slice(1).map(edgeCall).sort()).toEqual(["collect", "interact"]);
   expect(edgeCall(stock[0])).toBe("set-consent");
   expect(edgeCall(lib[0])).toBe("set-consent");
   expect(lib.map(edgeCall).sort()).toEqual(stock.map(edgeCall).sort());
   const left = lib.slice(1);
   const aligned = stock.slice(1).map((sr) => {
-    expect(["collect", "interact"]).toContain(edgeCall(sr));
     const i = left.findIndex((lr) => splitRequestUrl(lr.url).stable === splitRequestUrl(sr.url).stable && sameBody(lr, sr));
     if (i < 0) {
       const same = left.find((lr) => splitRequestUrl(lr.url).stable === splitRequestUrl(sr.url).stable);
@@ -516,13 +517,13 @@ describe.runIf(real)("spec 069-05: the Airlock martech library display flows aga
     expect(eventTypes(l)).toContain("web.webinteraction.linkClicks");
   }, T);
 
-  it("AC4 (069-05): personalization off, the event after martechLazy and the page view keep stock's order", async () => {
+  it("AC4 (069-05): personalization off, the event after martechLazy carries stock's events and event order (the page view and the event are independent sends, bug 007)", async () => {
     const [s, l] = await personalizationOff();
     const order = eventTypes(s);
     expect(order).toContain("web.webpagedetails.pageViews");
     expect(order).toContain("web.webinteraction.linkClicks");
-    // The page view and the event are independent sends and stock itself starts them in either order under load (bug 007); the
-    // events inside each request, and every event, must still equal stock's.
+    // Stock itself starts the page view and the event in either order under load (bug 007), so the cross-request order is not asserted;
+    // every event and the event order inside each request must still equal stock's.
     expect(eventTypesOf(alignIndependentSends(posts(l.network), posts(s.network)))).toEqual(order);
   }, T);
 
@@ -794,6 +795,11 @@ describe("bug 007: the page-view collect and the event interact are matched agai
   const collect = (...ev) => post("collect", ev.length ? ev : ["web.webpagedetails.pageViews"]);
   const interact = (...ev) => post("interact", ev.length ? ev : ["web.webinteraction.linkClicks"]);
   const stock = (...order) => order.map((f) => f());
+  const rejects = (lib, s) => {
+    let err;
+    try { compareRequests(lib, s, { independent: true }); } catch (e) { err = e; }
+    expect(err?.name, "a real assertion failure, not a helper error").toBe("AssertionError");
+  };
 
   it("accepts both witnessed stock orders against either library order", () => {
     for (const stockOrder of [[collect, interact], [interact, collect]]) {
@@ -806,20 +812,25 @@ describe("bug 007: the page-view collect and the event interact are matched agai
   });
   it("rejects a changed event, a changed body field and a changed event order inside a request", () => {
     const s = [consent(), collect(), interact()];
-    expect(() => compareRequests([consent(), collect(), interact("web.webinteraction.other")], s, { independent: true })).toThrow();
-    expect(() => compareRequests([consent(), collect(), post("interact", ["web.webinteraction.linkClicks"], { query: { x: 1 } })], s, { independent: true })).toThrow();
+    rejects([consent(), collect(), interact("web.webinteraction.other")], s);
+    rejects([consent(), collect(), post("interact", ["web.webinteraction.linkClicks"], { query: { x: 1 } })], s);
     const two = [consent(), collect("a", "b"), interact()];
-    expect(() => compareRequests([consent(), collect("b", "a"), interact()], two, { independent: true })).toThrow();
+    rejects([consent(), collect("b", "a"), interact()], two);
   });
   it("rejects a missing request and a duplicated request", () => {
     const s = [consent(), collect(), interact()];
-    expect(() => compareRequests([consent(), collect()], s, { independent: true })).toThrow();
-    expect(() => compareRequests([consent(), collect(), interact(), interact()], s, { independent: true })).toThrow();
-    expect(() => compareRequests([consent(), collect(), collect()], s, { independent: true })).toThrow();
+    rejects([consent(), collect()], s);
+    rejects([consent(), collect(), interact(), interact()], s);
+    rejects([consent(), collect(), collect()], s);
+  });
+  it("rejects stock that is not consent plus one collect and one interact, and ties of identical sends are matched once each", () => {
+    rejects([consent(), collect(), interact()], [consent(), collect(), interact(), interact()]);
+    rejects([consent(), collect(), collect()], [consent(), collect(), collect()]);
+    rejects([collect(), interact(), consent()], [collect(), interact(), consent()]);
   });
   it("rejects a consent ordering violation", () => {
     const s = [consent(), collect(), interact()];
-    expect(() => compareRequests([collect(), consent(), interact()], s, { independent: true })).toThrow();
-    expect(() => compareRequests([interact(), collect(), consent()], s, { independent: true })).toThrow();
+    rejects([collect(), consent(), interact()], s);
+    rejects([interact(), collect(), consent()], s);
   });
 });
