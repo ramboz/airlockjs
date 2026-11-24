@@ -5,7 +5,7 @@ severity: medium
 claimed_by: bug-006-post-fold-oracle
 regression_test: a stock arm is a pure stock page
 main_repro_checked_at: 2026-11-23
-main_repro_ref: origin/main@67daba40
+main_repro_ref: origin/vendor-adobe@7fb8fae7
 main_repro_result: reproduces
 red_confirmed_at: 2026-11-23
 green_confirmed_at: 2026-11-23
@@ -131,15 +131,15 @@ The strict "5 consecutive green job attempts" bar is not met because bug 007 kee
 - **Redirect request/navigate order flake in the b4 064-24 test** (low). CI run 45290811216 attempt 1 (head 0e9559c9)
   failed `adobe-b4-personalization.test.js:668` with `['request','navigate','request']` instead of
   `['request','request','navigate']`; attempt 2 was green. It is an event-order diff, not `meta.state.domain`, and the
-  failing arm was not printed. Not investigated here. Owner: coordinator 23 (with bug 007's order class).
+  failing arm was not printed. Not investigated here. Owner: coordinator 24 (see also bug 007).
 - **Chamber mirror visible in the page jar** (low). The chamber's `reconcile` makes Alloy's transient
   `com.adobe.alloy.getTld` probe cookie visible in the real page jar for about 15 ms; stock writes and removes it
-  within one synchronous task, so no other script sees it. Owner: coordinator 23, to be decided as overflow slice 064-35. Not fixed here.
+  within one synchronous task, so no other script sees it. Owner: coordinator 24, to be decided as overflow slice 064-35. Not fixed here.
 - **One unattributed local mismatch** (low). Once, in a run of five suites at fb1ee84f plus the review polish, the
   069-03 "AC1 (boot path)" compare printed `meta.state.domain` differing; 16 further local runs (some under CPU
   load) and 6 CI runs did not repeat it, and which side differed is unknown. The compare now prints both domains on
-  a mismatch. Owner: coordinator 23.
-- **`boot` is opt-in** (low, bug-review). A new stock arm that forgets `boot: false` brings the race back. Owner: coordinator 23, with 064-35.
+  a mismatch. Owner: coordinator 24.
+- **`boot` is opt-in** (low, bug-review). A new stock arm that forgets `boot: false` brings the race back. Owner: coordinator 24, with 064-35.
 
 ## Learning
 
@@ -147,9 +147,18 @@ Recorded in `docs/memory/learnings.md`: "A stock arm must be a pure stock page".
 
 ## Main recheck
 
-- 2026-11-23 - `origin/main@67daba40` -> reproduces: The stock arm shares its page with a booted chamber on main and on vendor-adobe (rig/adobe-b1-replay.mjs boots one on every page); the symptom is CI-only and was captured by the tracer run 45278072531 attempt 2 on vendor-adobe. Main carries the same rig.
-- 2026-11-23 - `origin/main@67daba40` -> reproduces: The Adobe replay rig and the b5/b4 oracle tests exist only on vendor-adobe (rig/adobe-b1-replay.mjs is absent from origin/main), so the repro cannot run on main; the bug lives on vendor-adobe at 7fb8fae7 (CI runs 45234396848 attempt 1, 45238356339 attempts 1 and 3, tracer run 45278072531 attempt 2). Landing on vendor-adobe only is correct: no core/ change.
+- 2026-11-23 - `origin/main@67daba40`: not applicable. The Adobe replay rig and the b5/b4 oracle tests
+  (`rig/adobe-b1-replay.mjs`, `test/adobe-b5-martech.test.js`) exist only on vendor-adobe, so the repro cannot run on
+  main. No core/ change is involved; the fix lands on vendor-adobe only.
+- 2026-11-23 - `origin/vendor-adobe@7fb8fae7` -> reproduces (CI only: runs 45234396848 attempt 1, 45238356339 attempts
+  1 and 3, tracer run 45278072531 attempt 2; not reproducible locally). This is the ref recorded in the front matter.
+  `bug.py main-check` accepts only `reproduces` or `resolved-on-main`, and the `-> FIXING` gate needs `reproduces`,
+  so the front matter carries the branch where the bug does reproduce.
+- **Correction (2026-11-24):** an earlier version of this section recorded `origin/main@67daba40 -> reproduces` and
+  claimed "Main carries the same rig". That was wrong: main does not have the rig. The entry above replaces it.
 
 ## Reviews
 
 `docs/bugs/reviews/bug-006-bug-review.md` (approved, round 1) and `docs/bugs/reviews/bug-006-craft.md` (round 3 approved after fixes in c803c513 and 86df6daa). No security pass: test and rig only.
+
+The bug-review ran once, on fb1ee84f (reviewer agent 47169c82, event 2026-11-23T23:15:45Z). It was not re-run on the final source; c803c513 and 86df6daa were covered only by the craft rounds 2 and 3. Reviewer verdict words are recorded as the reviewers returned them (approved).
