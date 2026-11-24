@@ -1,5 +1,5 @@
 ---
-status: FIXING
+status: DONE
 tier: standard
 severity: medium
 regression_test: bug 007: the bridge posts calls in the order the tag made them
@@ -7,7 +7,7 @@ main_repro_checked_at: 2026-11-24
 main_repro_ref: origin/vendor-adobe@f38ce3b9
 main_repro_result: reproduces
 red_confirmed_at: 2026-11-24
-green_confirmed_at:
+green_confirmed_at: 2026-11-24
 review_reopened_at: 2026-11-24T20:36:00Z
 fix_class: structural_fix
 security_surface: true
@@ -123,6 +123,8 @@ AC4 boundary: AC4 says the event/page-view order equals stock's. That is now ass
 
 ## Call-site closure
 
+**Disposition per affected site:**
+
 - `fetch` shim, Blob-bodied beacon, string/other-bodied beacon (`navigator.sendBeacon`): changed (all go through the ordered queue).
 - `XMLHttpRequest` and `Image` shims: left alone (not in the witnessed path; Alloy 2.31.1 uses fetch/sendBeacon for edge calls).
 - 069-05 AC1 and AC4: oracle keeps the request-start multiset for the witnessed pair and adds `expectInvocationOrder`; AC2, AC3, AC6, AC11, personalization-on callers and 069-03 loops stay strict. Spec ACs not edited.
@@ -144,7 +146,12 @@ AC4 boundary: AC4 says the event/page-view order equals stock's. That is now ass
 
 ## Proof
 
-Pending: exact-head CI and the reviews are recorded below when complete.
+- Red/green: base worker (f38ce3b9) fails 5 of 30 b2 tests; fixed worker passes all 30 (`AIRLOCK_REAL_CHROMIUM=1`).
+- Loaded correlation samples (24 runs, 8 parallel pairs, 16 CPU hogs, `repro007b.py`): pre-fix library bridge order collect>interact 23/24 (one inversion, `invFail` 1), post-fix 24/24, stock 24/24, `invFail` 0.
+- Gates before the final docs commits: eslint clean; full `AIRLOCK_REAL_CHROMIUM=1 npm test` 3406 passed; 5 consecutive b5 runs 45/45.
+- Reviews (final source, round 2 of 3, Opus 5.5, prompt commit 66164a35): bug-review pass (agent 76ea7679), craft pass (agent e5aa601e), security pass (agent 11b73b13); round-1 reviews on 727425a5 found the non-promise `text()` wedge, fixed in 66164a35. Read times are the recording times in `docs/bugs/reviews/`.
+- Original reported repro (the loaded b5 personalization-off journey, library vs stock) re-run on the fixed source: `repro007b.py` 24 loaded runs, assertion-green with bridge order 24/24; 5 consecutive unloaded b5 runs 45/45; final-head full suite 3407 passed, eslint clean.
+- Exact-head CI: reported in the coordinator handoff.
 
 ## Learning
 

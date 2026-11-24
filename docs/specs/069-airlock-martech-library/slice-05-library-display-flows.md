@@ -51,6 +51,8 @@ Rounds 1 and 2 of the three fresh `jig:reviewer` reviews are saved in `reviews/s
 
 **Deviation log (round 2):** the rig's `respond` hook can now be async (`rig/adobe-b1-replay.mjs`, to delay a synthetic answer); this is a test-rig change only, with no production code (`adapters/`, `connectors/`, `core/`) touched. The late-answer waits count edge requests on the Node side (Playwright sees the chamber Worker's traffic), not from the main window's performance entries, which cannot see the Worker.
 
+**Deviation log (bug 007):** AC4 and AC1 (personalization off) are unchanged. The test oracle matches the page-view collect and the event interact as a multiset of complete requests, because stock's own request-start order varies under load, and it now also asserts the call order at the invocation boundary (stock SDK `fetch`/`sendBeacon` calls vs the library's bridge posts), which must be collect then interact in both arms. The latter assertion caught a real library defect: the Alloy chamber shim posted Blob-bodied beacons after an async read, so a later fetch could overtake them. Fixed in `connectors/alloy/alloy-chamber.worker.js` (see bug 007). Residual: request-start order is not asserted beyond the witnessed pair.
+
 ## Notes
 
 Raised by 069-03's Findings; the owner made it required. The hermetic tests of 069-03 already cover the personalization-off, timeout and late-display logic with the fake worker.
