@@ -179,6 +179,39 @@ describe("createWrappedSdkHost — AC6 hardening: fetch-shim timeout", () => {
     expect(msg.statusText).toMatch(/timed out/i);
   }, 2000); // bounded — a regression (the pre-fix hang) fails fast instead of hanging the suite
 
+  it("068-04: onTimeout gets the dispatched req once when the timeout answers a pending dispatch, and never when it settles first", async () => {
+    const chamber = makeFakeChamber();
+    const seen = [];
+    let dispatchedReq = null;
+    const caps = { egress: { dispatch: (r) => { dispatchedReq = r; return new Promise(() => {}); }, onTimeout: (r) => seen.push(r) } };
+    createWrappedSdkHost({ chamber, caps, timeoutMs: 20 });
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: "t-1", url: "https://x.example/ee/v1/interact", method: "POST", headers: {}, body: "{}" });
+    const msg = await posted;
+    expect(msg.status).toBe(0);
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBe(dispatchedReq);
+
+    const chamber2 = makeFakeChamber();
+    const seen2 = [];
+    const caps2 = { egress: { dispatch: async () => ({ status: 200, body: "{}" }), onTimeout: (r) => seen2.push(r) } };
+    createWrappedSdkHost({ chamber: chamber2, caps: caps2, timeoutMs: 20 });
+    const posted2 = chamber2.nextPost();
+    chamber2.emit({ type: "intercepted-fetch", id: "t-2", url: "https://x.example/ee/v1/interact", method: "POST", headers: {}, body: "{}" });
+    await posted2;
+    await new Promise((r) => setTimeout(r, 60));
+    expect(seen2).toEqual([]);
+  }, 2000);
+
+  it("068-04: a throwing onTimeout still lets the timeout answer reach the chamber", async () => {
+    const chamber = makeFakeChamber();
+    const caps = { egress: { dispatch: () => new Promise(() => {}), onTimeout: () => { throw new Error("boom"); } } };
+    createWrappedSdkHost({ chamber, caps, timeoutMs: 20 });
+    const posted = chamber.nextPost();
+    chamber.emit({ type: "intercepted-fetch", id: "t-3", url: "https://x.example/ee/v1/interact", method: "POST", headers: {}, body: "{}" });
+    expect((await posted).status).toBe(0);
+  }, 2000);
+
   it("a dispatch that settles just BEFORE the timeout still wins (no spurious timeout response)", async () => {
     const chamber = makeFakeChamber();
     let releaseDispatch;

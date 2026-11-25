@@ -232,6 +232,7 @@ do not grant live authority.
 | [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-01: A pending seam hold flushes on grant | **DONE** |  |
 | [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-02: Forward the opt-out after an explicit refusal | **DONE** |  |
 | [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-03: The opt-out forward carries only the consent the adapter registered (core and main adapter) | **DONE** |  |
+| [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-04: The host tells the caller when its own timeout answered a pending dispatch | IN_PROGRESS |  |
 | [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-01 — the handle returns what stock returns (`sendEvent` result, hook argument, `viewName`, consent outcome) | **DONE** |  |
 | [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-02 — Airlock's generic data layer, plus an opt-in `adobeDataLayer` migration proxy | **DONE** |  |
 | [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-03 — `adapters/eds/martech.js`: the `aem-martech` exports on the `bootAlloy` handle | **DONE** |  |

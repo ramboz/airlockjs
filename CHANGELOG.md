@@ -20,6 +20,7 @@ Two tag families:
 - `feat(adobe)`: Airlock's generic data layer and an opt-in `adobeDataLayer` migration proxy (ADR-0065, 069-02): `adapters/eds/martech-datalayer.js` (`createDataLayer`, O(1) `push`, lazy deep-merge `getState`, no page global by default, functions never executed, optional forward to core); no `core/` change.
 - `fix(adobe)`: an opt-out in flight for a superseded consent update still forwards (064-34): the adapter keeps a registration generation per consent update until a request carrying its consent leaves (that generation and older ones are consumed; a failed request puts its own generation back); adds a gating real-Chromium wire check in `browser-oracle`; no `core/` change.
 - `feat(adobe)`: the opt-out forward carries only the consent the page gave (064-33): the adapter registers the page's Adobe 2.0 object and the vector-shaped consent through `host.expectOptOutConsent`.
+- The wrapped-SDK host calls the optional `caps.egress.onTimeout(req)` when its own timeout answers a still-pending dispatch (spec 068-04).
 - The Alloy opt-out forward now checks the `consent` it carries: the host method `expectOptOutConsent` registers the expected value and anything else is held; a refusal held while pending is dropped, not parked (spec 068-03, ADR-0062 amendment).
 
 ## [0.8.0] — 2026-09-14 — MVP8 (Ad-Conversion Offloading)
