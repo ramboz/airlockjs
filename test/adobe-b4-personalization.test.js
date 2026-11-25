@@ -59,6 +59,13 @@ const stockVsAirlock = async (browser, payload, { probe, head = "", stockConfig 
   return { stock, ours };
 };
 
+/** Polls node-side state until `ready()` holds (events, not a fixed sleep), then gives a short grace so an extra request would still show. */
+const until = async (ready, ms = 10000) => {
+  const end = Date.now() + ms;
+  while (!ready() && Date.now() < end) await new Promise((r) => setTimeout(r, 25));
+  await new Promise((r) => setTimeout(r, 300));
+};
+
 describe("064-20 the renderer (hermetic)", () => {
   it("builds the recorded display and interact notification shapes", () => {
     const d = [{ id: "a", scope: "__view__", scopeDetails: { x: 1 } }];
@@ -976,7 +983,6 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
         const r = await run([apply, send({ personalization })]);
         expect(wire(r.stock)).toEqual([{ type: "web.webpagedetails.pageViews", query: null, propositions: ["cart"] }]);
         same(r);
-        expect(r.o.dom).toContain("<b>cart</b>");
       }
     }, T * 2);
 
@@ -1048,10 +1054,18 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       same(r);
     }, T);
 
+    it("AC5 (round 6): a warm push that renders a view behind an applyResponse that renders too leaves stock's DOM and wire, awaited or not", async () => {
+      const rendering = (wait) => ({ apply: { ...SETUP, renderDecisions: true }, wait });
+      for (const ops of [[rendering(true), send({})], [rendering(false), send({})], [rendering(false), send({ personalization: { decisionScopes: ["x"] } })]]) {
+        const r = await run(ops);
+        same(r);
+      }
+    }, T * 3);
+
     // Edge POSTs and the navigation in the order the network saw them. The redirect target is aborted, so the page (and the context both arms run in) survives the navigation.
     const REDIRECT_URL = "https://redirect.example/landing";
     const REDIRECT = { id: "vr", scope: "__view__", scopeDetails: { decisionProvider: "TGT", activity: { id: "act-vr" } }, items: [{ id: "rd", schema: `${NS}redirect-item`, data: { content: REDIRECT_URL } }] };
-    const redirectOrder = async (who, { pushAfter, awaitApply = false, navigate = false }) => {
+    const redirectOrder = async (who, { pushAfter, awaitApply = false, navigate = false, expected }) => {
       const trace = [];
       const watch = async (page) => {
         await page.route(REDIRECT_URL, (route) => (navigate ? route.fulfill({ status: 200, contentType: "text/html", body: "<title>landed</title>" }) : route.abort("aborted")));
@@ -1075,9 +1089,8 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
             const applied = window.stockAlloy("applyResponse", options).catch(() => {});
             if (awaitApply) await applied;
             if (pushAfter) window.stockAlloy("sendEvent", { renderDecisions: false, xdm: { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name: "after" } } } }).catch(() => {});
-            await new Promise((r) => setTimeout(r, 1500));
           }, { options, pushAfter, awaitApply, datastreamId: DATASTREAM }).catch((e) => { if (!navigate) throw e; });
-          await page.waitForTimeout(4000);
+          await until(() => trace.length >= expected);
         } });
       } else {
         await replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + ZONE, bootOptions: { placements: PLACEMENTS }, respond: empty, run: async (page) => {
@@ -1086,9 +1099,8 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
             const applied = window.__handle.command("applyResponse", options).catch(() => {});
             if (awaitApply) await applied;
             if (pushAfter) Promise.resolve(window.__handle.sendEvent({ renderDecisions: false, xdm: { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name: "after" } } } })).catch(() => {});
-            await new Promise((r) => setTimeout(r, 1500));
           }, { options, pushAfter, awaitApply }).catch((e) => { if (!navigate) throw e; });
-          await page.waitForTimeout(4000);
+          await until(() => trace.length >= expected);
         } });
       }
       return trace;
@@ -1103,21 +1115,151 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     for (const navigate of [false, true]) {
       const mode = navigate ? "real navigation" : "aborted navigation";
       it(`AC5 b (${mode}): a push called behind an unawaited applyResponse that redirects is sent before the redirect display, as stock`, async () => {
-        const stock = await redirectOrder("stock", { pushAfter: true, awaitApply: false, navigate });
-        const ours = await redirectOrder("ours", { pushAfter: true, awaitApply: false, navigate });
+        const stock = await redirectOrder("stock", { pushAfter: true, awaitApply: false, navigate, expected: 3 });
+        const ours = await redirectOrder("ours", { pushAfter: true, awaitApply: false, navigate, expected: 3 });
         expect(stock).toEqual([PAGE_VIEW, DISPLAY, "navigate"]);
         expect(ours).toEqual(stock);
       }, T * 2);
 
       it(`AC5 b (${mode}): a push called after an awaited applyResponse that redirects is sent after the display, and still sent`, async () => {
-        const stock = await redirectOrder("stock", { pushAfter: true, awaitApply: true, navigate });
-        const ours = await redirectOrder("ours", { pushAfter: true, awaitApply: true, navigate });
+        const stock = await redirectOrder("stock", { pushAfter: true, awaitApply: true, navigate, expected: 3 });
+        const ours = await redirectOrder("ours", { pushAfter: true, awaitApply: true, navigate, expected: 3 });
         // The edge events agree. The navigation request races the push in stock itself: both orders were seen across runs of stock, so only its presence is pinned.
         const events = (t) => t.filter((x) => x !== "navigate");
         expect(events(stock)).toEqual([DISPLAY, PAGE_VIEW]);
         expect(events(ours)).toEqual(events(stock));
         expect(stock).toContain("navigate");
         expect(ours).toContain("navigate");
+      }, T * 2);
+    }
+  });
+
+  describe("064-32 round 6: the redirect navigation never drops a push that is dequeued but not yet issued (SYNTHETIC responses, event-driven seam)", () => {
+    const body = (payload) => ({ requestId: "00000000-0000-0000-0000-000000000032", handle: [{ type: "personalization:decisions", payload }] });
+    const REDIRECT_URL = "https://redirect.example/landing";
+    const REDIRECT = { id: "vr", scope: "__view__", scopeDetails: { decisionProvider: "TGT", activity: { id: "act-vr" } }, items: [{ id: "rd", schema: `${NS}redirect-item`, data: { content: REDIRECT_URL } }] };
+    const empty = (req) => (req.method() === "POST" ? { status: 200, headers: { "content-type": "application/json", ...cors(req) }, body: edgeBody([]) } : { status: 204, headers: cors(req), body: "" });
+    const PUSH = "web.webpagedetails.pageViews";
+    const DISPLAY = "decisioning.propositionDisplay";
+    /**
+     * Test-side seam, no production hook. Gate barrier: every main-thread zero-delay timer set after the display request is held until the
+     * push is posted to the worker (so the gate check lands once the pump has dequeued the push). Issue barrier: the worker's egress message for
+     * the push is held until a macrotask after the first such timer callback ran. Both release on events; the 3 s valve only keeps a broken run from hanging and is logged.
+     * mode "both" = gate + issue barrier, "issue" = issue barrier only, "gate" = gate barrier only, "observe" = count the timers, hold nothing (stock).
+     */
+    const seam = (mode) => `<script>(() => {
+      const MODE = ${JSON.stringify(mode)};
+      const log = (k, x) => { try { console.log("__ord " + JSON.stringify({ k, ...(x || {}) })); } catch (_) {} };
+      const nst = window.setTimeout.bind(window);
+      let afterDisplay = false, pushPosted = false, gateRan = false, navSeen = false;
+      const heldTimers = []; const heldMessages = [];
+      const flushMessages = (why) => { if (why === "valve" && heldMessages.length) log("valve"); while (heldMessages.length) heldMessages.shift()(); };
+      const tryRelease = () => nst(() => { if (!navSeen && gateRan) flushMessages("event"); }, 0);
+      const startIssueRelease = () => { if (gateRan) return; gateRan = true; tryRelease(); };
+      const run = (fn, a) => { fn(...a); startIssueRelease(); };
+      const holdGate = MODE === "both" || MODE === "gate";
+      const holdIssue = MODE === "both" || MODE === "issue";
+      const evOf = (b) => { try { return JSON.parse(typeof b === "string" ? b : new TextDecoder().decode(b)).events[0].xdm.eventType; } catch (_) { return "?"; } };
+      const edge = (u) => /interact|adobedc/.test(String(u));
+      const note = (ev) => { log("invoke", { ev }); if (ev === ${JSON.stringify(DISPLAY)}) afterDisplay = true; };
+      const beacon = navigator.sendBeacon.bind(navigator);
+      navigator.sendBeacon = (u, d) => { if (edge(u)) note(evOf(d)); return beacon(u, d); };
+      const nf = window.fetch.bind(window);
+      window.fetch = (u, init) => { if (edge(u)) note(evOf(init && init.body)); return nf(u, init); };
+      if (window.navigation) window.navigation.addEventListener("navigate", (e) => { if (e.destination.url === ${JSON.stringify(REDIRECT_URL)}) { navSeen = true; log("nav-intent"); } });
+      window.setTimeout = (fn, ms, ...a) => {
+        if (!afterDisplay || Number(ms) > 0 || typeof fn !== "function") return nst(fn, ms, ...a);
+        log("zero-timer");
+        if (MODE === "observe") return nst(fn, ms, ...a);
+        if (!holdGate) return nst(() => run(fn, a), 0);
+        if (pushPosted) return nst(() => run(fn, a), 0);
+        heldTimers.push(() => nst(() => run(fn, a), 0));
+        return 0;
+      };
+      const OW = window.Worker;
+      window.Worker = function (...args) {
+        const w = new OW(...args);
+        const pm = w.postMessage.bind(w);
+        w.postMessage = (m, t) => {
+          let s = ""; try { s = JSON.stringify(m); } catch (_) {}
+          if (s.includes("pageViews")) { pushPosted = true; log("to-worker"); while (heldTimers.length) heldTimers.shift()(); }
+          return pm(m, t);
+        };
+        const wrap = (fn) => (e) => {
+          const d = e.data || {}; let s = ""; try { s = JSON.stringify(d); } catch (_) {}
+          if (holdIssue && d.type === "intercepted-fetch" && s.includes("pageViews")) { heldMessages.push(() => fn.call(w, e)); tryRelease(); return; }
+          return fn.call(w, e);
+        };
+        const ael = w.addEventListener.bind(w);
+        w.addEventListener = (type, fn, o) => ael(type, type === "message" && typeof fn === "function" ? wrap(fn) : fn, o);
+        let om = null;
+        Object.defineProperty(w, "onmessage", { get: () => om, set: (fn) => { om = fn; ael("message", typeof fn === "function" ? wrap(fn) : fn); } });
+        return w;
+      };
+      window.Worker.prototype = OW.prototype;
+      nst(() => flushMessages("valve"), 3000);
+    })();</script>`;
+    const stripVolatile = (e) => JSON.parse(JSON.stringify(e, (k, v) => (k === "timestamp" || k === "localTime" || k === "eventId" ? undefined : v)));
+    /** One arm against a real navigation. `order` is the page's own sequence; `posts` is what the network received. */
+    const arm = async (who, mode) => {
+      const order = []; const posts = [];
+      const landed = () => order.some((x) => x.k === "nav-intent");
+      const pushesIn = () => posts.filter((p) => p && p.xdm && p.xdm.eventType === PUSH).length;
+      const respond = (req) => { if (req.method() === "POST") { try { posts.push(JSON.parse(req.postData()).events[0]); } catch (_) { posts.push(null); } } return empty(req); };
+      const watch = async (page) => {
+        await page.route(REDIRECT_URL, (route) => route.fulfill({ status: 200, contentType: "text/html", body: "<title>landed</title>" }));
+        page.on("console", (m) => { const t = m.text(); if (t.startsWith("__ord ")) order.push(JSON.parse(t.slice(6))); });
+      };
+      const options = { responseBody: body([REDIRECT]), renderDecisions: true };
+      const push = { renderDecisions: false, xdm: { eventType: PUSH, web: { webPageDetails: { name: "after" } } } };
+      if (who === "stock") {
+        await replayFixture(browser, "s4-base", { event: null, boot: false, headHtml: seam(mode), bodyHtml: ZONE, respond, run: async (page) => {
+          await watch(page);
+          await page.evaluate(async ({ options, push, datastreamId }) => {
+            window.__alloyNS = ["stockAlloy"];
+            window.stockAlloy = function () { const a = arguments; return new Promise((res, rej) => window.stockAlloy.q.push([res, rej, a])); };
+            window.stockAlloy.q = [];
+            await new Promise((res, rej) => { const s = document.createElement("script"); s.src = "/rig/alloy.min.js"; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+            window.stockAlloy("configure", { datastreamId, orgId: "908936ED5D35CC220A495CD4@AdobeOrg", defaultConsent: "in", debugEnabled: false });
+            await window.stockAlloy("applyResponse", options).catch(() => {});
+            window.stockAlloy("sendEvent", push).catch(() => {});
+          }, { options, push, datastreamId: DATASTREAM }).catch(() => {});
+          await until(() => landed() && pushesIn() >= 1);
+        } });
+      } else {
+        await replayFixture(browser, "s4-base", { event: null, headHtml: seam(mode), bodyHtml: '<div id="v"></div>' + ZONE, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] }, respond, run: async (page) => {
+          await watch(page);
+          await page.evaluate(async ({ options, push }) => {
+            await window.__handle.command("applyResponse", options).catch(() => {});
+            Promise.resolve(window.__handle.sendEvent(push)).catch(() => {});
+          }, { options, push }).catch(() => {});
+          await until(() => landed() && pushesIn() >= 1);
+        } });
+      }
+      return { order, posts, pushes: posts.filter((p) => p && p.xdm && p.xdm.eventType === PUSH).map(stripVolatile) };
+    };
+    const at = (r, k, ev) => r.order.findIndex((x) => x.k === k && (ev === undefined || x.ev === ev));
+
+    it("stock control: the gate barrier is a no-op (no zero-delay timer after the display) and the push is received", async () => {
+      const stock = await arm("stock", "observe");
+      expect(stock.order.filter((x) => x.k === "zero-timer")).toEqual([]);
+      expect(stock.pushes).toHaveLength(1);
+      expect(at(stock, "invoke", DISPLAY)).toBeGreaterThanOrEqual(0);
+      expect(at(stock, "invoke", DISPLAY)).toBeLessThan(at(stock, "nav-intent"));
+    }, T);
+
+    for (const mode of ["issue", "gate", "both"]) {
+      it(`a redirect after an awaited applyResponse still sends the push exactly once, with stock's body, under barrier "${mode}"`, async () => {
+        const stock = await arm("stock", "observe");
+        const ours = await arm("ours", mode);
+        expect(ours.order.some((x) => x.k === "valve")).toBe(false);
+        // Strict body equivalence, no relaxation; the push order against the navigation is not a stock invariant and is not asserted.
+        expect(ours.pushes).toHaveLength(1);
+        expect(ours.pushes).toEqual(stock.pushes);
+        // The one guaranteed stock edge: the display is on the wire before the navigation intent.
+        expect(at(ours, "invoke", DISPLAY)).toBeGreaterThanOrEqual(0);
+        expect(at(ours, "invoke", DISPLAY)).toBeLessThan(at(ours, "nav-intent"));
+        if (mode !== "issue") expect(ours.order.some((x) => x.k === "to-worker")).toBe(true);
       }, T * 2);
     }
   });

@@ -1931,16 +1931,19 @@ export async function bootAlloy(opts = {}) {
   let appliesIssued = 0;
   const rulesetSubscribers = new Set();
   const deliveries = createDeliveryTracker();
-  // 064-32: a redirect navigates after its display is sent. A push the page makes right after awaiting the apply is still on its way through the worker, and stock has already put it on the wire, so the navigation waits (bounded) for the next request to be issued when events are pending.
-  const fetchWaiters = new Set();
-  const notifyFetchIssued = () => { for (const w of [...fetchWaiters]) w(); };
+  // 064-32 (round 6): a redirect navigates after its display is sent. A push the page makes right after awaiting the apply is on its way
+  // through the worker (queued, dequeued by the pump, or in the worker round trip), and stock has already put it on the wire, so the navigation
+  // waits for each such event's own request to be issued (or for the event to settle without one). Bounded, so a held event never blocks it for good.
+  const pendingIssue = new Set();
+  let runningEntry = null;
+  const notifyFetchIssued = () => { if (runningEntry && runningEntry.markIssued) runningEntry.markIssued(); };
   const NAVIGATION_GATE_MS = 250;
   const navigationGate = () => new Promise((resolve) => {
     setTimeout(() => {
-      if (!waiting.length) { resolve(); return; }
-      const done = () => { clearTimeout(timer); fetchWaiters.delete(done); resolve(); };
+      if (!pendingIssue.size) { resolve(); return; }
+      const done = () => { clearTimeout(timer); resolve(); };
       const timer = setTimeout(done, NAVIGATION_GATE_MS);
-      fetchWaiters.add(done);
+      Promise.all([...pendingIssue].map((e) => e.issued)).then(done);
     }, 0);
   });
   let notifyDisplayed = () => {};
@@ -2194,7 +2197,13 @@ export async function bootAlloy(opts = {}) {
   const cacheWarmFor = (calledWarm) => (!!(calledWarm && calledWarm()) && viewCache.isInitialized()) || viewCache.fetchCount() > 0;
   // An apply issued after this call warmed the chamber's Alloy cache, but stock runs this call first, on a cold cache: the connector is told to query as that cold cache does.
   const cacheColdFor = (warm, appliedAfterCall) => !warm && !!(appliedAfterCall && appliedAfterCall());
-  const runEntry = async ({ event, resolve, reject, gate, onSettled, calledWarm, appliedAfterCall }) => {
+  const runEntry = async (entry) => {
+    const { event, resolve, reject, gate, onSettled, calledWarm, appliedAfterCall } = entry;
+    const outer = runningEntry;
+    runningEntry = entry;
+    try { await runEntryBody({ event, resolve, reject, gate, onSettled, calledWarm, appliedAfterCall }); } finally { runningEntry = outer; if (entry.markIssued) entry.markIssued(); }
+  };
+  const runEntryBody = async ({ event, resolve, reject, gate, onSettled, calledWarm, appliedAfterCall }) => {
     const notification = isNotificationDescriptor(event);
     if (gate) await drainDisplaysUntil(gate);
     const warm = cacheWarmFor(calledWarm);
@@ -2282,6 +2291,11 @@ export async function bootAlloy(opts = {}) {
         appliedAfterCall: () => appliesIssued > appliesAtCall,
         gate: gated ? Promise.all(applies.map((a) => a.warmed)) : null,
       };
+      if (!front) {
+        entry.issued = new Promise((r) => { entry.markIssued = r; });
+        pendingIssue.add(entry);
+        entry.issued.then(() => pendingIssue.delete(entry));
+      }
       if (front) waiting.unshift(entry); else waiting.push(entry);
       if (wake) wake();
       if (consentRef && !consentOpen()) {
@@ -2290,6 +2304,7 @@ export async function bootAlloy(opts = {}) {
           const at = waiting.findIndex((w) => !w.display);
           const dropped = waiting.splice(at < 0 ? waiting.length - 1 : at, 1)[0];
           dropped.resolve(undefined);
+          if (dropped.markIssued) dropped.markIssued();
           if (typeof dropped.onDrop === "function") dropped.onDrop();
           warnDiagnostic({
             level: "warn",
@@ -2441,10 +2456,10 @@ export async function bootAlloy(opts = {}) {
       const apply = { ok: false, warmed: null };
       let markWarmed;
       apply.warmed = new Promise((r) => { markWarmed = r; });
-      const run = commands.command(name, options, { warmed: () => { apply.ok = true; markWarmed(); } });
+      // A command refused by validation is neither counted nor awaited by a later push: stock rejects it without running anything.
+      const accepted = () => { appliesIssued += 1; applyInFlight.add(apply); };
+      const run = commands.command(name, options, { accepted, warmed: (stored) => { if (stored !== false) apply.ok = true; markWarmed(); } });
       run.then(() => {}, () => {}).then(() => { markWarmed(); applyInFlight.delete(apply); });
-      appliesIssued += 1;
-      applyInFlight.add(apply);
       return run;
     },
     /** 064-20 M3: ruleset items arrive as data through `decisions`; returns the unsubscribe. */

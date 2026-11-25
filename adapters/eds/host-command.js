@@ -73,18 +73,23 @@ export function createHostCommandEntry({ worker, renderer, onApplyResponse, diag
         return Promise.reject(error instanceof Error && error.name !== "TypeError" ? error : new Error(String((error && error.message) || error)));
       }
       const wantsRender = Boolean(options && options.renderDecisions === true);
+      // Past validation: only an accepted command counts as issued (064-32), a rejected one never reaches the chamber.
+      if (hooks && typeof hooks.accepted === "function") hooks.accepted();
       return new Promise((resolve, reject) => {
         const call = { id: ++seq, name, options: options || {}, resolve, reject };
         if (state === "ready") post(call); else waiting.push(call);
       }).then((result) => {
         // 064-28: stock stores an applied response's view propositions in its view cache, rendering or not.
         if (name === "applyResponse" && typeof onApplyResponse === "function") {
+          let stored = true;
           try { onApplyResponse(options && options.responseBody); } catch (e) {
+            stored = false;
             // A cache failure never fails the command, but it is reported (064-29).
             try { if (typeof diagnose === "function") diagnose({ level: "warn", kind: "decisions", disposition: "view-cache-failed", reason: `storing the applyResponse view propositions failed (${(e && e.message) || e})` }); } catch (_) { /* the sink failed */ }
           }
           // The cache is warm from here, before the propositions render: a push called after this apply may run now (064-32).
-          if (hooks && typeof hooks.warmed === "function") hooks.warmed();
+          // Only when the store succeeded: a failed store leaves the cache cold.
+          if (hooks && typeof hooks.warmed === "function") hooks.warmed(stored);
         }
         return finish(name, wantsRender, result);
       });
