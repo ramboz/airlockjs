@@ -13,6 +13,7 @@ Two tag families:
 
 ## [Unreleased]
 
+- The wrapped-SDK host calls the optional `caps.egress.onTimeout(req)` when its own timeout answers a still-pending dispatch (spec 068-04).
 - The Alloy opt-out forward now checks the `consent` it carries: the host method `expectOptOutConsent` registers the expected value and anything else is held; a refusal held while pending is dropped, not parked (spec 068-03, ADR-0062 amendment).
 
 ## [0.8.0] — 2026-09-14 — MVP8 (Ad-Conversion Offloading)

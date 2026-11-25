@@ -169,7 +169,8 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-12: Default localStorage and sessionStorage grant is the stock set | **DONE** |  |
 | [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-01: A pending seam hold flushes on grant | **DONE** |  |
 | [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-02: Forward the opt-out after an explicit refusal | **DONE** |  |
-| [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-03: The opt-out forward carries only the consent the adapter registered | **DONE** |  |
+| [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-03: The opt-out forward carries only the consent the adapter registered (core and main adapter) | **DONE** |  |
+| [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-04: The host tells the caller when its own timeout answered a pending dispatch | IN_PROGRESS |  |
 
 ## Deferred slices
 

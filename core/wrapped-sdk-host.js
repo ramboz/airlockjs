@@ -34,7 +34,11 @@
  * host posts a `status:0` error response itself, so the CHAMBER's pending
  * fetch REJECTS instead of hanging (mirrored by
  * connectors/alloy/alloy-chamber.worker.js's `resolveInterceptedFetch`,
- * unchanged) — `sendEvent` settles (rejected), it does not hang.
+ * unchanged) — `sendEvent` settles (rejected), it does not hang. The optional
+ * `caps.egress.onTimeout(req)` is called, once and only then, with the very
+ * `req` object that was handed to `dispatch`, when that timeout answered the
+ * chamber while the dispatch was still pending (068-04): the SDK sees a failure
+ * and may resend, and the caller's own bookkeeping for that request can follow.
  *
  * Cookie write-back: the chamber's synchronous cookie cache (012-01 AC3)
  * mirrors every write ASYNCHRONOUSLY to main as
@@ -160,6 +164,7 @@ function consoleDiagnostic(record) {
  *     egress: {
  *       dispatch: (req: { url: string, method?: string, headers?: Record<string, string>, body?: string }) =>
  *         Promise<{ status: number, statusText?: string, headers?: Record<string, string>, body: string }>,
+ *       onTimeout?: (req: object) => void,
  *     },
  *     cookies?: { reconcile: (reconciledSetCookie: string) => void },
  *   },
@@ -568,6 +573,7 @@ export function createWrappedSdkHost({
     }
 
     let settled = false;
+    let dispatched = null;
     const respond = (payload) => {
       if (settled) return;
       settled = true;
@@ -575,6 +581,9 @@ export function createWrappedSdkHost({
     };
 
     const timer = setTimeout(() => {
+      if (dispatched && !settled && typeof caps.egress.onTimeout === "function") {
+        try { caps.egress.onTimeout(dispatched); } catch { /* a throwing hook must not stop the timeout answer */ }
+      }
       respond({
         status: 0,
         statusText: `intercepted-fetch timed out after ${timeoutMs}ms (no main-thread response)`,
@@ -599,7 +608,8 @@ export function createWrappedSdkHost({
         }
         state.mainDispatch.count += 1;
         state.mainDispatch.requests.push({ url: m.url, method: m.method, body: m.body });
-        return caps.egress.dispatch({ url: m.url, method: m.method, headers: m.headers, body: m.body });
+        dispatched = { url: m.url, method: m.method, headers: m.headers, body: m.body };
+        return caps.egress.dispatch(dispatched);
       })
       .then((res) => {
         clearTimeout(timer);
