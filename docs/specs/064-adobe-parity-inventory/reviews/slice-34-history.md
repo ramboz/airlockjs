@@ -53,3 +53,17 @@ Round 2 findings: low, the slice and spec cite these review files, which are now
 
 Final round-3 outputs were read at: reconciliation 22:49:41.825Z, craft 22:49:43.425Z, compliance 22:49:50.650Z (2026-11-24). The first needs-changes returns are preserved in the round-3 review files. Process omission, recorded without rewriting history: commit abc501da lacked the required Co-authored-by trailer; later commits carry it.
 
+
+## Rounds 4 and 5: needs-changes returns (preserved; not recorded as pass)
+
+Times are the parent's read of each reviewer's output (`tool.execution_complete`), on 2026-11-25; reviewers had no clock and Scout was unavailable. All six were `claude-opus-5.5`, `jig:reviewer`, fresh agents given the complete diff from bcaccab7 and the mission constraint (no ever-growing replay allowlist, no arbitrary expiry).
+
+### Round 4 (head 69cec798): needs-changes x3
+- reconciliation ea948372-35fc-4811-89ff-873889b113d0, read 00:20:44.457Z; compliance fbdc5eb9-ca3f-4832-882d-6dc432472c90, read 00:20:44.485Z; craft 921fe70f-2966-4244-91ed-a09b88b282e9, read 00:20:44.488Z.
+- Findings: stale slice prose (an old fix-assessment paragraph, a "safe side" sentence, "third and last round", residual 2); a Deviation log without the round-4 repair; CHANGELOG and ADR-0062 Corrections missing restore-on-failure. Craft found one real gap: the host `timeoutMs` answers the chamber with status 0 while the fetch is still pending, so Alloy's resend is held because the generation is already consumed. Docs fixed in 9a8d8a9b; the gap became core slice 068-04 and round 5.
+
+### Round 5 (head a0c01999): needs-changes x3
+- reconciliation 1987bdff-8b52-4352-ad53-4996aadb2113, read 00:28:23.302Z; compliance be91ec14-f931-415e-a797-4bfae4f46e8a, read 00:28:23.328Z; craft 03d0dbb7-6580-4346-82af-e128f1629158, read 00:28:23.330Z.
+- Compliance: code meets the ACs and the host-timeout gap is closed; the Design/Reconciliation sweep/spec.md prose still said "no core/ change"; round 4 and 5 reviews not recorded.
+- Craft: "`restoreOnce()` only runs when `fetch` rejects or `res.ok === false`. ... If one of them throws on an ok response ... the generation stays consumed" (fixed in round 6, adapter-only); stale docs; the `dispatched` guard and the "resolves" late variant are weaker proofs (accepted, disclosed).
+- Reconciliation: stale "no core/ change" in the sweep, Design and spec.md row; stale mutation and test counts; review records stop at round 3; two Residuals paragraphs; inconsistent owner quote; 068-04 needs a review record and an explicit status note; unrelated board-row churn from regeneration. All addressed in round 6 except the board churn, which comes from `status-board` regenerating from slice frontmatter.

@@ -407,6 +407,8 @@ describe("064-34: an opt-out in flight for a superseded consent update still for
 
   const failures = {
     "a network failure": () => fetchMock.mockImplementationOnce(() => Promise.reject(new TypeError("Failed to fetch"))),
+    "an ok answer whose body read throws": () => fetchMock.mockImplementationOnce(() => Promise.resolve({ ok: true, status: 200, statusText: "OK", headers: { get: () => "application/json" }, text: async () => { throw new TypeError("body stream broke"); } })),
+    "an ok answer whose header read throws": () => fetchMock.mockImplementationOnce(() => Promise.resolve({ ok: true, status: 200, statusText: "OK", headers: { forEach: () => { throw new TypeError("headers broke"); } }, text: async () => "{}" })),
     "a non-ok answer": () => fetchMock.mockImplementationOnce(() => Promise.resolve({ ok: false, status: 500, statusText: "ERR", headers: { get: () => "application/json" }, text: async () => "{}" })),
   };
   for (const [name, fail] of Object.entries(failures)) {

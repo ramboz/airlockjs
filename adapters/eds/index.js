@@ -1841,14 +1841,20 @@ export async function bootAlloy(opts = {}) {
           restoreOnce();
           throw e;
         }
-        if (res.ok === false) restoreOnce();
-        if (watch && res.ok === false) watch.failed(new Error(`HTTP ${res.status}`));
-        const body = typeof res.text === "function" ? await res.text() : "";
-        const headers = {};
-        if (res.headers && typeof res.headers.forEach === "function") res.headers.forEach((v, k) => { headers[k] = v; });
-        if (!headers["content-type"]) headers["content-type"] = "application/json";
-        if (personalizationConfigured && res.ok !== false) cacheViewPropositions(req.body, body);
-        return { status: res.status, statusText: res.statusText, headers, body };
+        // Any rejection after the answer (body read, headers, view cache) is also a failure Alloy never stores.
+        try {
+          if (res.ok === false) restoreOnce();
+          if (watch && res.ok === false) watch.failed(new Error(`HTTP ${res.status}`));
+          const body = typeof res.text === "function" ? await res.text() : "";
+          const headers = {};
+          if (res.headers && typeof res.headers.forEach === "function") res.headers.forEach((v, k) => { headers[k] = v; });
+          if (!headers["content-type"]) headers["content-type"] = "application/json";
+          if (personalizationConfigured && res.ok !== false) cacheViewPropositions(req.body, body);
+          return { status: res.status, statusText: res.statusText, headers, body };
+        } catch (e) {
+          restoreOnce();
+          throw e;
+        }
       },
     },
     cookies: {
