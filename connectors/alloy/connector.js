@@ -413,7 +413,7 @@ export function createAlloyConnector(config = {}) {
       if (params.viewCacheWarm === true) scopesSent = true;
       // Well-formed scopes (distinct non-empty strings) are merged and deduped as before. A list with an empty, non-string or repeated entry goes to Alloy as given,
       // where an empty string queries and any other such entry is rejected, as in stock; `personalization.decisionScopes` then stays where the page put it.
-      const clean = (list) => list === undefined || (Array.isArray(list) && list.every((x) => typeof x === "string" && x) && new Set(list).size === list.length);
+      const clean = (list) => list == null || (Array.isArray(list) && list.every((x) => typeof x === "string" && x) && new Set(list).size === list.length);
       const rawScopes = !clean(params.decisionScopes) || !clean(pznScopes);
       // A malformed top-level list must not drop a well-formed `personalization.decisionScopes`: Alloy merges both.
       if (rawScopes && clean(pznScopes) && Array.isArray(pznScopes) && pznScopes.length) callPzn = { ...callPzn, decisionScopes: pznScopes };
@@ -421,7 +421,7 @@ export function createAlloyConnector(config = {}) {
       const bootScopes = configuredScopes.length && !scopesSent && !calledNotification ? configuredScopes : [];
       const merged = mergeDecisionScopes([...bootScopes, ...callScopes], null);
       if (rawScopes) {
-        const top = Array.isArray(params.decisionScopes) ? params.decisionScopes : params.decisionScopes === undefined ? [] : null;
+        const top = Array.isArray(params.decisionScopes) ? params.decisionScopes : params.decisionScopes == null ? [] : null;
         if (top === null) options.decisionScopes = params.decisionScopes;
         else if (top.length || bootScopes.length) options.decisionScopes = [...top, ...bootScopes.filter((x) => !top.includes(x))];
       } else if (merged.length) {
@@ -475,10 +475,10 @@ function perCallPersonalization(pzn) {
   if (!pzn || typeof pzn !== "object" || Array.isArray(pzn)) return undefined;
   const out = {};
   for (const k of ["defaultPersonalizationEnabled", "sendDisplayEvent"]) if (typeof pzn[k] === "boolean") out[k] = pzn[k];
-  const clean = (list) => list === undefined || (Array.isArray(list) && list.every((x) => typeof x === "string" && x) && new Set(list).size === list.length);
+  const clean = (list) => list == null || (Array.isArray(list) && list.every((x) => typeof x === "string" && x) && new Set(list).size === list.length);
   // Well-formed lists as before (the scopes are merged into the top level elsewhere); anything else goes to Alloy as given (064-32).
   if (pzn.decisionScopes !== undefined && !clean(pzn.decisionScopes)) out.decisionScopes = pzn.decisionScopes;
-  if (pzn.surfaces !== undefined) out.surfaces = pzn.surfaces;
+  if (pzn.surfaces != null) out.surfaces = pzn.surfaces;
   return Object.keys(out).length ? out : undefined;
 }
 

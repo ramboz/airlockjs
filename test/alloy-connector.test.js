@@ -476,6 +476,12 @@ describe("alloy connector — explicit propositionFetch and per-call personaliza
     expect(c.decisionScopes).toBe("x");
   });
 
+  it("064-32: a null decisionScopes is as absent: the boot scopes still go out once", async () => {
+    const [a, b] = await send({ decisionScopes: ["boot"] }, fetchEvent({ decisionScopes: null }), fetchEvent({ decisionScopes: null }));
+    expect(a.decisionScopes).toEqual(["boot"]);
+    expect(b.decisionScopes).toBeUndefined();
+  });
+
   it("per-call scopes join the configured first-event scopes, deduped, and only plain personalization options cross", async () => {
     const [first, second] = await send({ decisionScopes: ["boot"] }, fetchEvent({ decisionScopes: ["call", "boot"], personalization: { sendDisplayEvent: false, surfaces: ["web://a"], decisionScopes: ["in-pzn"], onSomething: () => {}, datasetId: "d" } }), fetchEvent({ decisionScopes: ["call"] }));
     expect(first.decisionScopes).toEqual(["boot", "call", "in-pzn"]);
