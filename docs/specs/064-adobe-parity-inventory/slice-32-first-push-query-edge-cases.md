@@ -40,6 +40,8 @@ Round 8 (owner: "i authorize it", one bounded round): the navigation gate credit
 
 Round 9 (framing; owner: "ok, do it and continue", after the eight rejections): the origin-identity criterion from the round 7 and round 8 repair briefs is retired as a review requirement. No AC asks for it. The proposed mechanism is in the Proposed ADR-0066: the chamber posts `result` and `fatal` behind its drive's bridge requests, and the navigation gate waits for each pending push to settle, with no request attribution. Nothing is implemented yet. AC5 b stays open until the regression contract below is witnessed on an exact commit and fresh final reviews pass. The original and amended AC wording and all eight failed attempts stay as recorded. The owner has not yet accepted ADR-0066.
 
+Round 9 frame correction: the fresh frame critique on `d09543ef` passed the ADR and returned needs-changes for this slice (records in `reviews/slice-32-frame-critique.md` and `docs/decisions/reviews/adr-0066-frame-critique.md`). T5 had required a core-parked fetch to settle before the cap, which cannot hold: the parked fetch stays pending and the gate releases at the cap. T5 and the ADR sentence now say so. This corrects an unimplemented test premise only. Core behavior, the acceptance criteria and the 250 ms cap are unchanged, and nothing is waived. A new frame critique is still needed.
+
 ### Reconciliation sweep
 
 Reconciled: this slice's Findings and Deviation log, the 064 spec.md rows and decomposition line, CHANGELOG, ADR-0063 consequence line, refinement-todo, and the adopter JSDoc on `placements`. The 064-29 record still lists its review items as owned by 064-32; they stay open here. No closure is claimed until the round 9 contract below is witnessed and a fresh final review passes. The review findings are recorded in `reviews/slice-32-history.md`. Round 5 also touched the 064-29 gate description (ADR-0063 call-order line, 064-29 hermetic test).
@@ -60,13 +62,13 @@ Written first on the implementation commit, each red on `e808b4b1` or on the nam
 - **T2** Two queued pushes of the same event type, the first with a delayed request: a redirect after push 1 waits for push 1 to settle. Push 2's request does not release it.
 - **T3** An untyped push pending beside a typed request from another entry: the other request does not release the gate.
 - **T4** Real chamber, real Chromium: a documentUnloading `sendEvent` with a Blob beacon shows `intercepted-fetch` before `result` at the host. Red with mutation M1 (`result` posted directly again). Witnesses A1 and A3.
-- **T5** A push that issues no request (consent ring drop, core consent park, Alloy rejection or fatal) settles and releases the gate before the cap.
+- **T5** A push that completes without a request (consent ring drop, Alloy rejection or fatal) settles and releases the gate before the cap. A fetch parked at the core consent seam stays pending: assert that no egress happens and that the gate releases at the 250 ms cap, not before. No park signal, synthetic response or timeout is added. No claim is made for a parked beacon.
 - **T6** An entry whose result never arrives: navigation proceeds at or before 250 ms (kept).
 - **T7** The bug 007 order test stays green.
 - **T8** A Blob body whose read is delayed, fulfilled and rejected: `result` is posted after the slot fills, in each case. If the harness cannot show a read settling, report it. Do not assume.
 - **T9** Negative: a retired entry's late request does not credit a newer entry, and a request after settle never releases a different entry. A post-settle vendor retry stays outside the bounded stock guarantee.
 
-Mutations: M1 `result` posted outside `postInOrder`; M2 `fatal` posted outside it; M3 an entry retired on a request instead of its settlement; M4 the gate released by the cap alone. Each mutation must turn at least one test red, with the receipt on the exact commit.
+Mutations (M4 is red on the ring-drop or rejection case of T5, not the parked fetch, which releases only at the cap by design): M1 `result` posted outside `postInOrder`; M2 `fatal` posted outside it; M3 an entry retired on a request instead of its settlement; M4 the gate released by the cap alone. Each mutation must turn at least one test red, with the receipt on the exact commit.
 
 Stays as accepted: display before navigation intent; push-before-navigation is not asserted; the gate snapshot (a push made after it looked is not waited for); display draining; the 250 ms cap; the `redirectWaitMs` renderer timeout path; query and cache behavior; every seal, consent, allowlist, tenant, ceiling and config-integrity check; serialized dispatch. The gate waits for settlement, so it does not release early on a push's own egress.
 

@@ -55,7 +55,7 @@ Option B, scoped as follows.
 
 Kept as they are: stock's display-before-navigation intent; stock-dependent push ordering; display draining during a gate wait; the `redirectWaitMs` renderer timeout path, which navigates without the gate; the snapshot, so a push made after the gate looked is not waited for; query and cache behavior; and every seal, consent, allowlist, tenant, ceiling and config-integrity check and the serialized dispatch.
 
-A request parked at the core consent seam counts as settled without a request, as today.
+A push that completes without a request (a consent ring drop, an Alloy rejection or a fatal) settles before the cap. A fetch parked at the core consent seam is different: the core keeps the chamber's fetch pending (`core/wrapped-sdk-host.js:352-356`), so its `sendEvent` does not resolve, the entry does not settle, and the gate releases at the 250 ms cap. No request reaches the wire in that case, so the bounded no-loss guarantee holds. A parked beacon may complete; no claim is made about every transport. This ADR adds no park signal, synthetic response or timeout.
 
 No silent bodyless beacon fallback. If a delayed, rejected or stalled Blob body falsifies the guarantee, the work stops with evidence. Dropping a body or adding a new timeout is a changed behavior and needs a new decision.
 
