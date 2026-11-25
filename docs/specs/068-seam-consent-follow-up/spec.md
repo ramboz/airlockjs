@@ -32,6 +32,7 @@ Out of scope: the real-Chromium proofs of the vendor-adobe tests (a follow-up co
 | [068-01](slice-01-flush-on-grant.md) | A pending seam hold keeps the fetch pending and flushes exactly once on grant |
 | [068-02](slice-02-opt-out-forwarding.md) | A connector-declared opt-out signal is forwarded alone after an explicit refusal |
 | [068-03](slice-03-opt-out-consent-check.md) | The opt-out forward carries only the consent the adapter registered (core and main adapter; Adobe part is 064-33) |
+| [068-04](slice-04-egress-timeout-hook.md) | The host tells the caller (`caps.egress.onTimeout`) when its own timeout answered a pending dispatch |
 
 ## 3. Decisions
 
