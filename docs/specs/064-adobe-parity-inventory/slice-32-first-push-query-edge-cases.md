@@ -1,7 +1,9 @@
 ---
 status: IN_PROGRESS
-dependencies: [064-29]
+dependencies: [064-29, ADR-0066]
 last_verified: 2026-11-25
+arch_review: true
+frame_review: true
 claimed_by: slice-064-32-first-push-edges
 ---
 
@@ -36,9 +38,37 @@ Round 7 (owner: "Authorize one bounded round 7"): a request releases the navigat
 
 Round 8 (owner: "i authorize it", one bounded round): the navigation gate credits a request to the oldest pending entry it could belong to (an events request whose first event has the entry's declared `eventType`; an untyped entry matches any events request), instead of the entry running when the request arrives. A documentUnloading entry that settled before its request is released by that request. One that issues none is retired after the 250 ms cap, so the pending set does not grow. Equal bodies stay interchangeable, so an unrelated same-type request can still release an equal-typed push; no body-level tag exists without a core or chamber contract change. Round 7 final reviews on `f18f648b`: all three needs-changes. Final-review status: failed, pending owner decision. The slice stays IN_PROGRESS; see `reviews/slice-32-history.md`.
 
+Round 9 (framing; owner: "ok, do it and continue", after the eight rejections): the origin-identity criterion from the round 7 and round 8 repair briefs is retired as a review requirement. No AC asks for it. The proposed mechanism is in the Proposed ADR-0066: the chamber posts `result` and `fatal` behind its drive's bridge requests, and the navigation gate waits for each pending push to settle, with no request attribution. Nothing is implemented yet. AC5 b stays open until the regression contract below is witnessed on an exact commit and fresh final reviews pass. The original and amended AC wording and all eight failed attempts stay as recorded. The owner has not yet accepted ADR-0066.
+
 ### Reconciliation sweep
 
-Reconciled: this slice's Findings and Deviation log, the 064 spec.md rows and decomposition line, CHANGELOG, ADR-0063 consequence line, refinement-todo, and the adopter JSDoc on `placements`. The 064-29 record still lists its review items as owned by 064-32; they are closed here, with the round 7 and round 8 review findings as recorded in `reviews/slice-32-history.md`. Round 5 also touched the 064-29 gate description (ADR-0063 call-order line, 064-29 hermetic test).
+Reconciled: this slice's Findings and Deviation log, the 064 spec.md rows and decomposition line, CHANGELOG, ADR-0063 consequence line, refinement-todo, and the adopter JSDoc on `placements`. The 064-29 record still lists its review items as owned by 064-32; they stay open here. No closure is claimed until the round 9 contract below is witnessed and a fresh final review passes. The review findings are recorded in `reviews/slice-32-history.md`. Round 5 also touched the 064-29 gate description (ADR-0063 call-order line, 064-29 hermetic test).
+
+## Assumptions
+
+These come from ADR-0066. None is asserted as fact.
+
+- **A1.** Stock Alloy 2.31.1 calls `sendBeacon` or `fetch` for an event, and for any request it starts for that event, before that `sendEvent` promise resolves. Not read: the pinned bundle is not cached in the worktree. Witness: T4. One successful run does not enumerate every path. Kill: T4 shows a request posted after its `result`. Then stop and return option A to the owner.
+- **A2.** The chamber's Blob body read settles (fulfils or rejects) for the bodies Alloy passes. Witness: T8. Kill: a read that does not settle, a stalled pump, or no way to show settlement. Then stop with evidence. No bodyless beacon fallback and no new timeout is authorized.
+- **A3.** The host dispatches or holds each `intercepted-fetch` before it handles the next message. Read in `core/wrapped-sdk-host.js:629-667` and `687-806`. Witness: T4.
+
+## Regression contract (proposed, round 9; not yet implemented)
+
+Written first on the implementation commit, each red on `e808b4b1` or on the named mutation. Commands: `npx vitest run test/adobe-apply-response-queue.test.js`, `AIRLOCK_REAL_CHROMIUM=1 npx vitest run test/adobe-b4-personalization.test.js -t "navigationGate"`, and the chamber ordering test.
+
+- **T1** A documentUnloading push whose beacon body read is delayed: the gate does not release before the beacon is dispatched.
+- **T2** Two queued pushes of the same event type, the first with a delayed request: a redirect after push 1 waits for push 1 to settle. Push 2's request does not release it.
+- **T3** An untyped push pending beside a typed request from another entry: the other request does not release the gate.
+- **T4** Real chamber, real Chromium: a documentUnloading `sendEvent` with a Blob beacon shows `intercepted-fetch` before `result` at the host. Red with mutation M1 (`result` posted directly again). Witnesses A1 and A3.
+- **T5** A push that issues no request (consent ring drop, core consent park, Alloy rejection or fatal) settles and releases the gate before the cap.
+- **T6** An entry whose result never arrives: navigation proceeds at or before 250 ms (kept).
+- **T7** The bug 007 order test stays green.
+- **T8** A Blob body whose read is delayed, fulfilled and rejected: `result` is posted after the slot fills, in each case. If the harness cannot show a read settling, report it. Do not assume.
+- **T9** Negative: a retired entry's late request does not credit a newer entry, and a request after settle never releases a different entry. A post-settle vendor retry stays outside the bounded stock guarantee.
+
+Mutations: M1 `result` posted outside `postInOrder`; M2 `fatal` posted outside it; M3 an entry retired on a request instead of its settlement; M4 the gate released by the cap alone. Each mutation must turn at least one test red, with the receipt on the exact commit.
+
+Stays as accepted: display before navigation intent; push-before-navigation is not asserted; the gate snapshot (a push made after it looked is not waited for); display draining; the 250 ms cap; the `redirectWaitMs` renderer timeout path; query and cache behavior; every seal, consent, allowlist, tenant, ceiling and config-integrity check; serialized dispatch. The gate waits for settlement, so it does not release early on a push's own egress.
 
 ## Notes
 
@@ -46,7 +76,7 @@ Found by the 064-29 reconciliation review (M1, M2, L1 to L3, AC1 to AC4) and the
 
 ## Findings
 
-AC1 to AC4 and AC5 a and c are met. AC5 b is met in round 5 for the awaited and the unawaited call patterns, with one recorded navigation difference (see the round 5 finding). Rounds 1 to 4 did not pass review (all three round 4 verdicts were changes-requested); rounds 5 to 7 each failed final review, and round 8 is the last authorized round. Stock was read from the pinned 2.31.1 bundle (SHA-256 `7dd09409bb07d47b1b2289eec4ca15d67084a85a3d832bef6c73180889da32e8`, matching `ALLOY_SHA256`) and compared in real Chromium, SYNTHETIC responses, 0 captures. No `core/` change.
+No acceptance criterion is accepted yet. AC1 to AC4 and AC5 a and c were implemented and compared in real Chromium, but no final review has passed. AC5 b is open: the order of a push against the redirect display was matched in round 5, and the navigation gate that protects a pending push failed final review in rounds 6, 7 and 8. Rounds 1 to 4 did not pass review (all three round 4 verdicts were changes-requested); rounds 5 to 8 each failed final review. Stock was read from the pinned 2.31.1 bundle (SHA-256 `7dd09409bb07d47b1b2289eec4ca15d67084a85a3d832bef6c73180889da32e8`, matching `ALLOY_SHA256`) and compared in real Chromium, SYNTHETIC responses, 0 captures. No `core/` change.
 
 **Owner decision on AC1 (2026-11-25).** The first run of the differential showed AC1's premise was wrong. In stock, `shouldFetchData` is `hasScopes() || hasSurfaces() || shouldRequestDefaultPersonalization()`, and `hasSurfaces` is a raw non-empty-array check. Entries are filtered only later, so an all-invalid or empty-string surfaces array still sends a query (with `surfaces: []`). Airlock already sent that query. The owner approved correcting the AC to match stock ("Approve the stock-matching correction (Recommended)"), kept the request-body and DOM comparison, and left the other ACs unchanged. The original wording is kept in the amended criterion above. The decision and the differential's evidence are in the coordinator's session record, not in this repo.
 
@@ -59,7 +89,7 @@ AC1 to AC4 and AC5 a and c are met. AC5 b is met in round 5 for the awaited and 
 - **Finding (round 4, unawaited apply; resolved in round 5):** when the apply is not awaited and a push is called right after it, stock sends the push first, then the redirect display. Ours holds the push behind the display (the 064-29 gate). Observed stock `[pageViews, display]`, ours `[display, pageViews]`. For an awaited apply both agree on display then push, but stock navigates after the push and ours navigates before it. AC5 b is covered for the awaited case only. Round 4 left it for an owner decision.
 - **Round 5 (owner: "Match stock and authorize one bounded corrective round (Recommended)").** a) *Order policy.* The host gate now waits for an in-flight apply's view cache warm (a `warmed` hook right after the apply is applied), not for its render and redirect display. Observed request traces, real Chromium, stock against ours, redirect scope `__view__`: unawaited apply then push, stock and ours both `[pageViews, display, navigate]`; awaited apply then push, stock `[display, pageViews, navigate]`. Both patterns also run with a real navigation (the target fulfilled with a stub page, not aborted) and give the same traces as the aborted runs. b) *Navigation timing.* For the awaited case ours starts the navigation before the push request (`[display, navigate, pageViews]`) in every run. Stock usually navigates after the push, but a repeat run under CPU load showed stock itself navigating first, so its navigation order is a race. The push request starts in both arms in every run, so nothing is lost. The test pins the edge events and that both navigate, and not the navigation order for that case. A full-suite run then caught the push request missing in our arm (the page navigated before the worker hop issued it), where stock had sent it. So the renderer now holds the navigation after the display is sent: one macrotask, then, only when page events are still waiting, until the next edge request is issued, bounded to 250 ms (`navigationGate`, `NAVIGATION_GATE_MS`). The loss was intermittent and could not be reproduced on demand, so there is no red-to-green for this gate; the evidence is the failing full-suite run and green repeats under CPU load after it. The navigation-order difference is not otherwise claimed as matched. c) *Cache timing race.* The cold hint no longer reads the host's `isInitialized()` when the push runs. The host counts applies issued (`appliesIssued`): a push is cold when it was called before an apply that was issued later and no warming apply ran first. Sending the hint when the chamber is truly cold is harmless. d) *Own scopes.* A cold push that passes its own scopes also queries `__view__` in stock (differential "AC5 (round 5)", red before the connector change, which dropped the hint when the call carried a query); the connector now keeps the hint unless the page passes an explicit `defaultPersonalizationEnabled`. e) *Recorded limit.* An apply that warms the cache but fails to render counts as warm, as in stock. f) The hermetic AC5 test also asserts the `viewCacheCold` flags. The differential trace wait grew to 4 s because a full-suite run under load missed the push in one run.
 - **Round 1 review fixes:** a malformed top-level `decisionScopes` no longer drops a well-formed `personalization.decisionScopes` (AC2 differential case added); a notification-shaped push that carries a query is held behind an in-flight `applyResponse` like any push; a `null` value counts as absent in the query rule.
-- **Carried, not fixed here (owner: a follow-up slice):** in the awaited-apply pattern ours starts the navigation before the push request where stock navigates after it (round 5 finding b); a bare `decisionScopes: null` renders the cache view where stock does not (unverified cause); the differential's wire view hides every root surface. Also: the page's default surface `web://host/` in the query (unattributed domain mismatch, filtered in the test's wire view), the 064-35 `getTld` mirror, bug 007 residuals, the 064-24 redirect-order flake, and the notification decision-delivery gap above.
+- **Carried, not fixed here (owner: a follow-up slice):** in the awaited-apply pattern the order of the push request against the navigation is a stock race and is not asserted (see the round 9 entry; only display before navigation intent is a stock guarantee); a bare `decisionScopes: null` renders the cache view where stock does not (unverified cause); the differential's wire view hides every root surface. Also: the page's default surface `web://host/` in the query (unattributed domain mismatch, filtered in the test's wire view), the 064-35 `getTld` mirror, bug 007 residuals, the 064-24 redirect-order flake, and the notification decision-delivery gap above.
 
 ### Round 8 final reviews: failed
 

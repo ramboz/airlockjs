@@ -1,6 +1,7 @@
 ---
 status: Proposed
-dependencies: []
+dependencies: [ADR-0063, 064-32]
+see_also: [bug-007]
 last_verified:
 frame_review: true
 ---
@@ -9,56 +10,82 @@ frame_review: true
 
 ## Status
 
-Proposed (2026-11-25)
+Proposed (2026-11-25). Not accepted. It needs the owner's explicit grant and a passing frame critique before implementation. ADR-0063 is Accepted and stays byte-unchanged. This ADR cites it and narrows nothing in it.
+
+## Summary
+
+A redirect navigation must not leave while a push the page already made is still on its way to the wire. Rounds 1 to 8 of slice 064-32 tried to match each request to its push by event type, body and timing. All eight failed final review. This ADR proposes to stop matching. The chamber posts its `result` and `fatal` messages behind every bridge request reserved during that event's drive. The adapter gate then waits for each pending push to settle.
 
 ## Context
 
-_TODO: describe the situation, forces, and constraints driving this decision._
+The navigation gate of slice 064-32 must not let a redirect leave while a push the page already made is still on its way to the wire, and eight attribution-based attempts failed review.
+
+- 064-32 AC5b (owner-amended, round 5) asks for stock's order of a push against the redirect display of an earlier `applyResponse`. The bounded no-loss guarantee is that a push made before the navigation decision has its request issued, or settles without one, before the page navigates, within a 250 ms cap.
+- No AC asks for the request's origin identity. That requirement entered through the round 7 and round 8 repair briefs. Rounds 7 and 8 failed on it as a mechanism, and the static counterexamples were never reproduced as a browser loss.
+- The gap is in the chamber. `sendBeacon` with a Blob body takes its bridge slot synchronously and posts `intercepted-fetch` only after `data.text()` resolves (`connectors/alloy/alloy-chamber.worker.js:308-328`, `reserveBridgeSlot` at 295-299). `drive()` posts `result` and `fatal` directly, outside the bridge queue (610-620). So a beacon can reach the host after the `result` of the event that made it.
+- The host handles messages in arrival order. An `intercepted-fetch` runs its seal checks, then dispatches to `caps.egress.dispatch` in a microtask (`core/wrapped-sdk-host.js:629-667`, `handleMessage` 687-806). A `result` resolves the drive (783-790).
+- Bug 007 already makes beacon and `fetch` posts keep the tag's call order through the bridge queue (`postInOrder`, `reserveBridgeSlot`). It does not cover `result` or `fatal`.
+- Today's gate attributes a request to a pending entry in `adapters/eds/index.js` (`ownsRequest`, `notifyFetchIssued`, and a 250 ms retire timer for documentUnloading entries). Rounds 7 and 8 reviews showed it can credit another entry when event types match or are absent.
 
 ## Decision Options Considered
 
-### Option A: _TODO_
-- **Pros:** _TODO_
-- **Cons:** _TODO_
+### Option A: drive-token correlation
+Tag every `intercepted-fetch` and `result` with a drive id and carry it through the core into the request given to `caps.egress.dispatch`.
+- **Pros:** exact origin for every request, including late ones.
+- **Cons:** changes the chamber to core to adapter message contract and the `caps.egress.dispatch` request shape, which is a security-relevant surface and needs its own owner decision. It adds no guarantee that option B lacks for the stock guarantee that matters here.
 
-### Option B: _TODO_
-- **Pros:** _TODO_
-- **Cons:** _TODO_
+### Option B: bridge ordering plus a settlement-only gate (recommended)
+The chamber posts `result` and `fatal` through `postInOrder`, so they trail every slot reserved during that drive. The adapter gate waits for each pending push entry to settle (result, fatal, throw), be dropped by the consent ring, or be disposed. It no longer attributes requests.
+- **Pros:** no message type or field changes. With no pending slot, `postInOrder` runs synchronously, so today's order is unchanged. It extends bug 007's invariant by one step. It removes the attribution code that failed eight reviews.
+- **Cons:** depends on assumptions A1 to A3 below. A request that Alloy issues after its event has settled is outside the guarantee. The gate waits for settlement, so it does not release early on a push's own egress.
+
+### Option C: keep event-type and body attribution
+- **Pros:** no chamber change.
+- **Cons:** it credits by arrival or by shared type, so another entry can release a push (rounds 7 and 8). Rejected.
+
+A vendor per-event id in the request body was also considered. It is unverified in the pinned 2.31.1 body and must not become an AC.
 
 ## Recommended Decision
 
-_TODO: state the chosen option and the reasoning._
+Option B, scoped as follows.
+
+1. In `drive()`, post `result` and `fatal` with `postInOrder`.
+2. In the adapter, retire a `pendingIssue` entry only when its own run settles, the consent ring drops it, or `dispose` runs. Remove `ownsRequest` matching, the `notifyFetchIssued` crediting and the documentUnloading retire timer.
+3. Keep the existing gate shape: a one-macrotask snapshot of the pending entries, then `Promise.all` over them, capped at `NAVIGATION_GATE_MS = 250`.
+
+Kept as they are: stock's display-before-navigation intent; stock-dependent push ordering; display draining during a gate wait; the `redirectWaitMs` renderer timeout path, which navigates without the gate; the snapshot, so a push made after the gate looked is not waited for; query and cache behavior; and every seal, consent, allowlist, tenant, ceiling and config-integrity check and the serialized dispatch.
+
+A request parked at the core consent seam counts as settled without a request, as today.
+
+No silent bodyless beacon fallback. If a delayed, rejected or stalled Blob body falsifies the guarantee, the work stops with evidence. Dropping a body or adding a new timeout is a changed behavior and needs a new decision.
 
 ## Consequences
 
 **Becomes easier:**
-- _TODO_
+- The gate has no identity heuristic to review.
+- Same-type and untyped overlap cannot credit the wrong entry, because nothing is credited.
+- The bridge order covers `result` and `fatal` as well as `fetch` and beacons.
 
 **Becomes harder:**
-- _TODO_
+- A stalled body read would hold `result` behind its reserved slot (see A2).
+- The gate releases on settlement or the cap, never on a push's own egress.
+- A request issued after its event settled (for example a vendor retry) can still reach the wire after a navigation. It is a recorded residual. A late request must not credit a newer entry, and the regression contract keeps a negative test for that.
 
 ## Assumptions
 
-<!-- Spec 064-02 / ADR-0020 §1–§2 — grounding-by-probe (risk-gated). -->
+None of these is asserted as fact. Each has a witness and a kill criterion.
 
-_Load-bearing factual claims about runnable surfaces (library/API capability,
-version/perf behavior, behavior of existing code) must be backed by an executed
-probe (run a command, read source/`node_modules`) or a citation — or listed
-here explicitly as an assumption. Never assert an unverified claim as fact._
-
-_Risk-gated: omit this section (or write "None") when the decision has no
-unverified load-bearing assumptions — do not pad with boilerplate._
-
-- _TODO_
+- **A1.** Stock Alloy 2.31.1 calls `sendBeacon` or `fetch` for an event, and for any request it starts for that event, before that `sendEvent` promise resolves. The pinned bundle is not cached in this worktree, so this is not read. Witness: test T4 in the slice. A single successful run does not enumerate every Alloy path.
+- **A2.** The chamber's Blob body read (`data.text()`) settles, by fulfilling or rejecting, for the bodies Alloy passes. If it never settles, the reserved slot holds `result` and stalls the pump. Witness: T8.
+- **A3.** The host dispatches or holds each `intercepted-fetch` before it handles the next message (`core/wrapped-sdk-host.js:629-667`, `687-806`, read at this head). Witness: T4 end to end.
 
 ## Kill criteria
 
-_What would make this decision wrong? List the conditions that, if observed,
-should reverse or shelve it. Risk-gated like Assumptions — write "None" or omit
-when there is no meaningful kill condition; do not invent ceremonial ones._
-
-- _TODO_
+- T4 shows a request posted after its event's `result`: A1 fails. Stop and return option A to the owner.
+- T8 shows a body read that does not settle, or a stalled pump, or cannot show settlement: A2 fails. Stop with evidence. No fallback is authorized here.
+- Any need to change a message type, a message field or the `caps.egress.dispatch` request shape: stop, that is option A.
 
 ## Open questions
 
-_TODO: list any unresolved questions. If none, write "None."_
+- Whether the owner wants to grant a one-line append-only pointer in ADR-0063. Not assumed. Without it, ADR-0063 stays unchanged and this ADR stands alone.
+- The ADR number is provisional. Verify there is no collision on origin before any landing.
