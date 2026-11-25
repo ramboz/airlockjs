@@ -102,3 +102,19 @@ Tests: hermetic cases for an identity request and for another event type arrivin
 Findings disposition: (1) attribution fixed and tested hermetically. (2) `accepted` and `warmed(stored)` now have tests. (3) fixed wait replaced in the differential `run()`; other fixed waits in the file are outside the findings and unchanged. (4) docs reconciled here; the "ours navigates before push" gap is restated as "push versus navigation order is not asserted" because it is not a stock invariant. (5) `dispose` fixed; the `redirectWaitMs` timeout path skipping the gate and the 250 ms cap for consent-held pushes stay accepted limits.
 
 Honest limits: the redirect display's own request arriving while the push is unissued could not be realized through the pump (a display result needs its egress, and the pump runs entries serially, so a held display or push deadlocks). That case is protected by excluding the display request from attribution and has no dedicated test. A request with no declared `eventType` is accepted for any events request. An event that makes several fetches counts as issued at its first own fetch. A plain non-keepalive request can still be cancelled by navigation (stock has the same exposure). The raw red and M0 outputs of rounds 5 and 6 were never saved and remain missing. The slice stays IN_PROGRESS until the final reviews pass.
+
+### Round 7 final reviews (source head `f18f648bfa8af8a15554ca73c73808a4f00eb40c`, full 1329-line `06fcee01..f18f648b` diff)
+
+| Pass | Agent ID | Verdict as returned |
+|---|---|---|
+| compliance | 1883f256-ea58-4f6e-a918-0c8a990f3531 | needs-changes |
+| craft | 405e4348-d5c6-4fbb-842a-f91d803c01f9 | needs-changes |
+| reconciliation | fffc90e1-74e8-4b23-a107-79dfaab5f3b9 | needs-changes |
+
+Provenance: three fresh Opus 5.5 native passes, launched by the coordinator. All three received the full diff (coverage verified afterwards) and made Scout lookups; derived views were not verified. The craft pass completed 16 initially truncated lines within the same pass. Verdicts are unchanged. Tool clocks are held in secured coordinator artifacts.
+
+Findings that stand (no round 8, not waived): (1) the originating request's identity is still not established by `runningEntry` plus `eventType`, so a same-type or untyped request can still be credited to the wrong entry. (2) Unloading entries can stay pending, grow the set and force later 250 ms waits. (3) Missing tests for same-type, no-type and unloading cases, and one release assertion is weak. (4) Some docs are stale and some closure claims are unsupported. (5) The board gate fails: the baseline is clean and only the 064-32 status mismatches.
+
+Uncertainty kept: the craft pass notes that stale pending entries usually mask early release. No new real-browser loss below 250 ms was reproduced, and none is claimed.
+
+Final-review status: failed, pending owner decision. The slice stays IN_PROGRESS. Nothing landed on vendor-adobe. The round 7 closure claims above ("Findings disposition") are superseded by these findings.

@@ -34,6 +34,8 @@ Round 6 (owner: "Authorize one bounded round 6 (Recommended)"): the redirect nav
 
 Round 7 (owner: "Authorize one bounded round 7"): a request releases the navigation only when it is the pending push's own (an events request whose first event has the entry's declared `eventType`); identity, other-type and display requests do not. A navigation never leaves on an unrelated request. Tests and honest limits are in `reviews/slice-32-history.md`. The "ours navigates before push" gap is restated: push versus navigation order is not asserted, as it is not a stock invariant.
 
+Round 7 final reviews on `f18f648b`: all three needs-changes. Final-review status: failed, pending owner decision. The slice stays IN_PROGRESS; see `reviews/slice-32-history.md`.
+
 ### Reconciliation sweep
 
 Reconciled: this slice's Findings and Deviation log, the 064 spec.md rows and decomposition line, CHANGELOG, ADR-0063 consequence line, refinement-todo, and the adopter JSDoc on `placements`. The 064-29 record still lists its review items as owned by 064-32; they are closed here, with the awaited-apply navigation order as the one open finding next to the carried gaps. Round 5 also touched the 064-29 gate description (ADR-0063 call-order line, 064-29 hermetic test).
