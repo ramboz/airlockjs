@@ -195,7 +195,8 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-12: Default localStorage and sessionStorage grant is the stock set | **DONE** |  |
 | [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-01: A pending seam hold flushes on grant | **DONE** |  |
 | [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-02: Forward the opt-out after an explicit refusal | **DONE** |  |
-| [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-03: The opt-out forward carries only the consent the adapter registered | **DONE** |  |
+| [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-03: The opt-out forward carries only the consent the adapter registered (core and main adapter) | **DONE** |  |
+| [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-04: The host tells the caller when its own timeout answered a pending dispatch | **DONE** |  |
 
 ## Deferred slices
 
@@ -234,7 +235,7 @@ setup (`probes/adobe-compatibility/`, its tests and fixtures) stays on the archi
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
 - **11** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **112** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **113** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **58** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review
