@@ -466,8 +466,9 @@ function isPropositionNotification(xdm) {
 }
 
 /**
- * The per-call stock `personalization` options a page may pass, kept to the plain-data ones: the two booleans and a
- * `surfaces` string list. `decisionScopes` is merged separately; nothing else (no overrides, no callbacks) crosses.
+ * The per-call stock `personalization` options a page may pass, kept to the plain-data ones: the two booleans, `surfaces`
+ * as given (Alloy validates it) and a malformed `decisionScopes` as given. Well-formed scopes are merged separately;
+ * nothing else (no overrides, no callbacks) crosses.
  * @param {unknown} pzn
  * @returns {Record<string, unknown> | undefined}
  */
