@@ -1,8 +1,8 @@
 ---
-status: Proposed
+status: Accepted
 dependencies: [ADR-0063, 064-32]
 see_also: [bug-007]
-last_verified:
+last_verified: 2026-11-25
 frame_review: true
 ---
 
@@ -10,7 +10,7 @@ frame_review: true
 
 ## Status
 
-Proposed (2026-11-25). Not accepted. It needs the owner's explicit grant and a passing frame critique before implementation. ADR-0063 is Accepted and stays byte-unchanged. This ADR cites it and narrows nothing in it.
+Accepted (2026-11-25). The owner granted acceptance directly after a passing frame critique. The gate keeps its existing 250 ms cap, and a fetch parked at the core consent seam stays pending until that cap. ADR-0063 is Accepted and stays byte-unchanged. This ADR cites it and narrows nothing in it.
 
 ## Summary
 

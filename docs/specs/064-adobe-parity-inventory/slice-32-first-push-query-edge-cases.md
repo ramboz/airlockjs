@@ -54,7 +54,7 @@ These come from ADR-0066. None is asserted as fact.
 - **A2.** The chamber's Blob body read settles (fulfils or rejects) for the bodies Alloy passes. Witness: T8. Kill: a read that does not settle, a stalled pump, or no way to show settlement. Then stop with evidence. No bodyless beacon fallback and no new timeout is authorized.
 - **A3.** The host dispatches or holds each `intercepted-fetch` before it handles the next message. Read in `core/wrapped-sdk-host.js:629-667` and `687-806`. Witness: T4.
 
-## Regression contract (proposed, round 9; not yet implemented)
+## Regression contract (frozen on ADR-0066 acceptance, round 9; not yet implemented)
 
 Written first on the implementation commit, each red on `e808b4b1` or on the named mutation. Commands: `npx vitest run test/adobe-apply-response-queue.test.js`, `AIRLOCK_REAL_CHROMIUM=1 npx vitest run test/adobe-b4-personalization.test.js -t "navigationGate"`, and the chamber ordering test.
 
