@@ -156,3 +156,7 @@ Reconciliation also flagged: closure, met and navigation-order claims that are n
 These claims and the stubs stay as they are. They are recorded as failed-review findings, not repaired. Round 8 is exhausted. No ninth repair, waiver, contract change, PR, live capture or landing is authorized.
 
 Status: IN_PROGRESS, pending owner decision. Nothing landed on vendor-adobe. The round 8 disposition table above is superseded by this section.
+
+## Round 9: framing (docs only)
+
+After the round 8 failure the owner asked to reshape. Round 9 so far is documents only: Proposed ADR-0066 (chamber result follows bridge requests, settlement-only gate), assumptions A1 to A3 and a regression contract in the slice. Nothing is implemented and no review has passed. The slice stays IN_PROGRESS.
