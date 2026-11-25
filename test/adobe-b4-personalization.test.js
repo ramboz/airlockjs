@@ -900,7 +900,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       expect(ours.results.run.dom[0]).not.toContain("<b>cart</b>");
     }, T);
 
-    it("AC5: a push enqueued before an applyResponse finishes sees the warmed cache, as stock runs its commands in order", async () => {
+    it("AC5: a push called after an applyResponse (still in flight) sees the warmed cache, as stock runs its commands in order", async () => {
       const { stock, ours } = await differential([{ xdm: viewXdm("cart"), renderDecisions: true }], { awaitApply: false });
       expect(posts(stock)).toEqual([{ type: "web.webpagedetails.pageViews", query: false, scopes: [], propositions: ["cart"] }]);
       expect(posts(ours)).toEqual(posts(stock));
@@ -930,8 +930,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
      * Stock and ours run the same ops in call order. An op is `{ send: options }` or `{ apply: options }`; `wait: false`
      * leaves it in flight. `stockOps` replaces the ops for stock when its call must state what ours declares at boot.
      */
-    const run = async (ops, { stockOps = ops, placements = PLACEMENTS, bodyHtml = '<div id="v"></div>' + ZONE, slowFirst = false } = {}) => {
-      const answer = slowFirst ? async (req, i) => { if (req.method() === "POST" && i === 0) await new Promise((r) => setTimeout(r, 800)); return empty(req); } : empty;
+    const run = async (ops, { stockOps = ops, placements = PLACEMENTS, bodyHtml = '<div id="v"></div>' + ZONE } = {}) => {
       const exec = `
         const out = []; const calls = [];
         for (const op of ops) {
@@ -942,7 +941,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
         for (const c of calls) out.push(await c);
         await new Promise((r) => setTimeout(r, 1500));
         return { results: out, dom: document.getElementById("z").outerHTML };`;
-      const stock = await replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: ZONE, respond: answer, run: (page) => page.evaluate(async ({ ops, datastreamId, exec }) => {
+      const stock = await replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: ZONE, respond: empty, run: (page) => page.evaluate(async ({ ops, datastreamId, exec }) => {
         window.__alloyNS = ["stockAlloy"];
         window.stockAlloy = function () { const a = arguments; return new Promise((res, rej) => window.stockAlloy.q.push([res, rej, a])); };
         window.stockAlloy.q = [];
@@ -952,7 +951,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
         const CALL_APPLY = (o) => window.stockAlloy("applyResponse", o);
         return new Function("ops", "CALL_SEND", "CALL_APPLY", `return (async () => { ${exec} })();`)(ops, CALL_SEND, CALL_APPLY);
       }, { ops: stockOps, datastreamId: DATASTREAM, exec }) });
-      const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml, bootOptions: { placements }, respond: answer, run: (page) => page.evaluate(async ({ ops, exec }) => {
+      const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml, bootOptions: { placements }, respond: empty, run: (page) => page.evaluate(async ({ ops, exec }) => {
         const CALL_SEND = (o) => Promise.resolve(window.__handle.sendEvent(o));
         const CALL_APPLY = (o) => Promise.resolve(window.__handle.command("applyResponse", o));
         return new Function("ops", "CALL_SEND", "CALL_APPLY", `return (async () => { ${exec} })();`)(ops, CALL_SEND, CALL_APPLY);
@@ -982,7 +981,7 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     }, T * 2);
 
     it("AC2: an empty-string or null scope entry queries, and an invalid one rejects, as stock does", async () => {
-      for (const o of [{ decisionScopes: [""] }, { decisionScopes: [null] }, { personalization: { decisionScopes: [""] } }, { personalization: { decisionScopes: [null] } }, { decisionScopes: ["a", ""] }]) {
+      for (const o of [{ decisionScopes: [""] }, { decisionScopes: [null] }, { personalization: { decisionScopes: [""] } }, { personalization: { decisionScopes: [null] } }, { decisionScopes: ["a", ""] }, { decisionScopes: [""], personalization: { decisionScopes: ["p"] } }]) {
         const r = await run([apply, send(o)]);
         expect(wire(r.stock).some((w) => w.query)).toBe(true);
         same(r);

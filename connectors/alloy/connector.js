@@ -405,7 +405,7 @@ export function createAlloyConnector(config = {}) {
       // 064-21 / 064-32: stock `sendEvent` options the page passes per call (aem-martech's propositionFetch), as plain data:
       // `decisionScopes` (top-level and `personalization.decisionScopes`), `personalization.surfaces` and the booleans.
       // Scopes and surfaces go to Alloy as given, so an empty-string entry queries and an invalid one is rejected by Alloy's own validation, as stock does.
-      const callPzn = perCallPersonalization(params.personalization);
+      let callPzn = perCallPersonalization(params.personalization);
       const pznScopes = params.personalization && typeof params.personalization === "object" ? params.personalization.decisionScopes : undefined;
       const calledNotification = isPropositionNotification(options.xdm);
       // 064-29: the host says its view cache is already warm (an applied response). Stock sends declared scopes only on a
@@ -415,6 +415,8 @@ export function createAlloyConnector(config = {}) {
       // where an empty string queries and any other such entry is rejected, as in stock; `personalization.decisionScopes` then stays where the page put it.
       const clean = (list) => list === undefined || (Array.isArray(list) && list.every((x) => typeof x === "string" && x) && new Set(list).size === list.length);
       const rawScopes = !clean(params.decisionScopes) || !clean(pznScopes);
+      // A malformed top-level list must not drop a well-formed `personalization.decisionScopes`: Alloy merges both.
+      if (rawScopes && clean(pznScopes) && Array.isArray(pznScopes) && pznScopes.length) callPzn = { ...callPzn, decisionScopes: pznScopes };
       const callScopes = rawScopes ? [] : mergeDecisionScopes(params.decisionScopes, params.personalization);
       const bootScopes = configuredScopes.length && !scopesSent && !calledNotification ? configuredScopes : [];
       const merged = mergeDecisionScopes([...bootScopes, ...callScopes], null);
@@ -484,7 +486,7 @@ function perCallPersonalization(pzn) {
  * Would stock Alloy 2.31.1's `sendEvent` fetch personalization data for these call params? Stock's `shouldFetchData` is
  * `hasScopes || hasSurfaces || defaultPersonalizationEnabled` over the RAW options: any non-empty `decisionScopes` array
  * (top-level or in `personalization`), any non-empty `personalization.surfaces` array (even one whose entries stock later
- * drops as invalid), or an explicit `defaultPersonalizationEnabled: true`. A value that is not an array cannot pass
+ * drops as invalid), or an explicit `defaultPersonalizationEnabled: true`. A `null` is as absent. Any other value that is not an array cannot pass
  * stock's validation, so it counts too and the call reaches Alloy to be rejected there (064-32).
  * @param {Record<string, unknown> | undefined} params
  * @returns {boolean}
@@ -492,7 +494,7 @@ function perCallPersonalization(pzn) {
 export function carriesPersonalizationQuery(params) {
   const p = params && typeof params === "object" ? params : {};
   const pzn = p.personalization && typeof p.personalization === "object" && !Array.isArray(p.personalization) ? p.personalization : {};
-  const given = (v) => v !== undefined && !(Array.isArray(v) && v.length === 0);
+  const given = (v) => v !== undefined && v !== null && !(Array.isArray(v) && v.length === 0);
   return given(p.decisionScopes) || given(pzn.decisionScopes) || given(pzn.surfaces) || pzn.defaultPersonalizationEnabled === true;
 }
 

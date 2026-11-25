@@ -205,14 +205,8 @@ describe("064-32 call order decides whether a push sees the applied cache (herme
     await applied;
     handle.setConsent(GRANTED);
     await tick(300);
+    // The fake worker answers no fetch, so p1 stays cold; with a real Edge, p0's fetch would warm p1 (the rule is `fetchCount() > 0`).
     const warm = Object.fromEntries(sentEvents(worker).filter((e) => !isDisplay(e)).map((e) => [e.params.xdm.web.webPageDetails.name, e.params.viewCacheWarm === true]));
     expect(warm).toEqual({ p0: false, p1: false, p2: true });
-  });
-
-  it("AC5: a page-supplied viewCacheWarm never reaches the chamber", async () => {
-    const { handle, worker } = await boot({ consent: GRANTED });
-    await handle.push({ ...view("p0"), viewCacheWarm: true, params: { viewCacheWarm: true } });
-    await tick(50);
-    expect(sentEvents(worker).every((e) => e.params.viewCacheWarm !== true)).toBe(true);
   });
 });

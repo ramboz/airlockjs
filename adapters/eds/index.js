@@ -2174,7 +2174,7 @@ export async function bootAlloy(opts = {}) {
     return { ...event, params: cacheWarm ? { ...params, viewCacheWarm: true } : params };
   };
   let wake = null;
-    // 064-32: stock runs commands in call order, so a push is warm only for what was applied before it was called (or fetched by an earlier push);
+  // 064-32: stock runs commands in call order, so a push is warm only for what was applied before it was called (or fetched by an earlier push);
   // an apply issued after it was queued must not warm it, even if that apply finishes first.
   const cacheWarmFor = (calledWarm) => (calledWarm && viewCache.isInitialized()) || viewCache.fetchCount() > 0;
   const runEntry = async ({ event, resolve, reject, gate, onSettled, calledWarm }) => {
@@ -2226,6 +2226,11 @@ export async function bootAlloy(opts = {}) {
       await Promise.race([all, new Promise((r) => { wake = r; })]);
       wake = null;
     }
+    // A display queued in the same turn the promise settled still goes first (064-32).
+    while (waiting.length && waiting[0].display) {
+      await runEntry(waiting.shift());
+      currentEvent = ctx || null;
+    }
   };
   const pump = async () => {
     if (running) return;
@@ -2253,7 +2258,7 @@ export async function bootAlloy(opts = {}) {
     if (nm && !(prm.xdm && /^web\.webinteraction\./.test(prm.xdm.eventType || ""))) lastPageName = nm;
     warnNoConsentInput();
     const run = new Promise((resolve, reject) => {
-      const entry = { event, resolve, reject, display: front, calledWarm: viewCache.isInitialized() || applyInFlight.size > 0, onDrop, onSettled, gate: !front && !isNotificationDescriptor(event) && applyInFlight.size ? Promise.all([...applyInFlight]) : null };
+      const entry = { event, resolve, reject, display: front, calledWarm: viewCache.isInitialized() || applyInFlight.size > 0, onDrop, onSettled, gate: !front && (!isNotificationDescriptor(event) || carriesQuery(event.params)) && applyInFlight.size ? Promise.all([...applyInFlight]) : null };
       if (front) waiting.unshift(entry); else waiting.push(entry);
       if (wake) wake();
       if (consentRef && !consentOpen()) {
