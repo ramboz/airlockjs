@@ -448,29 +448,44 @@ describe("alloy connector — explicit propositionFetch and per-call personaliza
   };
 
   it("a propositionFetch is a query: it carries its own decisionScopes and personalization options", async () => {
-    const [o] = await send({}, fetchEvent({ decisionScopes: ["scope-a", "scope-a"], personalization: { defaultPersonalizationEnabled: false, sendDisplayEvent: false } }));
+    const [o] = await send({}, fetchEvent({ decisionScopes: ["scope-a"], personalization: { decisionScopes: ["scope-a"], defaultPersonalizationEnabled: false, sendDisplayEvent: false } }));
     expect(o.decisionScopes).toEqual(["scope-a"]);
     expect(o.personalization).toEqual({ defaultPersonalizationEnabled: false, sendDisplayEvent: false });
   });
 
   it("only display, interact, dismiss and trigger are notifications (no query, display flag off)", async () => {
     for (const t of ["Display", "Interact", "Dismiss", "Trigger"]) {
-      const [o] = await send({ decisionScopes: ["scope-a"] }, pageView({ params: { xdm: { eventType: `decisioning.proposition${t}` }, decisionScopes: ["x"] } }));
+      const [o] = await send({ decisionScopes: ["scope-a"] }, pageView({ params: { xdm: { eventType: `decisioning.proposition${t}` } } }));
       expect(o.decisionScopes).toBeUndefined();
       expect(o.personalization).toEqual({ defaultPersonalizationEnabled: false, sendDisplayEvent: false });
     }
   });
 
+  it("064-32: a notification-shaped push that passes scopes or surfaces is a query, with no boot scopes and no display event, as stock", async () => {
+    const [a, b] = await send({ decisionScopes: ["boot"] }, pageView({ params: { xdm: { eventType: "decisioning.propositionDisplay" }, decisionScopes: ["x"] } }), pageView({ params: { xdm: { eventType: "decisioning.propositionInteract" }, personalization: { surfaces: ["web://a"] } } }));
+    expect(a.decisionScopes).toEqual(["x"]);
+    expect(a.personalization).toEqual({ sendDisplayEvent: false });
+    expect(b.decisionScopes).toBeUndefined();
+    expect(b.personalization).toEqual({ surfaces: ["web://a"], sendDisplayEvent: false });
+  });
+
+  it("064-32: empty-string and non-string scope or surface entries reach Alloy as given, boot scopes after the page's own", async () => {
+    const [a, b, c] = await send({ decisionScopes: ["boot"] }, fetchEvent({ decisionScopes: ["", 1] }), fetchEvent({ personalization: { decisionScopes: [null], surfaces: [""] } }), fetchEvent({ decisionScopes: "x" }));
+    expect(a.decisionScopes).toEqual(["", 1, "boot"]);
+    expect(b.personalization).toMatchObject({ decisionScopes: [null], surfaces: [""] });
+    expect(c.decisionScopes).toBe("x");
+  });
+
   it("per-call scopes join the configured first-event scopes, deduped, and only plain personalization options cross", async () => {
-    const [first, second] = await send({ decisionScopes: ["boot"] }, fetchEvent({ decisionScopes: ["call", "boot"], personalization: { sendDisplayEvent: false, surfaces: ["web://a", 3], decisionScopes: ["in-pzn"], onSomething: () => {}, datasetId: "d" } }), fetchEvent({ decisionScopes: ["call"] }));
+    const [first, second] = await send({ decisionScopes: ["boot"] }, fetchEvent({ decisionScopes: ["call", "boot"], personalization: { sendDisplayEvent: false, surfaces: ["web://a"], decisionScopes: ["in-pzn"], onSomething: () => {}, datasetId: "d" } }), fetchEvent({ decisionScopes: ["call"] }));
     expect(first.decisionScopes).toEqual(["boot", "call", "in-pzn"]);
     expect(first.personalization).toEqual({ defaultPersonalizationEnabled: false, sendDisplayEvent: false, surfaces: ["web://a"] });
     expect(second.decisionScopes).toEqual(["call"]);
     expect(second).not.toHaveProperty("personalization");
   });
 
-  it("an explicit page boolean wins over the __view__ suppression, and an empty surfaces list is not sent", async () => {
-    const [a] = await send({ decisionScopes: ["boot"] }, fetchEvent({ personalization: { defaultPersonalizationEnabled: true, surfaces: [7] } }));
+  it("an explicit page boolean wins over the __view__ suppression", async () => {
+    const [a] = await send({ decisionScopes: ["boot"] }, fetchEvent({ personalization: { defaultPersonalizationEnabled: true } }));
     expect(a.personalization).toEqual({ defaultPersonalizationEnabled: true });
   });
 });

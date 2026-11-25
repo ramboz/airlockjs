@@ -33,7 +33,7 @@
  */
 import { createAirlock, MAX_HELD_BEACONS } from "../../core/airlock.js";
 import { createWrappedSdkHost } from "../../core/wrapped-sdk-host.js";
-import { ALLOY_CONSENT_OPT_OUT } from "../../connectors/alloy/connector.js";
+import { ALLOY_CONSENT_OPT_OUT, carriesPersonalizationQuery } from "../../connectors/alloy/connector.js";
 import { shapeAlloyConsent } from "../../connectors/alloy/consent.js";
 import { hostOf } from "../../core/config-integrity.js";
 import { resolveConsent } from "../../core/consent.js";
@@ -1711,6 +1711,8 @@ function probeApexDomain(granted) {
  * @param {(record: object) => void} [opts.onDiagnostic] spec 033-03: intercept the DECISIONS
  *                                         diagnostics (dropped decision / exposure); default a
  *                                         console-backed sink.
+ * @param {Array}    [opts.placements]    The scopes it names are fetched on the first push only. An earlier `applyResponse` call spends them
+ *                                         (stock declares no scopes, so the first push after it sends no personalization query unless it passes some), 064-32.
  * @param {boolean}  [opts.renderDecisions] 064-20: render delivered propositions on the main thread and
  *                                         send their display notification. Default `true`, which matches the
  *                                         recorded corpus (the stock rig that replays S4/S7 sends `renderDecisions:true`)
@@ -2115,7 +2117,7 @@ export async function bootAlloy(opts = {}) {
   const waiting = [];
   let running = false;
   /** Per-event personalization context (064-23): the view it names, whether it renders, and the cache state when it started. */
-  const eventContext = (event) => {
+  const eventContext = (event, cacheWarm) => {
     if (isNotificationDescriptor(event)) return null;
     const prm = (event && event.params) || {};
     const xdm = prm.xdm || {};
@@ -2124,17 +2126,13 @@ export async function bootAlloy(opts = {}) {
       viewName: typeof name === "string" && name ? name : undefined,
       render: typeof prm.renderDecisions === "boolean" ? prm.renderDecisions : opts.renderDecisions !== false,
       // A push that carries a personalization query fetches, and stock answers its named view from that fetch alone (064-29).
-      warm: viewCache.isInitialized() && !carriesQuery(prm),
+      warm: cacheWarm && !carriesQuery(prm),
       fetches: viewCache.fetchCount(),
       viewHandled: false,
     };
   };
-  /** Would stock's `sendEvent` for these params send a personalization query on a warm cache? (Per-call scopes, surfaces, or an explicit default.) */
-  const carriesQuery = (prm) => {
-    const pzn = prm.personalization && typeof prm.personalization === "object" && !Array.isArray(prm.personalization) ? prm.personalization : {};
-    const scopes = [...(Array.isArray(prm.decisionScopes) ? prm.decisionScopes : []), ...(Array.isArray(pzn.decisionScopes) ? pzn.decisionScopes : [])];
-    return scopes.some((x) => typeof x === "string" && x) || (Array.isArray(pzn.surfaces) && pzn.surfaces.some((x) => typeof x === "string" && x)) || pzn.defaultPersonalizationEnabled === true;
-  };
+  /** Would stock's `sendEvent` for these params send a personalization query on a warm cache? The same rule the chamber applies (064-32). */
+  const carriesQuery = carriesPersonalizationQuery;
   const withViewDisplay = async (event, viewName) => {
     const out = await renderer.render(viewCache.get(viewName));
     noteAttempts(currentEvent, out.propositions);
@@ -2168,24 +2166,27 @@ export async function bootAlloy(opts = {}) {
   };
   const consentOpen = () => resolveConsent(consentRef, "analytics_storage") === "granted";
   /** Tells the connector (in the chamber) the host view cache is warm, so it adds no declared scopes: stock sends none for a call that passes none (064-29). */
-  const withCacheHint = (event) => {
+  const withCacheHint = (event, cacheWarm) => {
     if (!event) return event;
     // Strip first: a page-supplied flag must never reach the connector, even on an event the host classes as a notification.
     const { viewCacheWarm: _ignored, ...params } = event.params || {};
     if (isNotificationDescriptor(event)) return { ...event, params };
-    return { ...event, params: viewCache.isInitialized() ? { ...params, viewCacheWarm: true } : params };
+    return { ...event, params: cacheWarm ? { ...params, viewCacheWarm: true } : params };
   };
   let wake = null;
-  const runEntry = async ({ event, resolve, reject, gate, onSettled }) => {
+    // 064-32: stock runs commands in call order, so a push is warm only for what was applied before it was called (or fetched by an earlier push);
+  // an apply issued after it was queued must not warm it, even if that apply finishes first.
+  const cacheWarmFor = (calledWarm) => (calledWarm && viewCache.isInitialized()) || viewCache.fetchCount() > 0;
+  const runEntry = async ({ event, resolve, reject, gate, onSettled, calledWarm }) => {
     const notification = isNotificationDescriptor(event);
     if (gate) await drainDisplaysUntil(gate);
-    currentEvent = personalizationConfigured ? eventContext(event) : null;
+    currentEvent = personalizationConfigured ? eventContext(event, cacheWarmFor(calledWarm)) : null;
     const ctx = currentEvent;
     let failure;
     let driven;
     try {
       sendStockContext();
-      let toSend = withCacheHint(event);
+      let toSend = withCacheHint(event, cacheWarmFor(calledWarm));
       // A warm view cache answers a push naming a view without a request: render it and fold its display
       // notification into this event, as stock does.
       if (ctx && ctx.warm && ctx.viewName && ctx.render) toSend = await withViewDisplay(toSend, ctx.viewName);
@@ -2252,7 +2253,7 @@ export async function bootAlloy(opts = {}) {
     if (nm && !(prm.xdm && /^web\.webinteraction\./.test(prm.xdm.eventType || ""))) lastPageName = nm;
     warnNoConsentInput();
     const run = new Promise((resolve, reject) => {
-      const entry = { event, resolve, reject, display: front, onDrop, onSettled, gate: !front && !isNotificationDescriptor(event) && applyInFlight.size ? Promise.all([...applyInFlight]) : null };
+      const entry = { event, resolve, reject, display: front, calledWarm: viewCache.isInitialized() || applyInFlight.size > 0, onDrop, onSettled, gate: !front && !isNotificationDescriptor(event) && applyInFlight.size ? Promise.all([...applyInFlight]) : null };
       if (front) waiting.unshift(entry); else waiting.push(entry);
       if (wake) wake();
       if (consentRef && !consentOpen()) {

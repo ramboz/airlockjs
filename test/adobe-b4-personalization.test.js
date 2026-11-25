@@ -909,6 +909,121 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     }, T);
   });
 
+  describe("064-32 first push query edge cases vs pinned stock Alloy 2.31.1 (SYNTHETIC responses, no capture)", () => {
+    const view = (id, scope, items) => ({ id, scope, scopeDetails: { decisionProvider: "TGT", activity: { id: `act-${id}` }, characteristics: { scopeType: "view" } }, items });
+    const viewXdm = (name) => ({ eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name, viewName: name } } });
+    const body = (payload) => ({ requestId: "00000000-0000-0000-0000-000000000032", handle: [{ type: "personalization:decisions", payload }] });
+    const empty = (req) => (req.method() === "POST" ? { status: 200, headers: { "content-type": "application/json", ...cors(req) }, body: edgeBody([]) } : { status: 204, headers: cors(req), body: "" });
+    // The page's own default surface (web://host/) is left out: its derivation is a separate carried difference.
+    const wire = (r) => r.network.filter((n) => n.method === "POST").map((n) => {
+      const e = JSON.parse(n.body).events[0];
+      const q = (e.query && e.query.personalization) || null;
+      return { type: e.xdm.eventType, query: q ? { scopes: q.decisionScopes || [], surfaces: (q.surfaces || []).filter((x) => !/^web:\/\/[^#]*\/$/.test(x)) } : null, propositions: ((e.xdm._experience && e.xdm._experience.decisioning && e.xdm._experience.decisioning.propositions) || []).map((p) => p.scope) };
+    });
+    /** Stock's validation error without the alloy namespace prefix, so the two arms compare. */
+    const settled = (r) => r.map((x) => (x.err ? { err: x.err.replace(/^\[[^\]]*\]\s*/, "") } : { ok: true }));
+    const HOME = view("vh", "home", [domAction("vh1", "setHtml", "#a", "<b>home</b>")]);
+    const CART = view("vc", "cart", [domAction("vc1", "setHtml", "#b", "<b>cart</b>")]);
+    const SETUP = { responseBody: body([HOME, CART]) };
+    const PLACEMENTS = [{ scope: "__view__", selector: "#v", minHeight: 0 }];
+    /**
+     * Stock and ours run the same ops in call order. An op is `{ send: options }` or `{ apply: options }`; `wait: false`
+     * leaves it in flight. `stockOps` replaces the ops for stock when its call must state what ours declares at boot.
+     */
+    const run = async (ops, { stockOps = ops, placements = PLACEMENTS, bodyHtml = '<div id="v"></div>' + ZONE, slowFirst = false } = {}) => {
+      const answer = slowFirst ? async (req, i) => { if (req.method() === "POST" && i === 0) await new Promise((r) => setTimeout(r, 800)); return empty(req); } : empty;
+      const exec = `
+        const out = []; const calls = [];
+        for (const op of ops) {
+          const p = op.send ? CALL_SEND(op.send) : CALL_APPLY(op.apply);
+          const rec = p.then(() => ({ ok: true }), (e) => ({ err: String(e && e.message) }));
+          if (op.wait === false) calls.push(rec); else { out.push(await rec); if (op.pause) await new Promise((r) => setTimeout(r, op.pause)); }
+        }
+        for (const c of calls) out.push(await c);
+        await new Promise((r) => setTimeout(r, 1500));
+        return { results: out, dom: document.getElementById("z").outerHTML };`;
+      const stock = await replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: ZONE, respond: answer, run: (page) => page.evaluate(async ({ ops, datastreamId, exec }) => {
+        window.__alloyNS = ["stockAlloy"];
+        window.stockAlloy = function () { const a = arguments; return new Promise((res, rej) => window.stockAlloy.q.push([res, rej, a])); };
+        window.stockAlloy.q = [];
+        await new Promise((res, rej) => { const s = document.createElement("script"); s.src = "/rig/alloy.min.js"; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+        window.stockAlloy("configure", { datastreamId, orgId: "908936ED5D35CC220A495CD4@AdobeOrg", defaultConsent: "in", debugEnabled: false });
+        const CALL_SEND = (o) => window.stockAlloy("sendEvent", o);
+        const CALL_APPLY = (o) => window.stockAlloy("applyResponse", o);
+        return new Function("ops", "CALL_SEND", "CALL_APPLY", `return (async () => { ${exec} })();`)(ops, CALL_SEND, CALL_APPLY);
+      }, { ops: stockOps, datastreamId: DATASTREAM, exec }) });
+      const ours = await replayFixture(browser, "s4-base", { event: null, bodyHtml, bootOptions: { placements }, respond: answer, run: (page) => page.evaluate(async ({ ops, exec }) => {
+        const CALL_SEND = (o) => Promise.resolve(window.__handle.sendEvent(o));
+        const CALL_APPLY = (o) => Promise.resolve(window.__handle.command("applyResponse", o));
+        return new Function("ops", "CALL_SEND", "CALL_APPLY", `return (async () => { ${exec} })();`)(ops, CALL_SEND, CALL_APPLY);
+      }, { ops, exec }) });
+      return { stock, ours, s: stock.results.run, o: ours.results.run };
+    };
+    const same = (r) => {
+      expect(wire(r.ours)).toEqual(wire(r.stock));
+      expect(settled(r.o.results)).toEqual(settled(r.s.results));
+      expect(r.o.dom).toEqual(r.s.dom);
+    };
+    const send = (options, extra = {}) => ({ send: { renderDecisions: true, xdm: viewXdm("cart"), ...options }, ...extra });
+    const apply = { apply: SETUP };
+
+    it("AC1 (owner-amended): a non-empty surfaces array fetches even when stock drops every entry; empty or absent surfaces answer from the cache", async () => {
+      for (const personalization of [{ surfaces: ["foo", "bar"] }, { surfaces: [""] }, { surfaces: ["web://x.example/#a"] }]) {
+        const r = await run([apply, send({ personalization })]);
+        expect(wire(r.stock).some((w) => w.query)).toBe(true);
+        same(r);
+      }
+      for (const personalization of [{ surfaces: [] }, {}]) {
+        const r = await run([apply, send({ personalization })]);
+        expect(wire(r.stock)).toEqual([{ type: "web.webpagedetails.pageViews", query: null, propositions: ["cart"] }]);
+        same(r);
+        expect(r.o.dom).toContain("<b>cart</b>");
+      }
+    }, T * 2);
+
+    it("AC2: an empty-string or null scope entry queries, and an invalid one rejects, as stock does", async () => {
+      for (const o of [{ decisionScopes: [""] }, { decisionScopes: [null] }, { personalization: { decisionScopes: [""] } }, { personalization: { decisionScopes: [null] } }, { decisionScopes: ["a", ""] }]) {
+        const r = await run([apply, send(o)]);
+        expect(wire(r.stock).some((w) => w.query)).toBe(true);
+        same(r);
+      }
+      for (const o of [{ decisionScopes: [1] }, { decisionScopes: "x" }, { personalization: { decisionScopes: [2] } }, { personalization: { surfaces: [3] } }, { decisionScopes: ["a", "a"] }]) {
+        const r = await run([apply, send(o)]);
+        same(r);
+      }
+      const bad = await run([apply, send({ decisionScopes: [1] })]);
+      expect(bad.s.results[1].err).toMatch(/Expected a string, but got 1/);
+      expect(bad.o.results[1].err.replace("[alloy]", "[stockAlloy]")).toBe(bad.s.results[1].err);
+    }, T * 4);
+
+    it("AC3: a proposition-notification push that passes scopes sends the personalization query, warm or cold, as stock", async () => {
+      const note = { send: { renderDecisions: false, xdm: { eventType: "decisioning.propositionDisplay" }, decisionScopes: ["x"] } };
+      for (const ops of [[apply, note], [note]]) {
+        const r = await run(ops);
+        expect(wire(r.stock).some((w) => w.query)).toBe(true);
+        same(r);
+      }
+    }, T * 2);
+
+    it("AC4: placements, then applyResponse, then a push passing no scopes fetches none of the declared scopes, as stock", async () => {
+      const placements = [...PLACEMENTS, { scope: "hero", selector: "#v", minHeight: 0 }];
+      const r = await run([apply, send({ renderDecisions: false })], { placements });
+      expect(wire(r.stock)).toEqual([{ type: "web.webpagedetails.pageViews", query: null, propositions: [] }]);
+      same(r);
+    }, T);
+
+    it("AC5: a push enqueued before an applyResponse finishes runs first with the declared scopes and a cold cache, as stock", async () => {
+      const placements = [...PLACEMENTS, { scope: "s1", selector: "#v", minHeight: 0 }];
+      // The first push is rejected by option validation (no request, no scopes spent) but still takes a worker round trip, so the second push is queued behind it while the apply finishes.
+      const bad = send({ renderDecisions: false, decisionScopes: [1] }, { wait: false });
+      const waiting = (extra) => send({ renderDecisions: false, xdm: PV_XDM, ...extra }, { wait: false });
+      const after = send({ renderDecisions: false, xdm: PV_XDM }, { wait: false });
+      const r = await run([bad, waiting(), { apply: SETUP, wait: false }, after], { placements, stockOps: [bad, waiting({ decisionScopes: ["__view__", "s1"] }), { apply: SETUP, wait: false }, after] });
+      expect(wire(r.stock)[0].query.scopes).toEqual(expect.arrayContaining(["__view__", "s1"]));
+      same(r);
+    }, T);
+  });
+
   describe("M3 and row 11/12: ruleset items as data (SYNTHETIC ruleset answer, no capture)", () => {
     const SURFACE = "web://main--aem-eds-airlock-poc--adobe-rnd.aem.page/";
     const rule = (key, value, id, content) => ({ condition: { type: "group", definition: { logic: "and", conditions: [{ type: "matcher", definition: { key, matcher: "eq", values: [value] } }] } }, consequences: [{ id: `cq-${id}`, type: "schema", detail: { id, schema: `${NS}json-content-item`, data: { content } } }] });

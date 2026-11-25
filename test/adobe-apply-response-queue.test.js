@@ -190,3 +190,29 @@ describe("064-29 redirect display: track and the consent ring (hermetic)", () =>
     await applied;
   });
 });
+
+describe("064-32 call order decides whether a push sees the applied cache (hermetic)", () => {
+  it("AC5: a push queued before an applyResponse call runs cold even after the apply finished; one queued after runs warm", async () => {
+    const { handle, worker } = await boot();
+    handle.push(view("p0"));
+    handle.push(view("p1"));
+    await tick(20);
+    const applied = handle.command("applyResponse", { responseBody: { handle: [] }, renderDecisions: false });
+    handle.push(view("p2"));
+    await tick(20);
+    const cmd = worker.messages.find((m) => m.type === "command");
+    worker.emit({ type: "command-result", id: cmd.id, result: { propositions: [] } });
+    await applied;
+    handle.setConsent(GRANTED);
+    await tick(300);
+    const warm = Object.fromEntries(sentEvents(worker).filter((e) => !isDisplay(e)).map((e) => [e.params.xdm.web.webPageDetails.name, e.params.viewCacheWarm === true]));
+    expect(warm).toEqual({ p0: false, p1: false, p2: true });
+  });
+
+  it("AC5: a page-supplied viewCacheWarm never reaches the chamber", async () => {
+    const { handle, worker } = await boot({ consent: GRANTED });
+    await handle.push({ ...view("p0"), viewCacheWarm: true, params: { viewCacheWarm: true } });
+    await tick(50);
+    expect(sentEvents(worker).every((e) => e.params.viewCacheWarm !== true)).toBe(true);
+  });
+});

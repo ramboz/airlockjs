@@ -394,24 +394,39 @@ export function createAlloyConnector(config = {}) {
     // survives the navigation that follows (a redirect proposition's display notification). Like stock, it is a
     // beacon only when the identity cookie exists; otherwise a plain fetch.
     if (event && event.params && event.params.documentUnloading === true) options.documentUnloading = true;
-    const notification = isPropositionNotification(options.xdm);
+    const params = (event && event.params) || {};
+    // 064-32: a notification-shaped push that passes scopes, surfaces or an explicit default is a personalization query, as in stock.
+    const notification = isPropositionNotification(options.xdm) && !carriesPersonalizationQuery(params);
     let sendsScopes = false;
     if (notification) {
       // 064-20: a display/interact notification is not a personalization query (recorded S4 2nd POST).
       options.personalization = { defaultPersonalizationEnabled: false, sendDisplayEvent: false };
     } else {
-      // 064-21: stock `sendEvent` options the page passes per call (aem-martech's propositionFetch), as plain data:
-      // `decisionScopes` (top-level and `personalization.decisionScopes`) and the boolean/surface `personalization` options.
-      const params = (event && event.params) || {};
-      const callScopes = mergeDecisionScopes(params.decisionScopes, params.personalization);
+      // 064-21 / 064-32: stock `sendEvent` options the page passes per call (aem-martech's propositionFetch), as plain data:
+      // `decisionScopes` (top-level and `personalization.decisionScopes`), `personalization.surfaces` and the booleans.
+      // Scopes and surfaces go to Alloy as given, so an empty-string entry queries and an invalid one is rejected by Alloy's own validation, as stock does.
       const callPzn = perCallPersonalization(params.personalization);
+      const pznScopes = params.personalization && typeof params.personalization === "object" ? params.personalization.decisionScopes : undefined;
+      const calledNotification = isPropositionNotification(options.xdm);
       // 064-29: the host says its view cache is already warm (an applied response). Stock sends declared scopes only on a
       // call that passes them, so this call carries none of the configured ones, and they are spent.
       if (params.viewCacheWarm === true) scopesSent = true;
-      const bootScopes = configuredScopes.length && !scopesSent ? configuredScopes : [];
-      const scopes = mergeDecisionScopes([...bootScopes, ...callScopes], null);
-      if (scopes.length) options.decisionScopes = scopes;
+      // Well-formed scopes (distinct non-empty strings) are merged and deduped as before. A list with an empty, non-string or repeated entry goes to Alloy as given,
+      // where an empty string queries and any other such entry is rejected, as in stock; `personalization.decisionScopes` then stays where the page put it.
+      const clean = (list) => list === undefined || (Array.isArray(list) && list.every((x) => typeof x === "string" && x) && new Set(list).size === list.length);
+      const rawScopes = !clean(params.decisionScopes) || !clean(pznScopes);
+      const callScopes = rawScopes ? [] : mergeDecisionScopes(params.decisionScopes, params.personalization);
+      const bootScopes = configuredScopes.length && !scopesSent && !calledNotification ? configuredScopes : [];
+      const merged = mergeDecisionScopes([...bootScopes, ...callScopes], null);
+      if (rawScopes) {
+        const top = Array.isArray(params.decisionScopes) ? params.decisionScopes : params.decisionScopes === undefined ? [] : null;
+        if (top === null) options.decisionScopes = params.decisionScopes;
+        else if (top.length || bootScopes.length) options.decisionScopes = [...top, ...bootScopes.filter((x) => !top.includes(x))];
+      } else if (merged.length) {
+        options.decisionScopes = merged;
+      }
       if (callPzn) options.personalization = callPzn;
+      if (calledNotification) options.personalization = { ...options.personalization, sendDisplayEvent: false };
       if (bootScopes.length) {
         sendsScopes = true;
         // Live-Alloy caveat (the analogue of 034-01's split): on a cache-uninitialized
@@ -458,9 +473,27 @@ function perCallPersonalization(pzn) {
   if (!pzn || typeof pzn !== "object" || Array.isArray(pzn)) return undefined;
   const out = {};
   for (const k of ["defaultPersonalizationEnabled", "sendDisplayEvent"]) if (typeof pzn[k] === "boolean") out[k] = pzn[k];
-  const surfaces = Array.isArray(pzn.surfaces) ? pzn.surfaces.filter((x) => typeof x === "string" && x) : [];
-  if (surfaces.length) out.surfaces = surfaces;
+  const clean = (list) => list === undefined || (Array.isArray(list) && list.every((x) => typeof x === "string" && x) && new Set(list).size === list.length);
+  // Well-formed lists as before (the scopes are merged into the top level elsewhere); anything else goes to Alloy as given (064-32).
+  if (pzn.decisionScopes !== undefined && !clean(pzn.decisionScopes)) out.decisionScopes = pzn.decisionScopes;
+  if (pzn.surfaces !== undefined) out.surfaces = pzn.surfaces;
   return Object.keys(out).length ? out : undefined;
+}
+
+/**
+ * Would stock Alloy 2.31.1's `sendEvent` fetch personalization data for these call params? Stock's `shouldFetchData` is
+ * `hasScopes || hasSurfaces || defaultPersonalizationEnabled` over the RAW options: any non-empty `decisionScopes` array
+ * (top-level or in `personalization`), any non-empty `personalization.surfaces` array (even one whose entries stock later
+ * drops as invalid), or an explicit `defaultPersonalizationEnabled: true`. A value that is not an array cannot pass
+ * stock's validation, so it counts too and the call reaches Alloy to be rejected there (064-32).
+ * @param {Record<string, unknown> | undefined} params
+ * @returns {boolean}
+ */
+export function carriesPersonalizationQuery(params) {
+  const p = params && typeof params === "object" ? params : {};
+  const pzn = p.personalization && typeof p.personalization === "object" && !Array.isArray(p.personalization) ? p.personalization : {};
+  const given = (v) => v !== undefined && !(Array.isArray(v) && v.length === 0);
+  return given(p.decisionScopes) || given(pzn.decisionScopes) || given(pzn.surfaces) || pzn.defaultPersonalizationEnabled === true;
 }
 
 /**
