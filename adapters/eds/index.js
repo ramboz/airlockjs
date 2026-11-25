@@ -1817,7 +1817,7 @@ export async function bootAlloy(opts = {}) {
       // main-thread fetch (ADR-0004). The host runs the endpoint/consent/config
       // gates BEFORE calling this, so a held interact never reaches the network.
       async dispatch(req) {
-        retireOptOutGenerations(req.body);
+        const matchedGeneration = retireOptOutGenerations(req.body);
         const watch = redirectWatches.size ? [...redirectWatches].find((w) => w.matches(req.body)) : undefined;
         if (watch) redirectWatches.delete(watch);
         // 064-18 (AC1/AC3): the seam-sanitized transport init (cache / credentials / referrerPolicy /
@@ -1832,8 +1832,10 @@ export async function bootAlloy(opts = {}) {
           if (watch) watch.issued();
         } catch (e) {
           if (watch) watch.failed(e);
+          restoreAfterFailure(matchedGeneration);
           throw e;
         }
+        if (res.ok === false) restoreAfterFailure(matchedGeneration);
         if (watch && res.ok === false) watch.failed(new Error(`HTTP ${res.status}`));
         const body = typeof res.text === "function" ? await res.text() : "";
         const headers = {};
@@ -2049,7 +2051,10 @@ export async function bootAlloy(opts = {}) {
   // Alloy rejects sends none; the chamber's vector retry is then the request). When a request leaves, the oldest
   // generation holding its value and every older one are consumed, so a value already sent is held when replayed.
   // A page that gives the same update twice in a row adds no generation, even after the first was consumed
-  // (Alloy sends no request for it). No timer, no cap;
+  // (Alloy sends no request for it). Alloy stores a consent only once its request succeeds, so when a request fails
+  // (network error or non-ok answer) the generation it consumed is put back: Alloy's own fallback to its other host
+  // and the page's identical repeat both send the same consent again and match it. A failed request for an older
+  // update restores only its own generation and leaves a newer one untouched. No timer, no cap;
   // only updates whose request never left linger, and the next request matching a later generation clears them.
   // A value no update produced is in no generation, so it is held as before.
   let pageConsentObject = null;
@@ -2067,13 +2072,23 @@ export async function bootAlloy(opts = {}) {
     registerOptOutConsent();
   };
   const retireOptOutGenerations = (body) => {
-    if (!optOutGenerations.length || typeof body !== "string") return;
+    if (!optOutGenerations.length || typeof body !== "string") return null;
     let sent;
-    try { sent = JSON.parse(body).consent; } catch { return; }
-    if (sent === undefined) return;
+    try { sent = JSON.parse(body).consent; } catch { return null; }
+    if (sent === undefined) return null;
     const want = canon(sent);
     const at = optOutGenerations.findIndex((g) => g.some((v) => canon(v) === want));
-    if (at >= 0) { optOutGenerations = optOutGenerations.slice(at + 1); registerOptOutConsent(); }
+    if (at < 0) return null;
+    const matched = optOutGenerations[at];
+    optOutGenerations = optOutGenerations.slice(at + 1);
+    registerOptOutConsent();
+    return matched;
+  };
+  // The request failed, so Alloy stored nothing and sends the same consent again: put its generation back (oldest, by identity).
+  const restoreAfterFailure = (matched) => {
+    if (!matched || optOutGenerations.includes(matched)) return;
+    optOutGenerations.unshift(matched);
+    registerOptOutConsent();
   };
   addOptOutGeneration();
   const apex = probeApexDomain(resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).narrowed ? resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).names : null);

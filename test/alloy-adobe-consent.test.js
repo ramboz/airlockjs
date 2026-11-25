@@ -405,6 +405,55 @@ describe("064-34: an opt-out in flight for a superseded consent update still for
     expect(forwarded()).toEqual([FIRST]);
   });
 
+  const failures = {
+    "a network failure": () => fetchMock.mockImplementationOnce(() => Promise.reject(new TypeError("Failed to fetch"))),
+    "a non-ok answer": () => fetchMock.mockImplementationOnce(() => Promise.resolve({ ok: false, status: 500, statusText: "ERR", headers: { get: () => "application/json" }, text: async () => "{}" })),
+  };
+  for (const [name, fail] of Object.entries(failures)) {
+    it(`after ${name} for the latest update, the page's identical repeat forwards (Alloy stores nothing on failure, so it sends it)`, async () => {
+      const { handle, worker } = await boot();
+      handle.setAdobeConsent(FIRST);
+      fail();
+      send(worker, "h1", FIRST);
+      await tick(30);
+      handle.setAdobeConsent(FIRST);
+      send(worker, "h2", FIRST);
+      await tick(60);
+      expect(forwarded()).toEqual([FIRST, FIRST]);
+      handle.setAdobeConsent(FIRST);
+      send(worker, "h3", FIRST);
+      await tick(60);
+      expect(forwarded()).toEqual([FIRST, FIRST]);
+    });
+
+    it(`after ${name}, Alloy's own resend of the same consent (no page repeat) forwards once, then is held`, async () => {
+      const { handle, worker } = await boot();
+      handle.setAdobeConsent(FIRST);
+      fail();
+      send(worker, "j1", FIRST);
+      await tick(30);
+      send(worker, "j2", FIRST);
+      send(worker, "j3", FIRST);
+      await tick(60);
+      expect(forwarded()).toEqual([FIRST, FIRST]);
+    });
+  }
+
+  it("an older update's failed request restores only its own generation: a newer update's value is still held once sent", async () => {
+    const { handle, worker } = await boot();
+    handle.setAdobeConsent(FIRST);
+    handle.setAdobeConsent(SECOND);
+    failures["a network failure"]();
+    send(worker, "i1", FIRST);
+    await tick(30);
+    send(worker, "i2", SECOND);
+    await tick(30);
+    handle.setAdobeConsent(SECOND);
+    send(worker, "i3", SECOND);
+    await tick(60);
+    expect(forwarded()).toEqual([FIRST, SECOND]);
+  });
+
   it("after settlement the registration does not grow: repeated A/B cycles each forward once, a replay of a sent value is held", async () => {
     const { handle, worker } = await boot();
     const cycles = 25;
