@@ -1816,8 +1816,14 @@ export async function bootAlloy(opts = {}) {
       // The ADR-0010 capability's orchestrator-side implementation: the REAL
       // main-thread fetch (ADR-0004). The host runs the endpoint/consent/config
       // gates BEFORE calling this, so a held interact never reaches the network.
+      // 064-34: the host's own timeout answered the chamber while this request was still pending, so Alloy saw a failure
+      // and may resend: restore the generation now (once; a late failure of the same request then restores nothing).
+      onTimeout(req) { restoreOnTimeout.get(req)?.(); },
       async dispatch(req) {
         const matchedGeneration = retireOptOutGenerations(req.body);
+        let restored = false;
+        const restoreOnce = () => { if (restored) return; restored = true; restoreAfterFailure(matchedGeneration); };
+        if (matchedGeneration) restoreOnTimeout.set(req, restoreOnce);
         const watch = redirectWatches.size ? [...redirectWatches].find((w) => w.matches(req.body)) : undefined;
         if (watch) redirectWatches.delete(watch);
         // 064-18 (AC1/AC3): the seam-sanitized transport init (cache / credentials / referrerPolicy /
@@ -1832,10 +1838,10 @@ export async function bootAlloy(opts = {}) {
           if (watch) watch.issued();
         } catch (e) {
           if (watch) watch.failed(e);
-          restoreAfterFailure(matchedGeneration);
+          restoreOnce();
           throw e;
         }
-        if (res.ok === false) restoreAfterFailure(matchedGeneration);
+        if (res.ok === false) restoreOnce();
         if (watch && res.ok === false) watch.failed(new Error(`HTTP ${res.status}`));
         const body = typeof res.text === "function" ? await res.text() : "";
         const headers = {};
@@ -2054,7 +2060,7 @@ export async function bootAlloy(opts = {}) {
   // (Alloy sends no request for it). Alloy stores a consent only once its request succeeds, so when a request fails
   // (network error or non-ok answer) the generation it consumed is put back: Alloy's own fallback to its other host
   // and the page's identical repeat both send the same consent again and match it. A failed request for an older
-  // update restores only its own generation and leaves a newer one untouched. No timer, no cap;
+  // update restores only its own generation and leaves a newer one untouched; the host's own timeout (core 068-04, `caps.egress.onTimeout`) restores it the same way, once per request. No timer of ours, no cap;
   // only updates whose request never left linger, and the next request matching a later generation clears them.
   // A value no update produced is in no generation, so it is held as before.
   let pageConsentObject = null;
@@ -2090,6 +2096,7 @@ export async function bootAlloy(opts = {}) {
     optOutGenerations.unshift(matched);
     registerOptOutConsent();
   };
+  const restoreOnTimeout = new WeakMap(); // request object -> its one-shot restore, for the host's timeout hook
   addOptOutGeneration();
   const apex = probeApexDomain(resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).narrowed ? resolveCookieGrant(ALLOY_COOKIE_NAMES, cookieGrantNarrowing).names : null);
   host.init({ cookie: seedCookie, config, bundleUrl, consent: consentRef, ...(apex ? { apex } : {}), ...(storageSeed ? { storage: storageSeed } : {}) });

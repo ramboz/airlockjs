@@ -439,6 +439,28 @@ describe("064-34: an opt-out in flight for a superseded consent update still for
     });
   }
 
+  for (const late of ["rejects", "resolves"]) {
+    it(`068-04: the host's timeout restores the pending request's generation, so Alloy's resend forwards once; the late fetch that ${late} restores nothing more`, async () => {
+      const { handle, worker } = await boot();
+      handle.setAdobeConsent(FIRST);
+      let settle;
+      fetchMock.mockImplementationOnce(() => new Promise((res, rej) => { settle = late === "rejects" ? () => rej(new TypeError("Failed to fetch")) : () => res({ status: 200, statusText: "OK", headers: { get: () => "application/json" }, text: async () => "{}" }); }));
+      vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+      try {
+        send(worker, "k1", FIRST);
+        await vi.advanceTimersByTimeAsync(5100);
+      } finally { vi.useRealTimers(); }
+      send(worker, "k2", FIRST);
+      await tick(40);
+      expect(forwarded()).toEqual([FIRST, FIRST]);
+      settle();
+      await tick(40);
+      send(worker, "k3", FIRST);
+      await tick(40);
+      expect(forwarded()).toEqual([FIRST, FIRST]);
+    });
+  }
+
   it("an older update's failed request restores only its own generation: a newer update's value is still held once sent", async () => {
     const { handle, worker } = await boot();
     handle.setAdobeConsent(FIRST);
