@@ -1,4 +1,4 @@
-# Slice 064-32: review history (rounds 1 to 4)
+# Slice 064-32: review history (rounds 1 to 5)
 
 Reviewer agent: `jig:reviewer` on claude-opus-5.5, fresh agents each round. None had Scout or a shell, so all read the source natively and unindexed and none ran `git diff`. Verdict words are as returned. Per-finding text is the author's summary of each report. Read times: round 1 was read before 2026-11-25T02:06:27Z (measured right after reading all three), round 2 between 2026-11-25T02:22Z (launch) and 02:29Z (the fix commit), round 3 between 2026-11-25T02:29:43Z and 02:30:56Z. Individual per-agent read times were not captured.
 
@@ -55,4 +55,18 @@ Owner answer: "Allow one bounded repair and final review". Changes: a real AC5 b
 
 Provenance: the three agents ran in parallel in one background launch and finished in the order reconciliation (about 76 s), compliance (about 116 s), craft (about 141 s) by the runtime's elapsed counters. No per-read timestamps were captured here; none are claimed. All read natively (no Scout, no shell, no tests run).
 
-Open findings, not waived, no round 5: (1) unawaited apply then push: stock sends the push before the redirect display, ours after (064-29 gate); an awaited apply also differs on navigation timing. (2) The cold hint uses the host cache `isInitialized()`, which depends on when the apply result reaches the host, so the round 4 differentials may be timing dependent (fix: decide cold from call history). (3) The cold hint is dropped when a push carries its own scopes (unchecked against stock). (4) Hermetic AC5 test does not assert `viewCacheCold`; dead boolean branch in `cacheWarmFor`. The slice, spec and decomposition stay IN_PROGRESS.
+Round 4 open findings (all addressed in round 5, see below): (1) unawaited apply then push: stock sends the push before the redirect display, ours after (064-29 gate); an awaited apply also differs on navigation timing. (2) The cold hint uses the host cache `isInitialized()`, which depends on when the apply result reaches the host, so the round 4 differentials may be timing dependent (fix: decide cold from call history). (3) The cold hint is dropped when a push carries its own scopes (unchecked against stock). (4) Hermetic AC5 test does not assert `viewCacheCold`; dead boolean branch in `cacheWarmFor`. The slice, spec and decomposition stay IN_PROGRESS.
+
+## Round 5 (owner: "Match stock and authorize one bounded corrective round (Recommended)")
+
+Source head `b850dae1cccdb6a6236b4c81bbe70fc1fc425327`; reviewers were given the full `06fcee01..b850dae1` diff file (924 lines) and all three read it completely, plus native source ranges. Full test suite green twice (3446 passed, 5 skipped), lint clean.
+
+| Pass | Agent ID | Verdict as returned |
+|---|---|---|
+| compliance | 8e0049fa-8d8f-4a90-bb2e-5b5440d1383f | needs-changes |
+| craft | 85d9fa22-2809-49ee-8d13-9f4a825cce31 | needs-changes |
+| reconciliation | aa7f6796-617a-4109-bd3e-9eb1a7a935f8 | needs-changes |
+
+Provenance: launched in parallel; runtime elapsed counters about 108 s (compliance), 142 s (craft), 112 s (reconciliation). Per-read timestamps could not be recovered: `get_copilot_session_events` for these local subagent IDs answered "Session events are unavailable: the session may be missing, inaccessible, not yet available, or deleted". No timestamps are claimed.
+
+Findings that stand (not waived, no round 6): (1) craft: `navigationGate` only holds while events sit in `waiting`; a push the pump already took, whose request is not yet issued, gets no hold, so the push-loss risk after an awaited apply with a real navigation is not closed. (2) The gate has no deterministic test and no red-to-green. (3) The unawaited push-before-display order depends on microtask ordering (`warmed` hook, drain) and is pinned only by result. (4) `appliesIssued` also counts an apply rejected synchronously; `warmed` is set even if the store threw (no hint, no test). (5) A warm gated push now runs before the apply's render finishes; DOM render order against stock is not pinned. (6) The differential uses fixed sleeps and asserts stock's exact unawaited order, which could race under load. (7) Docs: stale lines in refinement-todo, ADR-0063 line 108, spec.md rows and slice-29 AC5 (fixed in the docs-only follow-up commit); navigation hold missing from the deviation log and CHANGELOG (left to the owner decision).
