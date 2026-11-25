@@ -1836,6 +1836,7 @@ export async function bootAlloy(opts = {}) {
           const sent = fetch(req.url, { method: req.method || "POST", headers: req.headers || {}, body: req.body, ...(req.init || {}) });
           // Only a keepalive request survives the navigation; any other waits for its answer (bounded by the renderer's timer).
           if (watch && req.init && req.init.keepalive === true) watch.issued();
+          notifyFetchIssued();
           res = await sent;
           if (watch) watch.issued();
         } catch (e) {
@@ -1898,7 +1899,7 @@ export async function bootAlloy(opts = {}) {
   // `redirectWatches` sees it leave through the main-thread dispatch below.
   const redirectWatches = new Set();
   let redirectDisplay = () => Promise.resolve({ sent: false, reason: "not wired" });
-  const renderer = createPropositionRenderer({ diagnose, redirectDisplay: (displayed) => redirectDisplay(displayed), redirectTimeoutMs: opts.redirectDisplayTimeoutMs, autoCollectPropositionInteractions: opts.autoCollectPropositionInteractions });
+  const renderer = createPropositionRenderer({ diagnose, redirectDisplay: (displayed) => redirectDisplay(displayed), navigationGate: () => navigationGate(), redirectTimeoutMs: opts.redirectDisplayTimeoutMs, autoCollectPropositionInteractions: opts.autoCollectPropositionInteractions });
   // 064-23: the SPA view cache and the event in flight (events run one at a time through the pump below).
   const viewCache = createViewCache();
   let currentEvent = null;
@@ -1927,8 +1928,21 @@ export async function bootAlloy(opts = {}) {
   const commands = createHostCommandEntry({ worker, renderer, onApplyResponse: cacheAppliedResponse, diagnose });
   // 064-29: stock runs its commands in call order, so a push enqueued while an `applyResponse` is still in flight waits for it.
   const applyInFlight = new Set();
+  let appliesIssued = 0;
   const rulesetSubscribers = new Set();
   const deliveries = createDeliveryTracker();
+  // 064-32: a redirect navigates after its display is sent. A push the page makes right after awaiting the apply is still on its way through the worker, and stock has already put it on the wire, so the navigation waits (bounded) for the next request to be issued when events are pending.
+  const fetchWaiters = new Set();
+  const notifyFetchIssued = () => { for (const w of [...fetchWaiters]) w(); };
+  const NAVIGATION_GATE_MS = 250;
+  const navigationGate = () => new Promise((resolve) => {
+    setTimeout(() => {
+      if (!waiting.length) { resolve(); return; }
+      const done = () => { clearTimeout(timer); fetchWaiters.delete(done); resolve(); };
+      const timer = setTimeout(done, NAVIGATION_GATE_MS);
+      fetchWaiters.add(done);
+    }, 0);
+  });
   let notifyDisplayed = () => {};
   const personalization = {
     track: (run) => { deliveries.track(run); },
@@ -2177,10 +2191,10 @@ export async function bootAlloy(opts = {}) {
   // 064-32: stock runs commands in call order, so a push is warm only for what was applied before it was called (or fetched by an earlier push);
   // an apply issued after it was queued must not warm it, even if that apply finishes first.
   // `calledWarm` is a function of the call's own history: the cache was initialized when it was called, or an apply that was in flight then has since succeeded. A failed apply warms nothing.
-  const cacheWarmFor = (calledWarm) => ((typeof calledWarm === "function" ? calledWarm() : !!calledWarm) && viewCache.isInitialized()) || viewCache.fetchCount() > 0;
-  // The host cache is initialized by an apply that stock would run after this call: the chamber's Alloy cache is warm too, so the connector is told to query as stock's cold cache does.
-  const cacheColdFor = (warm) => !warm && viewCache.isInitialized();
-  const runEntry = async ({ event, resolve, reject, gate, onSettled, calledWarm }) => {
+  const cacheWarmFor = (calledWarm) => (!!(calledWarm && calledWarm()) && viewCache.isInitialized()) || viewCache.fetchCount() > 0;
+  // An apply issued after this call warmed the chamber's Alloy cache, but stock runs this call first, on a cold cache: the connector is told to query as that cold cache does.
+  const cacheColdFor = (warm, appliedAfterCall) => !warm && !!(appliedAfterCall && appliedAfterCall());
+  const runEntry = async ({ event, resolve, reject, gate, onSettled, calledWarm, appliedAfterCall }) => {
     const notification = isNotificationDescriptor(event);
     if (gate) await drainDisplaysUntil(gate);
     const warm = cacheWarmFor(calledWarm);
@@ -2190,7 +2204,7 @@ export async function bootAlloy(opts = {}) {
     let driven;
     try {
       sendStockContext();
-      let toSend = withCacheHint(event, warm, cacheColdFor(warm));
+      let toSend = withCacheHint(event, warm, cacheColdFor(warm, appliedAfterCall));
       // A warm view cache answers a push naming a view without a request: render it and fold its display
       // notification into this event, as stock does.
       if (ctx && ctx.warm && ctx.viewName && ctx.render) toSend = await withViewDisplay(toSend, ctx.viewName);
@@ -2259,7 +2273,15 @@ export async function bootAlloy(opts = {}) {
     const run = new Promise((resolve, reject) => {
       const applies = [...applyInFlight];
       const initializedAtCall = viewCache.isInitialized();
-      const entry = { event, resolve, reject, display: front, calledWarm: () => initializedAtCall || applies.some((a) => a.ok), onDrop, onSettled, gate: !front && (!isNotificationDescriptor(event) || carriesQuery(event.params)) && applies.length ? Promise.all(applies.map((a) => a.settled)) : null };
+      const appliesAtCall = appliesIssued;
+      const gated = !front && (!isNotificationDescriptor(event) || carriesQuery(event.params)) && applies.length;
+      const entry = {
+        event, resolve, reject, display: front, onDrop, onSettled,
+        calledWarm: () => initializedAtCall || applies.some((a) => a.ok),
+        // Decided from the call order alone: an apply issued after this call has warmed the chamber's Alloy cache, but stock runs this push first, cold.
+        appliedAfterCall: () => appliesIssued > appliesAtCall,
+        gate: gated ? Promise.all(applies.map((a) => a.warmed)) : null,
+      };
       if (front) waiting.unshift(entry); else waiting.push(entry);
       if (wake) wake();
       if (consentRef && !consentOpen()) {
@@ -2413,13 +2435,16 @@ export async function bootAlloy(opts = {}) {
     command: (name, options) => {
       // getIdentity is the one command that can park under the hold: say why, once, as `push` does.
       if (name === "getIdentity") warnNoConsentInput();
-      const run = commands.command(name, options);
-      if (name === "applyResponse") {
-        const apply = { ok: false, settled: null };
-        apply.settled = run.then(() => { apply.ok = true; }, () => {});
-        applyInFlight.add(apply);
-        apply.settled.then(() => applyInFlight.delete(apply));
-      }
+      if (name !== "applyResponse") return commands.command(name, options);
+      // `warmed` settles once the chamber answered and the view cache holds the response (or the apply failed). A push called after this
+      // apply waits for that, not for the render: stock runs the push without waiting for a redirect display, which follows it (064-32).
+      const apply = { ok: false, warmed: null };
+      let markWarmed;
+      apply.warmed = new Promise((r) => { markWarmed = r; });
+      const run = commands.command(name, options, { warmed: () => { apply.ok = true; markWarmed(); } });
+      run.then(() => {}, () => {}).then(() => { markWarmed(); applyInFlight.delete(apply); });
+      appliesIssued += 1;
+      applyInFlight.add(apply);
       return run;
     },
     /** 064-20 M3: ruleset items arrive as data through `decisions`; returns the unsubscribe. */

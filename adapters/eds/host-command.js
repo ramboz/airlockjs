@@ -62,7 +62,7 @@ export function createHostCommandEntry({ worker, renderer, onApplyResponse, diag
   };
 
   return {
-    command(name, options) {
+    command(name, options, hooks) {
       try {
         if (state === "failed") throw failure;
         if (!isAllowedCommand(name)) throw new Error(refusalMessage(name));
@@ -83,6 +83,8 @@ export function createHostCommandEntry({ worker, renderer, onApplyResponse, diag
             // A cache failure never fails the command, but it is reported (064-29).
             try { if (typeof diagnose === "function") diagnose({ level: "warn", kind: "decisions", disposition: "view-cache-failed", reason: `storing the applyResponse view propositions failed (${(e && e.message) || e})` }); } catch (_) { /* the sink failed */ }
           }
+          // The cache is warm from here, before the propositions render: a push called after this apply may run now (064-32).
+          if (hooks && typeof hooks.warmed === "function") hooks.warmed();
         }
         return finish(name, wantsRender, result);
       });

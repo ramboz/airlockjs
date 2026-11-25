@@ -427,8 +427,8 @@ export function createAlloyConnector(config = {}) {
       } else if (merged.length) {
         options.decisionScopes = merged;
       }
-      // 064-32: the host says this call is cold in stock's call order although this chamber's Alloy cache was warmed by an apply that ran after it: ask for the default query stock's cold call sends.
-      if (params.viewCacheCold === true && !calledNotification && !merged.length && !carriesPersonalizationQuery(params)) callPzn = { ...callPzn, defaultPersonalizationEnabled: true };
+      // 064-32: the host says this call is cold in stock's call order although this chamber's Alloy cache was warmed by an apply that ran after it: ask for the default query stock's cold call sends, also when the call passes its own scopes. An explicit page boolean wins.
+      if (params.viewCacheCold === true && !calledNotification && !(callPzn && callPzn.defaultPersonalizationEnabled !== undefined)) callPzn = { ...callPzn, defaultPersonalizationEnabled: true };
       if (callPzn) options.personalization = callPzn;
       if (calledNotification) options.personalization = { ...options.personalization, sendDisplayEvent: false };
       if (bootScopes.length) {

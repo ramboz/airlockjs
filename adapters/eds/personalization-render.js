@@ -144,7 +144,7 @@ const toPx = (v) => (String(v).endsWith("px") ? v : `${v}px`);
 /**
  * Build the renderer.
  * @param {{ document?: Document, window?: Window, sanitize?: (html: string) => string, diagnose?: (r: object) => void, selectorTimeoutMs?: number,
- *   redirectDisplay?: (displayed: object[]) => Promise<{ sent: boolean, reason?: string }>, redirectTimeoutMs?: number }} [deps]
+ *   redirectDisplay?: (displayed: object[]) => Promise<{ sent: boolean, reason?: string }>, redirectTimeoutMs?: number, navigationGate?: () => Promise<void> }} [deps]
  *   `redirectDisplay` sends the redirect's display notification (documentUnloading) and settles once the request
  *   has left, or says why it did not. Absent, a redirect navigates at once (no notification).
  */
@@ -365,7 +365,9 @@ export function createPropositionRenderer(deps = {}) {
       navigate();
       problem("redirect-display-held", `the redirect display notification was not sent within ${redirectWaitMs}ms (held at the seal or still queued); redirecting without it`);
     }, redirectWaitMs);
-    const settle = (fn) => (arg) => { clearTimeout(timer); navigate(); fn(arg); };
+    // 064-32: the host may hold the navigation briefly so a push the page made right after the apply reaches the wire first, as in stock.
+    const gate = () => { try { return Promise.resolve(typeof deps.navigationGate === "function" ? deps.navigationGate() : undefined).catch(() => {}); } catch (e) { return Promise.resolve(); } };
+    const settle = (fn) => (arg) => { clearTimeout(timer); fn(arg); gate().then(navigate); };
     let pending;
     try {
       pending = Promise.resolve(deps.redirectDisplay([{ id: proposition.id, scope: proposition.scope, scopeDetails: proposition.scopeDetails }]));

@@ -1034,6 +1034,13 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       same(r);
     }, T);
 
+    it("AC5 (round 5): a cold push that passes its own scopes, called before an applyResponse, also queries the default view, as stock", async () => {
+      const queued = send({ renderDecisions: false, xdm: PV_XDM, decisionScopes: ["own"] }, { wait: false });
+      const r = await run([SLOW, queued, { apply: SETUP, wait: false }], NO_PLACEMENTS);
+      expect(wire(r.stock)[0].query.scopes).toEqual(expect.arrayContaining(["own", "__view__"]));
+      same(r);
+    }, T);
+
     it("AC5 (round 4): an applyResponse that fails does not warm the push called behind it when a later apply succeeds, as stock", async () => {
       const queued = send({ renderDecisions: false, xdm: PV_XDM }, { wait: false });
       const r = await run([SLOW, { apply: { responseBody: 5 }, wait: false }, queued, { apply: SETUP, wait: false }], NO_PLACEMENTS);
@@ -1044,10 +1051,10 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     // Edge POSTs and the navigation in the order the network saw them. The redirect target is aborted, so the page (and the context both arms run in) survives the navigation.
     const REDIRECT_URL = "https://redirect.example/landing";
     const REDIRECT = { id: "vr", scope: "__view__", scopeDetails: { decisionProvider: "TGT", activity: { id: "act-vr" } }, items: [{ id: "rd", schema: `${NS}redirect-item`, data: { content: REDIRECT_URL } }] };
-    const redirectOrder = async (who, { pushAfter, awaitApply = false }) => {
+    const redirectOrder = async (who, { pushAfter, awaitApply = false, navigate = false }) => {
       const trace = [];
       const watch = async (page) => {
-        await page.route(REDIRECT_URL, (route) => route.abort("aborted"));
+        await page.route(REDIRECT_URL, (route) => (navigate ? route.fulfill({ status: 200, contentType: "text/html", body: "<title>landed</title>" }) : route.abort("aborted")));
         page.on("request", (rq) => {
           if (rq.isNavigationRequest() && rq.url() === REDIRECT_URL) trace.push("navigate");
           else if (/interact|adobedc/.test(rq.url()) && rq.method() === "POST") {
@@ -1069,8 +1076,8 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
             if (awaitApply) await applied;
             if (pushAfter) window.stockAlloy("sendEvent", { renderDecisions: false, xdm: { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name: "after" } } } }).catch(() => {});
             await new Promise((r) => setTimeout(r, 1500));
-          }, { options, pushAfter, awaitApply, datastreamId: DATASTREAM });
-          await page.waitForTimeout(1500);
+          }, { options, pushAfter, awaitApply, datastreamId: DATASTREAM }).catch((e) => { if (!navigate) throw e; });
+          await page.waitForTimeout(4000);
         } });
       } else {
         await replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + ZONE, bootOptions: { placements: PLACEMENTS }, respond: empty, run: async (page) => {
@@ -1080,23 +1087,39 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
             if (awaitApply) await applied;
             if (pushAfter) Promise.resolve(window.__handle.sendEvent({ renderDecisions: false, xdm: { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name: "after" } } } })).catch(() => {});
             await new Promise((r) => setTimeout(r, 1500));
-          }, { options, pushAfter, awaitApply });
-          await page.waitForTimeout(1500);
+          }, { options, pushAfter, awaitApply }).catch((e) => { if (!navigate) throw e; });
+          await page.waitForTimeout(4000);
         } });
       }
       return trace;
     };
 
-    it("AC5 b: a push called after an applyResponse that redirects reaches the wire after that redirect's display, as stock", async () => {
-      const stock = await redirectOrder("stock", { pushAfter: true, awaitApply: true });
-      const ours = await redirectOrder("ours", { pushAfter: true, awaitApply: true });
-      // The navigation request is a race with the push in stock (it follows the push there); the order of the edge events is what is compared.
-      const events = (t) => t.filter((x) => x !== "navigate");
-      expect(stock).toContain("navigate");
-      expect(events(stock)).toEqual(["decisioning.propositionDisplay+decisioning", "web.webpagedetails.pageViews"]);
-      expect(events(ours)).toEqual(events(stock));
-      expect(ours).toContain("navigate");
-    }, T * 2);
+    const DISPLAY = "decisioning.propositionDisplay+decisioning";
+    const PAGE_VIEW = "web.webpagedetails.pageViews";
+
+    // Owner decision (round 5, 064-32): AC5 b is matched to what pinned stock does, per call pattern. Round 4 asserted display-then-push for both
+    // patterns; stock sends the push first when the apply is not awaited. Both patterns run with the redirect aborted (context kept) and with a
+    // real navigation (the page is fulfilled with a stub), compared as full request traces, navigation included.
+    for (const navigate of [false, true]) {
+      const mode = navigate ? "real navigation" : "aborted navigation";
+      it(`AC5 b (${mode}): a push called behind an unawaited applyResponse that redirects is sent before the redirect display, as stock`, async () => {
+        const stock = await redirectOrder("stock", { pushAfter: true, awaitApply: false, navigate });
+        const ours = await redirectOrder("ours", { pushAfter: true, awaitApply: false, navigate });
+        expect(stock).toEqual([PAGE_VIEW, DISPLAY, "navigate"]);
+        expect(ours).toEqual(stock);
+      }, T * 2);
+
+      it(`AC5 b (${mode}): a push called after an awaited applyResponse that redirects is sent after the display, and still sent`, async () => {
+        const stock = await redirectOrder("stock", { pushAfter: true, awaitApply: true, navigate });
+        const ours = await redirectOrder("ours", { pushAfter: true, awaitApply: true, navigate });
+        // The edge events agree. The navigation request races the push in stock itself: both orders were seen across runs of stock, so only its presence is pinned.
+        const events = (t) => t.filter((x) => x !== "navigate");
+        expect(events(stock)).toEqual([DISPLAY, PAGE_VIEW]);
+        expect(events(ours)).toEqual(events(stock));
+        expect(stock).toContain("navigate");
+        expect(ours).toContain("navigate");
+      }, T * 2);
+    }
   });
 
   describe("M3 and row 11/12: ruleset items as data (SYNTHETIC ruleset answer, no capture)", () => {

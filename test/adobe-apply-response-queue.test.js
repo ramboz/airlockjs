@@ -175,7 +175,10 @@ describe("064-29 redirect display: track and the consent ring (hermetic)", () =>
     for (const e of sentEvents(worker)) expect(e.params).not.toHaveProperty("viewCacheWarm");
   });
 
-  it("round 1: the redirect display an in-flight applyResponse queues is sent ahead of the push waiting on that applyResponse", async () => {
+  // 064-32 round 5 (owner decision): this test pinned the 064-29 order, a push held behind the redirect display of an in-flight
+  // applyResponse. Pinned stock 2.31.1 sends a push called right after an unawaited apply first and the display after it
+  // (real-Chromium differential in adobe-b4-personalization.test.js), so the expectation is reversed here, not dropped.
+  it("064-32 round 5: a push called behind an in-flight applyResponse is sent before the redirect display that apply queues, as stock", async () => {
     const { handle, worker } = await boot({ consent: GRANTED, redirectTimeoutMs: 5000 });
     await tick(20);
     const applied = handle.command("applyResponse", { responseBody: {}, renderDecisions: true });
@@ -185,10 +188,11 @@ describe("064-29 redirect display: track and the consent ring (hermetic)", () =>
     worker.emit({ type: "command-result", id: cmd.id, result: { propositions: [REDIRECT] } });
     await tick(300);
     const sent = sentEvents(worker);
-    expect(sent.findIndex(isDisplay)).toBe(0);
-    expect(sent.length).toBeGreaterThan(1);
+    expect(sent.filter((e) => !isDisplay(e)).length).toBe(1);
+    expect(sent.findIndex(isDisplay)).toBeGreaterThan(0);
     await applied;
   });
+
 });
 
 describe("064-32 call order decides whether a push sees the applied cache (hermetic)", () => {
@@ -208,5 +212,7 @@ describe("064-32 call order decides whether a push sees the applied cache (herme
     // The fake worker answers no fetch, so p1 stays cold; with a real Edge, p0's fetch would warm p1 (the rule is `fetchCount() > 0`).
     const warm = Object.fromEntries(sentEvents(worker).filter((e) => !isDisplay(e)).map((e) => [e.params.xdm.web.webPageDetails.name, e.params.viewCacheWarm === true]));
     expect(warm).toEqual({ p0: false, p1: false, p2: true });
+    const cold = Object.fromEntries(sentEvents(worker).filter((e) => !isDisplay(e)).map((e) => [e.params.xdm.web.webPageDetails.name, e.params.viewCacheCold === true]));
+    expect(cold).toEqual({ p0: false, p1: true, p2: false });
   });
 });
