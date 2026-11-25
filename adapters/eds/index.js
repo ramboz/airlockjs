@@ -1834,9 +1834,9 @@ export async function bootAlloy(opts = {}) {
         let res;
         try {
           const sent = fetch(req.url, { method: req.method || "POST", headers: req.headers || {}, body: req.body, ...(req.init || {}) });
-          // Only a keepalive request survives the navigation; any other waits for its answer (bounded by the renderer's timer).
+          // The display's own watch resolves at issue only for a keepalive request, which the browser may finish after the navigation; any other waits for its answer (bounded by the renderer's timer). No claim that a started plain request survives the navigation.
           if (watch && req.init && req.init.keepalive === true) watch.issued();
-          notifyFetchIssued();
+          notifyFetchIssued(req, !!watch);
           res = await sent;
           if (watch) watch.issued();
         } catch (e) {
@@ -1936,7 +1936,25 @@ export async function bootAlloy(opts = {}) {
   // waits for each such event's own request to be issued (or for the event to settle without one). Bounded, so a held event never blocks it for good.
   const pendingIssue = new Set();
   let runningEntry = null;
-  const notifyFetchIssued = () => { if (runningEntry && runningEntry.markIssued) runningEntry.markIssued(); };
+  // A request is credited to the running entry only when it is that entry's own: an Alloy events request (never an identity or consent command,
+  // never a redirect display's own request) whose first event has the entry's declared eventType. An unmatched request leaves the entry pending
+  // until its own request or its settlement (or the cap), so attribution only ever errs towards waiting longer. Entries run one at a time, so
+  // equal bodies of different entries cannot overlap; a request is never matched by arrival timing alone.
+  const ownsRequest = (entry, body) => {
+    if (typeof body !== "string") return false;
+    let parsed;
+    try { parsed = JSON.parse(body); } catch (_) { return false; }
+    const events = parsed && Array.isArray(parsed.events) ? parsed.events : null;
+    if (!events || !events.length) return false;
+    const eventType = entry.event && entry.event.params && entry.event.params.xdm && entry.event.params.xdm.eventType;
+    if (typeof eventType !== "string") return true;
+    return !!(events[0] && events[0].xdm && events[0].xdm.eventType === eventType);
+  };
+  const notifyFetchIssued = (req, isRedirectDisplay) => {
+    const entry = runningEntry;
+    if (!entry || !entry.markIssued || isRedirectDisplay) return;
+    if (ownsRequest(entry, req && req.body)) entry.markIssued();
+  };
   const NAVIGATION_GATE_MS = 250;
   const navigationGate = () => new Promise((resolve) => {
     setTimeout(() => {
@@ -2201,7 +2219,12 @@ export async function bootAlloy(opts = {}) {
     const { event, resolve, reject, gate, onSettled, calledWarm, appliedAfterCall } = entry;
     const outer = runningEntry;
     runningEntry = entry;
-    try { await runEntryBody({ event, resolve, reject, gate, onSettled, calledWarm, appliedAfterCall }); } finally { runningEntry = outer; if (entry.markIssued) entry.markIssued(); }
+    try { await runEntryBody({ event, resolve, reject, gate, onSettled, calledWarm, appliedAfterCall }); } finally {
+      runningEntry = outer;
+      // A documentUnloading event settles before its request is issued, so only its own request (or the cap) releases it.
+      const unloading = !!(event && event.params && event.params.documentUnloading);
+      if (entry.markIssued && !unloading) entry.markIssued();
+    }
   };
   const runEntryBody = async ({ event, resolve, reject, gate, onSettled, calledWarm, appliedAfterCall }) => {
     const notification = isNotificationDescriptor(event);
@@ -2531,6 +2554,7 @@ export async function bootAlloy(opts = {}) {
     dispose: () => {
       if (disposed) return; // idempotent (021-01 AC1)
       disposed = true;
+      for (const e of [...pendingIssue]) if (e.markIssued) e.markIssued();
       for (const send of [...pendingSends]) send.done();
       for (const [id, o] of [...consentOutcomes]) { clearTimeout(o.timer); consentOutcomes.delete(id); o.reject(new Error("airlock: the handle was disposed before Alloy answered setConsent")); }
       if (worker && typeof worker.removeEventListener === "function") worker.removeEventListener("message", onConsentOutcome);

@@ -946,7 +946,11 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
           if (op.wait === false) calls.push(rec); else { out.push(await rec); if (op.pause) await new Promise((r) => setTimeout(r, op.pause)); }
         }
         for (const c of calls) out.push(await c);
-        await new Promise((r) => setTimeout(r, 1500));
+        // Settled by observation, not a fixed sleep: the edge request count must hold still for 500ms, within an 8s bound that fails explicitly.
+        const edgeRequests = () => performance.getEntriesByType("resource").filter((e) => /interact|adobedc/.test(e.name)).length;
+        let last = -1; let still = 0; const end = Date.now() + 8000;
+        while (still < 5 && Date.now() < end) { await new Promise((r) => setTimeout(r, 100)); const n = edgeRequests(); if (n === last) still += 1; else { still = 0; last = n; } }
+        if (still < 5) throw new Error("the edge request count did not settle within 8s");
         return { results: out, dom: document.getElementById("z").outerHTML };`;
       const stock = await replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: ZONE, respond: empty, run: (page) => page.evaluate(async ({ ops, datastreamId, exec }) => {
         window.__alloyNS = ["stockAlloy"];

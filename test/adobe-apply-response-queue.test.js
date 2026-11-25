@@ -15,14 +15,15 @@ const REDIRECT = { id: "rp", scope: "__view__", scopeDetails: { decisionProvider
 const CART = { id: "vc", scope: "cart", scopeDetails: { decisionProvider: "TGT", activity: { id: "b" }, characteristics: { scopeType: "view" } }, items: [{ id: "c1", schema: `${NS}html-content-item`, data: { content: "<b>cart</b>" } }] };
 
 class Worker {
-  constructor() { this.handlers = []; this.messages = []; this.queue = []; this.vector = null; this.n = 0; this.held = []; Worker.last = this; }
+  constructor() { this.handlers = []; this.messages = []; this.queue = []; this.vector = null; this.n = 0; this.held = []; this.heldPushes = []; this.silent = new Set(); Worker.last = this; }
   addEventListener(t, fn) { if (t === "message") this.handlers.push(fn); }
   removeEventListener() {}
   terminate() {}
   release() { for (const e of this.held.splice(0)) this.fire(Worker.body(e)); }
   emit(msg) { for (const h of this.handlers.slice()) h({ data: msg }); }
-  fire(body) {
+  fire(body, silent = false) {
     this.n += 1;
+    if (silent) this.silent.add(`f${this.n}`);
     this.emit({ type: "intercepted-fetch", id: `f${this.n}`, url: `${INTERACT}?configId=${DS}`, method: "POST", headers: { "content-type": "application/json" }, body });
   }
   postMessage(m) {
@@ -32,7 +33,14 @@ class Worker {
       setTimeout(() => { this.emit({ type: "phase", name: "install" }); this.emit({ type: "phase", name: "configured" }); }, 0);
     } else if (m.type === "event") {
       if (shapeAlloyBoot(this.vector).defaultConsent === "pending") this.queue.push(m.event);
-      else if (Worker.holdDisplays && m.event.params && m.event.params.documentUnloading) this.held.push(m.event);
+      else if (Worker.deferDisplays && m.event.params && m.event.params.documentUnloading) {
+        // The chamber answers the display event before its request leaves, so the pump moves on while that request is still pending.
+        this.held.push(m.event);
+        setTimeout(() => this.emit({ type: "result", summary: { booted: true }, ready: [] }), 0);
+      } else if (Worker.holdPushes && !(m.event.params && m.event.params.documentUnloading)) {
+        // Request held, as a push whose worker round trip is still running.
+        this.heldPushes.push(m.event);
+      } else if (Worker.holdDisplays && m.event.params && m.event.params.documentUnloading) this.held.push(m.event);
       else {
         setTimeout(() => {
           this.fire(Worker.body(m.event));
@@ -45,7 +53,7 @@ class Worker {
         for (const q of this.queue.splice(0)) setTimeout(() => this.fire(Worker.body(q)), 0);
       }
     } else if (m.type === "intercepted-fetch-response") {
-      setTimeout(() => this.emit({ type: "result", summary: { booted: true }, ready: [] }), 0);
+      if (!this.silent.has(m.id)) setTimeout(() => this.emit({ type: "result", summary: { booted: true }, ready: [] }), 0);
     }
   }
 }
@@ -64,6 +72,8 @@ beforeEach(() => {
   responseBody = "{}";
   Worker.body = defaultBody;
   Worker.holdDisplays = false;
+  Worker.deferDisplays = false;
+  Worker.holdPushes = false;
   Worker.decide = null;
   vi.stubGlobal("Worker", Worker);
   vi.stubGlobal("window", { location: { replace: (u) => replaced.push(u) } });
@@ -215,4 +225,77 @@ describe("064-32 call order decides whether a push sees the applied cache (herme
     const cold = Object.fromEntries(sentEvents(worker).filter((e) => !isDisplay(e)).map((e) => [e.params.xdm.web.webPageDetails.name, e.params.viewCacheCold === true]));
     expect(cold).toEqual({ p0: false, p1: true, p2: false });
   });
+});
+
+describe("064-32 round 7: a rejected apply is not counted and a failed store does not warm (hermetic)", () => {
+  const names = (worker) => Object.fromEntries(sentEvents(worker).filter((e) => !isDisplay(e)).map((e) => [e.params.xdm.web.webPageDetails.name, e.params]));
+
+  it("a push queued before a rejected applyResponse is not marked cold by it", async () => {
+    // Consent is pending, so p0 stays queued while the rejected apply is called; an accepted apply would make it cold (064-32).
+    const { handle, worker } = await boot();
+    handle.push(view("p0"));
+    handle.push(view("p1"));
+    await tick(20);
+    await expect(handle.command("applyResponse", "not an object")).rejects.toThrow();
+    handle.setConsent(GRANTED);
+    await tick(200);
+    const sent = names(worker);
+    expect(sent.p1).toBeDefined();
+    expect(sent.p1.viewCacheCold).not.toBe(true);
+  });
+
+  it("an applyResponse whose view-cache store throws does not warm the push called after it", async () => {
+    const { handle, worker } = await boot({ consent: GRANTED });
+    await tick(20);
+    // The only way the store can fail on a well-formed response is a storage error, so the cache's own Map write is made to throw for one view.
+    const realSet = Map.prototype.set;
+    vi.spyOn(Map.prototype, "set").mockImplementation(function (key, value) { if (key === "doomed") throw new Error("store failed"); return realSet.call(this, key, value); });
+    const body = { handle: [{ type: "personalization:decisions", payload: [{ id: "x", scope: "doomed", scopeDetails: { characteristics: { scopeType: "view" } }, items: [] }] }] };
+    const applied = handle.command("applyResponse", { responseBody: body, renderDecisions: false });
+    handle.push(view("p1"));
+    await tick(20);
+    const cmd = worker.messages.find((m) => m.type === "command");
+    worker.emit({ type: "command-result", id: cmd.id, result: { propositions: [] } });
+    await applied;
+    await tick(150);
+    vi.restoreAllMocks();
+    expect(names(worker).p1.viewCacheWarm).not.toBe(true);
+  });
+});
+
+describe("064-32 round 7: a redirect navigation waits for the push's own request, not for any request (hermetic)", () => {
+  // The redirect display goes out first. The push is called while that display is on the wire, so it is queued when the navigation gate looks,
+  // and then runs with its own request held. A request that is not the push's must not release the navigation.
+  const arrange = async () => {
+    Worker.holdPushes = true;
+    let pushed = false;
+    let handleRef;
+    vi.stubGlobal("fetch", vi.fn((url, init) => {
+      if (!pushed && handleRef && String((init && init.body) || "").includes("decisioning.propositionDisplay")) { pushed = true; handleRef.push(view("a")); }
+      return Promise.resolve({ status: 200, statusText: "OK", headers: { get: () => "application/json" }, text: async () => "{}" });
+    }));
+    const { handle, worker } = await boot({ consent: GRANTED, redirectTimeoutMs: 5000 });
+    handleRef = handle;
+    const applied = handle.command("applyResponse", { responseBody: {}, renderDecisions: true });
+    await vi.waitFor(() => expect(worker.messages.some((m) => m.type === "command")).toBe(true));
+    worker.emit({ type: "command-result", id: worker.messages.find((m) => m.type === "command").id, result: { propositions: [REDIRECT] } });
+    await vi.waitFor(() => expect(worker.heldPushes).toHaveLength(1));
+    return { worker, applied };
+  };
+  const pushBody = JSON.stringify({ events: [{ xdm: { eventType: "web.webpagedetails.pageViews" } }] });
+
+  for (const [name, body] of [
+    ["a request that carries no events (identity)", JSON.stringify({ query: { identity: { fetch: ["ECID"] } } })],
+    ["an events request of another event type", JSON.stringify({ events: [{ xdm: { eventType: "web.webinteraction.linkClicks" } }] })],
+  ]) {
+    it(`${name} does not release the navigation while the push is posted but unissued`, async () => {
+      const { worker, applied } = await arrange();
+      worker.fire(body, true);
+      await tick(60);
+      expect(replaced).toEqual([]);
+      worker.fire(pushBody);
+      await vi.waitFor(() => expect(replaced).toHaveLength(1));
+      await applied;
+    });
+  }
 });
