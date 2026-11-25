@@ -1021,6 +1021,82 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
       expect(wire(r.stock)[0].query.scopes).toEqual(expect.arrayContaining(["__view__", "s1"]));
       same(r);
     }, T);
+
+    // A boot with no placements declares no scopes; `onDecisions` alone configures personalization.
+    const SINK = '<script>window.__decided = []; (() => { const real = AirlockEds; const b = real.bootAlloy; window.AirlockEds = { ...real, bootAlloy: (o) => b({ ...o, onDecisions: (p) => window.__decided.push(p.length) }) }; })();</script>';
+    const NO_PLACEMENTS = { placements: [], bodyHtml: '<div id="v"></div>' + ZONE + SINK };
+    const SLOW = send({ renderDecisions: false, decisionScopes: [1] }, { wait: false });
+
+    it("AC5 (round 4): with no declared scopes, a push called before an applyResponse still sends the default view query, as stock", async () => {
+      const queued = send({ renderDecisions: false, xdm: PV_XDM }, { wait: false });
+      const r = await run([SLOW, queued, { apply: SETUP, wait: false }], NO_PLACEMENTS);
+      expect(wire(r.stock)[0].query.scopes).toContain("__view__");
+      same(r);
+    }, T);
+
+    it("AC5 (round 4): an applyResponse that fails does not warm the push called behind it when a later apply succeeds, as stock", async () => {
+      const queued = send({ renderDecisions: false, xdm: PV_XDM }, { wait: false });
+      const r = await run([SLOW, { apply: { responseBody: 5 }, wait: false }, queued, { apply: SETUP, wait: false }], NO_PLACEMENTS);
+      expect(wire(r.stock)[0].query.scopes).toContain("__view__");
+      same(r);
+    }, T);
+
+    // Edge POSTs and the navigation in the order the network saw them. The redirect target is aborted, so the page (and the context both arms run in) survives the navigation.
+    const REDIRECT_URL = "https://redirect.example/landing";
+    const REDIRECT = { id: "vr", scope: "__view__", scopeDetails: { decisionProvider: "TGT", activity: { id: "act-vr" } }, items: [{ id: "rd", schema: `${NS}redirect-item`, data: { content: REDIRECT_URL } }] };
+    const redirectOrder = async (who, { pushAfter, awaitApply = false }) => {
+      const trace = [];
+      const watch = async (page) => {
+        await page.route(REDIRECT_URL, (route) => route.abort("aborted"));
+        page.on("request", (rq) => {
+          if (rq.isNavigationRequest() && rq.url() === REDIRECT_URL) trace.push("navigate");
+          else if (/interact|adobedc/.test(rq.url()) && rq.method() === "POST") {
+            try { const e = JSON.parse(rq.postData()).events[0].xdm; trace.push(e.eventType + (e._experience ? "+decisioning" : "")); } catch (e) { trace.push("post"); }
+          }
+        });
+      };
+      const options = { responseBody: body([REDIRECT]), renderDecisions: true };
+      if (who === "stock") {
+        await replayFixture(browser, "s4-base", { event: null, boot: false, bodyHtml: ZONE, respond: empty, run: async (page) => {
+          await watch(page);
+          await page.evaluate(async ({ options, pushAfter, awaitApply, datastreamId }) => {
+            window.__alloyNS = ["stockAlloy"];
+            window.stockAlloy = function () { const a = arguments; return new Promise((res, rej) => window.stockAlloy.q.push([res, rej, a])); };
+            window.stockAlloy.q = [];
+            await new Promise((res, rej) => { const s = document.createElement("script"); s.src = "/rig/alloy.min.js"; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+            window.stockAlloy("configure", { datastreamId, orgId: "908936ED5D35CC220A495CD4@AdobeOrg", defaultConsent: "in", debugEnabled: false });
+            const applied = window.stockAlloy("applyResponse", options).catch(() => {});
+            if (awaitApply) await applied;
+            if (pushAfter) window.stockAlloy("sendEvent", { renderDecisions: false, xdm: { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name: "after" } } } }).catch(() => {});
+            await new Promise((r) => setTimeout(r, 1500));
+          }, { options, pushAfter, awaitApply, datastreamId: DATASTREAM });
+          await page.waitForTimeout(1500);
+        } });
+      } else {
+        await replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + ZONE, bootOptions: { placements: PLACEMENTS }, respond: empty, run: async (page) => {
+          await watch(page);
+          await page.evaluate(async ({ options, pushAfter, awaitApply }) => {
+            const applied = window.__handle.command("applyResponse", options).catch(() => {});
+            if (awaitApply) await applied;
+            if (pushAfter) Promise.resolve(window.__handle.sendEvent({ renderDecisions: false, xdm: { eventType: "web.webpagedetails.pageViews", web: { webPageDetails: { name: "after" } } } })).catch(() => {});
+            await new Promise((r) => setTimeout(r, 1500));
+          }, { options, pushAfter, awaitApply });
+          await page.waitForTimeout(1500);
+        } });
+      }
+      return trace;
+    };
+
+    it("AC5 b: a push called after an applyResponse that redirects reaches the wire after that redirect's display, as stock", async () => {
+      const stock = await redirectOrder("stock", { pushAfter: true, awaitApply: true });
+      const ours = await redirectOrder("ours", { pushAfter: true, awaitApply: true });
+      // The navigation request is a race with the push in stock (it follows the push there); the order of the edge events is what is compared.
+      const events = (t) => t.filter((x) => x !== "navigate");
+      expect(stock).toContain("navigate");
+      expect(events(stock)).toEqual(["decisioning.propositionDisplay+decisioning", "web.webpagedetails.pageViews"]);
+      expect(events(ours)).toEqual(events(stock));
+      expect(ours).toContain("navigate");
+    }, T * 2);
   });
 
   describe("M3 and row 11/12: ruleset items as data (SYNTHETIC ruleset answer, no capture)", () => {

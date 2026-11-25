@@ -2166,27 +2166,31 @@ export async function bootAlloy(opts = {}) {
   };
   const consentOpen = () => resolveConsent(consentRef, "analytics_storage") === "granted";
   /** Tells the connector (in the chamber) the host view cache is warm, so it adds no declared scopes: stock sends none for a call that passes none (064-29). */
-  const withCacheHint = (event, cacheWarm) => {
+  const withCacheHint = (event, cacheWarm, cacheCold = false) => {
     if (!event) return event;
     // Strip first: a page-supplied flag must never reach the connector, even on an event the host classes as a notification.
-    const { viewCacheWarm: _ignored, ...params } = event.params || {};
+    const { viewCacheWarm: _ignored, viewCacheCold: _ignoredCold, ...params } = event.params || {};
     if (isNotificationDescriptor(event)) return { ...event, params };
-    return { ...event, params: cacheWarm ? { ...params, viewCacheWarm: true } : params };
+    return { ...event, params: cacheWarm ? { ...params, viewCacheWarm: true } : cacheCold ? { ...params, viewCacheCold: true } : params };
   };
   let wake = null;
   // 064-32: stock runs commands in call order, so a push is warm only for what was applied before it was called (or fetched by an earlier push);
   // an apply issued after it was queued must not warm it, even if that apply finishes first.
-  const cacheWarmFor = (calledWarm) => (calledWarm && viewCache.isInitialized()) || viewCache.fetchCount() > 0;
+  // `calledWarm` is a function of the call's own history: the cache was initialized when it was called, or an apply that was in flight then has since succeeded. A failed apply warms nothing.
+  const cacheWarmFor = (calledWarm) => ((typeof calledWarm === "function" ? calledWarm() : !!calledWarm) && viewCache.isInitialized()) || viewCache.fetchCount() > 0;
+  // The host cache is initialized by an apply that stock would run after this call: the chamber's Alloy cache is warm too, so the connector is told to query as stock's cold cache does.
+  const cacheColdFor = (warm) => !warm && viewCache.isInitialized();
   const runEntry = async ({ event, resolve, reject, gate, onSettled, calledWarm }) => {
     const notification = isNotificationDescriptor(event);
     if (gate) await drainDisplaysUntil(gate);
-    currentEvent = personalizationConfigured ? eventContext(event, cacheWarmFor(calledWarm)) : null;
+    const warm = cacheWarmFor(calledWarm);
+    currentEvent = personalizationConfigured ? eventContext(event, warm) : null;
     const ctx = currentEvent;
     let failure;
     let driven;
     try {
       sendStockContext();
-      let toSend = withCacheHint(event, cacheWarmFor(calledWarm));
+      let toSend = withCacheHint(event, warm, cacheColdFor(warm));
       // A warm view cache answers a push naming a view without a request: render it and fold its display
       // notification into this event, as stock does.
       if (ctx && ctx.warm && ctx.viewName && ctx.render) toSend = await withViewDisplay(toSend, ctx.viewName);
@@ -2226,11 +2230,6 @@ export async function bootAlloy(opts = {}) {
       await Promise.race([all, new Promise((r) => { wake = r; })]);
       wake = null;
     }
-    // A display queued in the same turn the promise settled still goes first (064-32).
-    while (waiting.length && waiting[0].display) {
-      await runEntry(waiting.shift());
-      currentEvent = ctx || null;
-    }
   };
   const pump = async () => {
     if (running) return;
@@ -2258,7 +2257,9 @@ export async function bootAlloy(opts = {}) {
     if (nm && !(prm.xdm && /^web\.webinteraction\./.test(prm.xdm.eventType || ""))) lastPageName = nm;
     warnNoConsentInput();
     const run = new Promise((resolve, reject) => {
-      const entry = { event, resolve, reject, display: front, calledWarm: viewCache.isInitialized() || applyInFlight.size > 0, onDrop, onSettled, gate: !front && (!isNotificationDescriptor(event) || carriesQuery(event.params)) && applyInFlight.size ? Promise.all([...applyInFlight]) : null };
+      const applies = [...applyInFlight];
+      const initializedAtCall = viewCache.isInitialized();
+      const entry = { event, resolve, reject, display: front, calledWarm: () => initializedAtCall || applies.some((a) => a.ok), onDrop, onSettled, gate: !front && (!isNotificationDescriptor(event) || carriesQuery(event.params)) && applies.length ? Promise.all(applies.map((a) => a.settled)) : null };
       if (front) waiting.unshift(entry); else waiting.push(entry);
       if (wake) wake();
       if (consentRef && !consentOpen()) {
@@ -2414,9 +2415,10 @@ export async function bootAlloy(opts = {}) {
       if (name === "getIdentity") warnNoConsentInput();
       const run = commands.command(name, options);
       if (name === "applyResponse") {
-        const settled = run.then(() => {}, () => {});
-        applyInFlight.add(settled);
-        settled.then(() => applyInFlight.delete(settled));
+        const apply = { ok: false, settled: null };
+        apply.settled = run.then(() => { apply.ok = true; }, () => {});
+        applyInFlight.add(apply);
+        apply.settled.then(() => applyInFlight.delete(apply));
       }
       return run;
     },

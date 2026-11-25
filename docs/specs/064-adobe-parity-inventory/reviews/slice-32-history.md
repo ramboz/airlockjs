@@ -40,3 +40,7 @@ Rounds improved: 3 changes-requested, then 1 pass and 2 changes-requested, then 
 - Compliance, medium: AC5 b is shown only by the unchanged 064-29 hermetic test, with no real-Chromium differential and no red-to-green for the drain re-check. Not fixed. A redirect apply navigates the page, which ends the evaluate context that both stock and ours run in, so the differential cannot be written in this harness. Disposition: carried to the coordinator and owner as an explicit evidence deviation for AC5 b only. The Findings no longer say "all five met".
 - Craft, low: the `clean` predicate is written twice in connector.js. Carried (not blocking).
 - Recon, low: stale `perCallPersonalization` JSDoc, "four call-order gaps" wording, CHANGELOG null phrasing: fixed after round 3, docs and a comment only (no behavior change).
+
+## Round 4 (owner-approved, one bounded repair)
+
+Owner answer: "Allow one bounded repair and final review". Changes: a real AC5 b differential (awaited apply, navigation intercepted with `route.abort("aborted")`), the cold-with-no-scopes gap fixed, the failed-then-later-success apply gap fixed, both with red-to-green differentials, and the drain's extra front check removed because no test showed it reachable. A new finding is recorded: an unawaited apply followed by a push sends the push before the redirect display in stock, and after it in ours (064-29 gate). It is reported for an owner decision.
