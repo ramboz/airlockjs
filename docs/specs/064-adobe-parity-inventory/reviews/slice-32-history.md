@@ -78,3 +78,15 @@ Cause found by read-only diagnosis: the navigation gate checked only the `waitin
 Changes: an event-driven seam test (gate check held until the push is dequeued, push egress held until the gate callback ran) was written first and was red on the round 5 head (push lost). The navigation now waits for each pending entry's own issued promise (cap 250 ms). A validation-rejected apply is no longer counted or awaited. `warmed` is set only when the response store succeeded. Fixed sleeps in the redirect, AC5 b and round 6 tests were replaced by polling for the expected events plus a 300 ms grace. A DOM and wire differential covers a warm push behind a rendering apply, awaited or not. Mutation M0 (gate always resolved) is red. Suite 3451 passed, 5 skipped; lint clean.
 
 Final review rows and provenance are recorded below once the three fresh passes return.
+
+### Round 6 final reviews (source head `425012c6989434198f14711fb57a924e39a4f9a3`, full `06fcee01..425012c6` diff of 1140 lines)
+
+| Pass | Agent ID | Verdict as returned | Runtime elapsed |
+|---|---|---|---|
+| compliance | 1205cf0d-39e3-4d1c-a436-8fb4dc086f3c | needs-changes | about 100 s |
+| craft | 586282af-1bae-4cfc-a157-6b6ff4b2a377 | needs-changes | about 144 s |
+| reconciliation | 7709b872-d902-4496-8b85-1309b313d77a | needs-changes | about 66 s |
+
+Per-read timestamps were not recovered (session events unavailable for local subagents, as in round 5). None are claimed.
+
+Findings that stand (no round 7, not waived): (1) craft, medium: `notifyFetchIssued` marks whichever entry is `runningEntry` when any egress request goes out, so another request (for example the redirect display's own request) can release the gate before the push itself is issued. A fix would tag each entry's request; no test covers a display request arriving after the push is dequeued. (2) The `accepted` (rejected apply not counted) and `warmed(stored)` fixes have no test. (3) The differential `run()` helper still has a fixed 1500 ms wait. (4) Docs lag: slice Findings and deviation 2a still describe the round 5 gate, the carried "navigation before push" gap may be stale, AC5 text is not amended. (5) Minor: the `redirectWaitMs` timeout path skips the gate, consent-held pushes make the gate wait its 250 ms cap, `dispose` does not clear `pendingIssue`. The slice, spec and decomposition stay IN_PROGRESS.
