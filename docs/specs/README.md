@@ -216,7 +216,7 @@ do not grant live authority.
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-31 — stock `alloy()` wrapper parity (identity list, `sendEvent` result, hook argument, configure diagnostics, `setConsent` promise) | **DONE** |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-32 — first push query edge cases match stock | READY_FOR_IMPLEMENTATION |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-33 — the opt-out forward carries only the consent the page gave | **DONE** |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-34 — an opt-out in flight for a superseded consent update still forwards | IN_PROGRESS (overlapping-consent-updates…) |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-34 — an opt-out in flight for a superseded consent update still forwards | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01: ADR status lines and docs rewording | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-02: Consent hold on every track, with a no-consent-input warning | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-03: Alloy holds and flushes, and an empty `egressPurposes` holds and warns | **DONE** |  |
@@ -232,7 +232,7 @@ do not grant live authority.
 | [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-01: A pending seam hold flushes on grant | **DONE** |  |
 | [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-02: Forward the opt-out after an explicit refusal | **DONE** |  |
 | [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-03: The opt-out forward carries only the consent the adapter registered (core and main adapter) | **DONE** |  |
-| [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-04: The host tells the caller when its own timeout answered a pending dispatch | IN_PROGRESS |  |
+| [068-seam-consent-follow-up](068-seam-consent-follow-up/spec.md) | 068-04: The host tells the caller when its own timeout answered a pending dispatch | **DONE** |  |
 | [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-01 — the handle returns what stock returns (`sendEvent` result, hook argument, `viewName`, consent outcome) | **DONE** |  |
 | [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-02 — Airlock's generic data layer, plus an opt-in `adobeDataLayer` migration proxy | **DONE** |  |
 | [069-airlock-martech-library](069-airlock-martech-library/spec.md) | 069-03 — `adapters/eds/martech.js`: the `aem-martech` exports on the `bootAlloy` handle | **DONE** |  |
@@ -274,8 +274,8 @@ do not grant live authority.
 
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
-- **15** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
-- **109** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
+- **14** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
+- **111** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **52** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
   - `012-mvp2-alloy-chamber/slice-01-arch.md` — applied `none`; declined: arch-review

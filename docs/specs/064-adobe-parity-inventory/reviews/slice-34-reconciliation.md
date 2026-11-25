@@ -2,13 +2,13 @@
 slice: 064-34 — an opt-out in flight for a superseded consent update still forwards
 pass: reconciliation
 verdict: pass
-reviewer: jig:reviewer (claude-opus-5.5)
-reviewed_at: 2026-11-24T22:50:39Z
-prompt_source: round 3: complete final diff bcaccab7..HEAD plus the mission constraint (no ever-growing replay allowlist), Scout unavailable
+reviewer: jig:reviewer (claude-opus-5.5) 73fffbd2-5a26-4c58-8694-622ffb5ea8a5
+reviewed_at: 2026-11-25T00:38:18Z
+prompt_source: round 6: complete final diff bcaccab7..db0d9916 plus the mission constraint (no ever-growing replay allowlist), Scout unavailable
 ---
 
-Round 3 (agent 8d6a8829-e221-40e3-ba42-a5e5c12d34db, claude-opus-5.5, jig:reviewer, no Scout; final output read 2026-11-24T22:49:41.825Z on HEAD c258caed; the frontmatter reviewed_at is the record-write time, not the read time, full diff bcaccab7..c258caed).
+Round 6 (final): agent 73fffbd2-5a26-4c58-8694-622ffb5ea8a5 (claude-opus-5.5, jig:reviewer, no Scout), head db0d9916, complete diff bcaccab7..db0d9916. The frontmatter reviewed_at is the record-write time, not the read time.
 
-First return: "needs-changes — the code matches the request-correlated design and the ADR stays append-only, but the slice Findings and the index.js comment overstate that an already-sent value is held when replayed (false when the page re-sends the value Alloy already stored); correct that, name it in Residuals with a test, and fix the low-severity leftover wording." Fixed in c258caed.
+Returned: "VERDICT: pass". Code and docs agree; ADR-0062 change is append-only; history keeps the round 4 and 5 needs-changes returns. Low findings (quality-gate line label, sweep wording, history title, Fix paragraph, spec.md colon, stale round-3 verdict files, board churn) were fixed or are superseded by this record; board churn comes from status-board regeneration.
 
-Final return: "pass — the identical-update skip now survives consumption (`lastUpdateKey`) and a test pins it; lifetime is request-correlated with no timer, no cap and no growth after settlement; the docs, comments, ADR Corrections entry and slice-33 note match the final code. Before closing, correct the AC1 mutation counts, which look stale by one test (traced at 6 and 4)." Counts re-run: 6 / 4 / 1 (abc501da).
+Earlier rounds are preserved in reviews/slice-34-history.md.

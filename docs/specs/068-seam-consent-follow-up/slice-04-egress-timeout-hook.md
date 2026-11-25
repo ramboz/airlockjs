@@ -1,5 +1,5 @@
 ---
-status: IN_PROGRESS
+status: DONE
 dependencies: [068-03]
 last_verified: 2026-11-24
 ---
@@ -21,6 +21,14 @@ last_verified: 2026-11-24
 **DoD:** `npm test && npm run lint` and servo gate pass; reviews are the 064-34 final-round reviews of the complete diff including this hook (records in 064-34's `reviews/slice-34-*.md`); CHANGELOG entry.
 
 **Anti-horizontal-phasing check:** Vertical: a never-settling dispatch through the host timeout to the caller's hook and the chamber's answer.
+
+### Deviation log
+
+None against the contract. The slice was added mid-campaign (found by the 064-34 round-4 review, owner-approved 2026-11-25); the `dispatched` pre-dispatch guard stays untested because the window is unreachable.
+
+### Reconciliation sweep
+
+Reconciled: the 068 spec.md row and status, CHANGELOG, slice-04 Findings, 064-34's slice and spec rows, the ADR-0062 Corrections entry (the hook is named there), and the status board. Core lands on main first; vendor-adobe folds it by plain merge.
 
 ## Findings (2026-11-24)
 

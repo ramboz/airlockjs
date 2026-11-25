@@ -1,4 +1,4 @@
-# Slice 064-34: rounds 1 and 2 (superseded by round 3; kept for history)
+# Slice 064-34: review history (rounds 1 to 5; kept for history)
 
 Corrected record of the earlier reviews of the first design (heads a9e52864, cd4fba06, 47fe3f12). Reviewer agent: `jig:reviewer` on claude-opus-5.5; none had Scout, all used unindexed native reads. The reviewers' returned verdict words are given as they came back; the per-finding text below them is the author's saved summary of each report, not a verbatim copy.
 
@@ -67,3 +67,61 @@ Times are the parent's read of each reviewer's output (`tool.execution_complete`
 - Compliance: code meets the ACs and the host-timeout gap is closed; the Design/Reconciliation sweep/spec.md prose still said "no core/ change"; round 4 and 5 reviews not recorded.
 - Craft: "`restoreOnce()` only runs when `fetch` rejects or `res.ok === false`. ... If one of them throws on an ok response ... the generation stays consumed" (fixed in round 6, adapter-only); stale docs; the `dispatched` guard and the "resolves" late variant are weaker proofs (accepted, disclosed).
 - Reconciliation: stale "no core/ change" in the sweep, Design and spec.md row; stale mutation and test counts; review records stop at round 3; two Residuals paragraphs; inconsistent owner quote; 068-04 needs a review record and an explicit status note; unrelated board-row churn from regeneration. All addressed in round 6 except the board churn, which comes from `status-board` regenerating from slice frontmatter.
+
+## Round 3 pass records as they stood before round 6 (preserved verbatim)
+
+### compliance
+
+---
+slice: 064-34 — an opt-out in flight for a superseded consent update still forwards
+pass: compliance
+verdict: pass
+reviewer: jig:reviewer (claude-opus-5.5)
+reviewed_at: 2026-11-24T22:50:38Z
+prompt_source: round 3: complete final diff bcaccab7..HEAD plus the mission constraint (no ever-growing replay allowlist), Scout unavailable
+--
+
+Round 3 (agent 735263e3-aacb-4677-b109-674bfbdcc355, claude-opus-5.5, jig:reviewer, no Scout; final output read 2026-11-24T22:49:50.650Z on HEAD c258caed; the frontmatter reviewed_at is the record-write time, not the read time, full diff bcaccab7..c258caed).
+
+First return: "needs-changes — lifecycle is request-correlated with no timer, cap or growing allowlist, core/ is untouched, AC1/AC2 met; but the identical-update skip compares against the last live generation instead of Alloy's last stored/sent consent, so a value repeated after settlement is re-registered without a request and a replay of it forwards (bounded at one generation)". Fixed in c258caed (`lastUpdateKey`, hermetic test).
+
+Final return: "pass — the identical-update skip now keys on a last-update value that survives consumption (`lastUpdateKey`), pinned by a hermetic test that fails without it; lifecycle is request-correlated with no timer, cap or post-settlement growth, core/ untouched, AC1/AC2 met, residual edges (no-dispatch growth by page-given distinct updates, rejected-object vector retry lingering one generation, late vector retry held) honestly disclosed; low: refresh the mutation counts after the new test." Mutation counts refreshed (6 / 4 / 1) in abc501da.
+
+
+### craft
+
+---
+slice: 064-34 — an opt-out in flight for a superseded consent update still forwards
+pass: craft
+verdict: pass
+reviewer: jig:reviewer (claude-opus-5.5)
+reviewed_at: 2026-11-24T22:50:39Z
+prompt_source: round 3: complete final diff bcaccab7..HEAD plus the mission constraint (no ever-growing replay allowlist), Scout unavailable
+substrate: not-shown
+applied_skill: none
+--
+
+Round 3 (agent e28d4f1c-f514-408a-aa2b-a931a098a158, claude-opus-5.5, jig:reviewer, no Scout; final output read 2026-11-24T22:49:43.425Z on HEAD c258caed; the frontmatter reviewed_at is the record-write time, not the read time, full diff bcaccab7..c258caed).
+
+First return: "needs-changes" (medium: the duplicate-update comment and skip held only while the previous generation was live). Fixed in c258caed.
+
+Final return: "pass — `lastUpdateKey` is set on every distinct update and never cleared when a generation is consumed ... no timer or cap, consumption is tied to requests ... Core is untouched." Low: whether Alloy stores a consent whose request failed on the network was not checked (recorded in the slice Residuals as unchecked and on the safe side); nits: slice-33 wording aligned, long comment line re-wrapped (abc501da).
+
+
+### reconciliation
+
+---
+slice: 064-34 — an opt-out in flight for a superseded consent update still forwards
+pass: reconciliation
+verdict: pass
+reviewer: jig:reviewer (claude-opus-5.5)
+reviewed_at: 2026-11-24T22:50:39Z
+prompt_source: round 3: complete final diff bcaccab7..HEAD plus the mission constraint (no ever-growing replay allowlist), Scout unavailable
+--
+
+Round 3 (agent 8d6a8829-e221-40e3-ba42-a5e5c12d34db, claude-opus-5.5, jig:reviewer, no Scout; final output read 2026-11-24T22:49:41.825Z on HEAD c258caed; the frontmatter reviewed_at is the record-write time, not the read time, full diff bcaccab7..c258caed).
+
+First return: "needs-changes — the code matches the request-correlated design and the ADR stays append-only, but the slice Findings and the index.js comment overstate that an already-sent value is held when replayed (false when the page re-sends the value Alloy already stored); correct that, name it in Residuals with a test, and fix the low-severity leftover wording." Fixed in c258caed.
+
+Final return: "pass — the identical-update skip now survives consumption (`lastUpdateKey`) and a test pins it; lifetime is request-correlated with no timer, no cap and no growth after settlement; the docs, comments, ADR Corrections entry and slice-33 note match the final code. Before closing, correct the AC1 mutation counts, which look stale by one test (traced at 6 and 4)." Counts re-run: 6 / 4 / 1 (abc501da).
+

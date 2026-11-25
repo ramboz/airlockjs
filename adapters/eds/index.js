@@ -2064,7 +2064,7 @@ export async function bootAlloy(opts = {}) {
   // generation holding its value and every older one are consumed, so a value already sent is held when replayed.
   // A page that gives the same update twice in a row adds no generation, even after the first was consumed
   // (Alloy sends no request for it). Alloy stores a consent only once its request succeeds, so when a request fails
-  // (network error or non-ok answer) the generation it consumed is put back: Alloy's own fallback to its other host
+  // (network error, non-ok answer, or any throw reading the answer) the generation it consumed is put back: Alloy's own fallback to its other host
   // and the page's identical repeat both send the same consent again and match it. A failed request for an older
   // update restores only its own generation and leaves a newer one untouched; the host's own timeout (core 068-04, `caps.egress.onTimeout`) restores it the same way, once per request. No timer of ours, no cap;
   // only updates whose request never left linger, and the next request matching a later generation clears them.
