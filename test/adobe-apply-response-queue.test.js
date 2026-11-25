@@ -37,9 +37,11 @@ class Worker {
         // The chamber answers the display event before its request leaves, so the pump moves on while that request is still pending.
         this.held.push(m.event);
         setTimeout(() => this.emit({ type: "result", summary: { booted: true }, ready: [] }), 0);
-      } else if (Worker.holdPushes && !(m.event.params && m.event.params.documentUnloading)) {
+      } else if (Worker.holdPushes && !(m.event.params && m.event.params.xdm && m.event.params.xdm.eventType === "decisioning.propositionDisplay")) {
         // Request held, as a push whose worker round trip is still running.
         this.heldPushes.push(m.event);
+        // A documentUnloading push settles before its request leaves.
+        if (Worker.settleHeld && m.event.params && m.event.params.documentUnloading) setTimeout(() => this.emit({ type: "result", summary: { booted: true }, ready: [] }), 0);
       } else if (Worker.holdDisplays && m.event.params && m.event.params.documentUnloading) this.held.push(m.event);
       else {
         setTimeout(() => {
@@ -74,6 +76,7 @@ beforeEach(() => {
   Worker.holdDisplays = false;
   Worker.deferDisplays = false;
   Worker.holdPushes = false;
+  Worker.settleHeld = false;
   Worker.decide = null;
   vi.stubGlobal("Worker", Worker);
   vi.stubGlobal("window", { location: { replace: (u) => replaced.push(u) } });
@@ -266,12 +269,12 @@ describe("064-32 round 7: a rejected apply is not counted and a failed store doe
 describe("064-32 round 7: a redirect navigation waits for the push's own request, not for any request (hermetic)", () => {
   // The redirect display goes out first. The push is called while that display is on the wire, so it is queued when the navigation gate looks,
   // and then runs with its own request held. A request that is not the push's must not release the navigation.
-  const arrange = async () => {
+  const arrange = async (pushEvent = view("a")) => {
     Worker.holdPushes = true;
     let pushed = false;
     let handleRef;
     vi.stubGlobal("fetch", vi.fn((url, init) => {
-      if (!pushed && handleRef && String((init && init.body) || "").includes("decisioning.propositionDisplay")) { pushed = true; handleRef.push(view("a")); }
+      if (!pushed && handleRef && String((init && init.body) || "").includes("decisioning.propositionDisplay")) { pushed = true; handleRef.push(pushEvent); }
       return Promise.resolve({ status: 200, statusText: "OK", headers: { get: () => "application/json" }, text: async () => "{}" });
     }));
     const { handle, worker } = await boot({ consent: GRANTED, redirectTimeoutMs: 5000 });
@@ -298,4 +301,33 @@ describe("064-32 round 7: a redirect navigation waits for the push's own request
       await applied;
     });
   }
+
+  it("the push's own request releases the navigation well before the cap", async () => {
+    const { worker, applied } = await arrange();
+    worker.fire(pushBody);
+    await vi.waitFor(() => expect(replaced).toHaveLength(1), { timeout: 120 });
+    await applied;
+  });
+
+  it("a push with no declared eventType is released by an events request, not by an identity request", async () => {
+    const { worker, applied } = await arrange({ event: "custom_event", page_location: "https://site/p" });
+    worker.fire(JSON.stringify({ query: { identity: { fetch: ["ECID"] } } }), true);
+    await tick(60);
+    expect(replaced).toEqual([]);
+    worker.fire(JSON.stringify({ events: [{ xdm: { eventType: "web.webinteraction.linkClicks" } }] }));
+    await vi.waitFor(() => expect(replaced).toHaveLength(1), { timeout: 120 });
+    await applied;
+  });
+
+  it("a documentUnloading push that settled before its request is released by that request, before the cap", async () => {
+    const unloading = { event: "unload", page_location: "https://site/p", documentUnloading: true, xdm: { eventType: "web.webinteraction.linkClicks" } };
+    Worker.settleHeld = true;
+    const { worker, applied } = await arrange(unloading);
+    worker.fire(JSON.stringify({ events: [{ xdm: { eventType: "web.webpagedetails.pageViews" } }] }), true);
+    await tick(60);
+    expect(replaced).toEqual([]);
+    worker.fire(JSON.stringify({ events: [{ xdm: { eventType: "web.webinteraction.linkClicks" } }] }));
+    await vi.waitFor(() => expect(replaced).toHaveLength(1), { timeout: 120 });
+    await applied;
+  });
 });

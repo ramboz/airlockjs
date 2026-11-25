@@ -1,7 +1,7 @@
 ---
 slice: 064-32 — first push query edge cases match stock
 pass: craft
-verdict: pass
+verdict: superseded (round 3 pass; rounds 4 to 7 failed final review, see slice-32-history.md)
 reviewer: jig:reviewer (claude-opus-5.5) 15bf5b9e-ec93-428b-b556-8a9d7adeebcc
 reviewed_at: 2026-11-25T02:31:56Z
 prompt_source: round 3: diff 06fcee01..77041b6f, Scout unavailable

@@ -118,3 +118,19 @@ Findings that stand (no round 8, not waived): (1) the originating request's iden
 Uncertainty kept: the craft pass notes that stale pending entries usually mask early release. No new real-browser loss below 250 ms was reproduced, and none is claimed.
 
 Final-review status: failed, pending owner decision. The slice stays IN_PROGRESS. Nothing landed on vendor-adobe. The round 7 closure claims above ("Findings disposition") are superseded by these findings.
+
+## Round 8 (owner: "i authorize it"; one bounded round)
+
+Start head `b1135f56`. Accepted vendor baseline `06fcee01`. No final reviewers were launched by the implementer; the coordinator owns the final set.
+
+Disposition of the round 7 findings:
+
+| Finding | Disposition |
+|---|---|
+| Attribution by `runningEntry` and `eventType` | Replaced. `notifyFetchIssued` credits the oldest pending entry the request could belong to. `runningEntry` is removed. |
+| Unloading entry's own late request credited to a newer entry | Fixed. The settled entry stays pending and its own request releases it. |
+| Unloading entry that issues no request grows the pending set and forces later 250 ms waits | Fixed. It is retired after the cap. |
+| Weak release assertion and missing tests | Added three hermetic cases: release before the cap (120 ms bound), an untyped push, and an unloading push whose request is late. The unloading case fails on `b1135f56` and passes now. |
+| Stale docs and board | Reconciled. The review stubs are marked superseded. The board is regenerated. |
+
+Honest limits: bodies carry no originating-event tag, so an unrelated same-type request still releases an equal-typed push. A tag needs a core or chamber contract change, which this slice does not take. The retirement timer is a bound, not an event. No browser loss below 250 ms was witnessed in rounds 7 or 8. The slice stays IN_PROGRESS until the coordinator's final set passes.

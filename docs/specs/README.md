@@ -214,7 +214,7 @@ do not grant live authority.
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-29 — first push after applyResponse matches stock | **DONE** |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-30 — stock Adobe consent path (set-consent body and host match stock) | **DONE** |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-31 — stock `alloy()` wrapper parity (identity list, `sendEvent` result, hook argument, configure diagnostics, `setConsent` promise) | **DONE** |  |
-| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-32 — first push query edge cases match stock | READY_FOR_IMPLEMENTATION |  |
+| [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-32 — first push query edge cases match stock | IN_PROGRESS (slice-064-32-first-push-edges) |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-33 — the opt-out forward carries only the consent the page gave | **DONE** |  |
 | [064-adobe-parity-inventory](064-adobe-parity-inventory/spec.md) | 064-34 — an opt-out in flight for a superseded consent update still forwards | **DONE** |  |
 | [067-shared-seal-defaults](067-shared-seal-defaults/spec.md) | 067-01: ADR status lines and docs rewording | **DONE** |  |
@@ -274,7 +274,7 @@ do not grant live authority.
 
 Advisory (ADR-0040 auditability — never blocks). Regenerated from `reviews/slice-*.md` `substrate:` fields.
 
-- **14** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
+- **15** pass(es) recorded `not-shown` (selection step did not run — the kill-criterion-1 defect signal).
 - **111** pass(es) recorded `non-interactive` (declared no-orchestrator / CI).
 - **52** shown-and-declined anomaly(ies) (a high-confidence richer skill was shown and not applied):
   - `011-mvp2-coherency-probe/slice-03-craft.md` — applied `pr-review`; declined: scout-pr-review
