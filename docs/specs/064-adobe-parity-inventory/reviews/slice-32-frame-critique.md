@@ -1,45 +1,67 @@
 ---
 slice: 064-32 — first push query edge cases match stock
 pass: frame-critique
-verdict: needs-changes
-reviewer: Claude Opus 5.5 (claude-opus-5.5), fresh read-only session, exact head d09543ef
-reviewed_at: 2026-11-25T22:51:36Z
-prompt_source: review.py frame-critique docs/specs/064-adobe-parity-inventory/slice-32-first-push-query-edge-cases.md
+verdict: pass
+reviewer: Claude Opus 5.5 (claude-opus-5.5), round 2 re-critique, exact head eb97316e
+reviewed_at: 2026-11-25T23:20:18Z
+prompt_source: review.py frame-critique docs/specs/064-adobe-parity-inventory/slice-32-first-push-query-edge-cases.md (corrected-frame slice prompt, run at eb97316e)
 ---
 
-# Frame critique: slice 064-32 (first push query edge cases match stock)
+# Frame critique (round 2): slice 064-32 first push query edge cases
 
-- Target: `docs/specs/064-adobe-parity-inventory/slice-32-first-push-query-edge-cases.md` (status IN_PROGRESS, frame_review true), read in full, lines 1-96. Supporting record: ADR-0066 (read in full)
-- Exact head: d09543efdabca1523ed2518f97166b17282e494d (`git rev-parse HEAD`; worktree clean)
-- Reviewer model: Claude Opus 5.5 (`claude-opus-5.5`), default context tier, session e38b7a66-880f-4a2e-8294-528639726c0a
-- Prompt applied: coordinator29 `frame-slice.prompt.txt` (actual helper-generated prompt)
-- Scout preflight: `scout-ensure_fresh` since=d09543ef → verified_current, indexed_through d09543efdabca1523ed2518f97166b17282e494d, gap_files_reindexed 0, source_state_id d69edcb803442b0c44f9f987fabb2e9583d205c1233ab172e0f8c47acf64702e, derived_views_verified false
-- Source access: Scout only. No native source reads or searches. No writes, suites, downloads, captures, commits or PRs.
-- Scope: frame critique only. This is not an owner acceptance, conformance, craft or implementation pass. spec.md was not read; the prompt names it as an overview only.
+Round 2 (same-task re-critique). Separate from the first-pass reports (ADR pass, slice needs-changes), kept in git history at eb97316e and unchanged there and not relabelled.
+- Head eb97316e5f9b73aedf04299eb03ec05041d6747f, tree 6649b011094dfcf2a3e80066f82c3721285084ee (detached in the reviewer worktree, clean).
+- Model: Claude Opus 5.5 (claude-opus-5.5), default tier.
+- Prompts: corrected-frame-adr.prompt.txt sha256 027dfe5c… and corrected-frame-slice.prompt.txt sha256 379fb9dc…. Both are byte-identical to the first-pass prompts.
+- Scout preflight: ensure_fresh since=eb97316e returned verified / verified_current. indexed_through eb97316e, source_state_id 0dd4baf8d814f50c8ea5303ef3ea79d5ddad76a097444e485aa7748758d3020f, source_revision 7354900905596606387, gap_files_reindexed 0, derived_views_verified false. Later queries reported freshness "unverified (watcher_running_not_verified)".
+- Lanes, in the opening turn:
+  - a task-worded scout-search on the parked fetch that never settles and the gate releasing at the cap (resume_bundle core-consent-parked-5accfd954e080a5aeef08af0)
+  - literal keyword lanes: adr-0063, bug-007, NAVIGATION_GATE_MS, parkPending, MAX_HELD_BEACONS, markIssued, pendingIssue, "counts as settled"
+- Then a resumed investigation in phase_two, then batched expansion of known ranges.
+- Read in full: the corrected ADR-0066 (1-91), slice 32 (1-98), ADR-0063 (1-111) and bug 007 (1-173).
+- Read in part: spec 064 lines 1-200, covering the summary, scope and inventory, including the 064-32 rows at 51, 64 and 79. Lines past 200 were not read.
+- Source ranges:
+  - core/wrapped-sdk-host.js 322-385, 505-600, 625-670
+  - adapters/eds/index.js 1934-1985, 2205-2395
+  - adapters/eds/personalization-render.js 355-395
+- Limits: static review only. The Alloy 2.31.1 bundle was not read. There is no browser witness and no suites were run. Tool-call spans are not reading durations.
 
 ```
-VERDICT: needs-changes
+VERDICT: pass
 
 REASONING:
-The round 9 frame for AC5 b rests on one claim: every pending push settles, as an observable adapter event, either after its request has left or promptly when it issues none. With that, a settlement-only gate both protects pushes and releases before the cap. The first half rests on ADR-0066 A1, which is kill-gated (see adr-report.md). The second half is asserted in T5 and ADR-0066 line 58 for "core consent park", and this head contradicts it for a fetch-transport push. The contract therefore pre-registers a test that cannot go green under the proposed mechanism without a change that ADR-0066's own kill criteria forbid. That is a bounded, concrete frame defect in the regression contract, not a failure of the approach.
+The first-pass defect is fixed. T5 no longer requires a parked fetch to settle before the cap.
+- Corrected T5 (line 65) says no-request completions release before the cap, and a parked fetch has no egress and releases at the 250 ms cap.
+- That matches the code. The park keeps the chamber fetch pending (core/wrapped-sdk-host.js 352-356, 589-594, 632-639). The entry's markIssued is reached only through runEntry's finally after the drive settles (adapters/eds/index.js 2219-2229), or through a ring drop (2326-2333). navigationGate resolves at the cap otherwise (1959-1966).
+- The parked-request premise is reachable by accepted ADR-0063 line 60 (a stale `in` cookie, or no consent input wired).
+- M4 is now scoped to the ring-drop and rejection case of T5, which is a case it can turn red. AC5 and the regression contract (lines 57-73) no longer contradict each other, and they are consistent with the spec 064 rows at 51, 64 and 79 that keep 064-32 IN_PROGRESS.
 
 SPECIFIC ISSUES:
-- T5 assumes a push whose request the core consent seam parks "settles and releases the gate before the cap". Counterexample at this head: when the host parks a request, it keeps the chamber's fetch pending with no response (core/wrapped-sdk-host.js:352-356, park at 365-378). On the in-microtask park path it also clears the host timeout and returns (632-643). For a non-documentUnloading push, Alloy's transport is a fetch whose promise feeds sendEvent. sendEvent stays pending, so `drive()` never reaches `post("result")` (connectors/alloy/alloy-chamber.worker.js:610-617), and the host's `onResult` stays open (core/wrapped-sdk-host.js:381, 783-790). The adapter's `runEntry` finally, which is the only proposed settlement point (adapters/eds/index.js:2219-2229), never runs before a grant, a deny or dispose. The pump also stays blocked behind it, one event at a time (2282-2287). The gate then releases only at `NAVIGATION_GATE_MS` (1959-1966). So T5's "before the cap" is red by construction for this sub-case. It only holds for a beacon, where Alloy does not await a response. That sub-case also conflicts with mutation M4 ("gate released by the cap alone" must turn a test red), because the cap is the only release there. Downstream, the implementer cannot make T5 green without a new park-to-adapter signal, a core or message change, or a synthetic response. ADR-0066 sends a message-contract change to option A (line 86) and forbids new timeouts or fallbacks (line 60). The alternative is to quietly narrow T5. Either way the round 9 contract stalls or drifts after implementation work. The fix belongs in the frame: state the parked-fetch case as a cap-bounded outcome (no request reaches the wire, so the no-loss guarantee still holds), or restrict T5's park case to beacon transport. This review does not choose or design that repair.
-- Primary-premise note (not blocking here): AC5 b's no-loss half depends on ADR-0066 A1, which is unread because the pinned bundle is outside the index and could not be downloaded. The slice carries the same witness (T4) and kill criterion (line 51), so it is a known residual. T4 witnesses one path, not every Alloy request path.
+- Primary assumption: the pending entry reaches markIssued only through runEntry's settlement, a ring drop or the cap timer, so the cap is the only release for a parked fetch. This holds in the reachable source at the lines cited above. Its proof of ordering still depends on A1 of ADR-0066 (the unread bundle), which T4 covers.
+- Note (non-blocking): the claims about which tests turn red are static readings. No suite was run here, so whether each named test is red or green stays for the implementation review.
+- Note (non-blocking): spec 064 was read only for lines 1-200. Section 8, the slice list, was not read, so this pass claims no consistency with any 064-32 text after line 200.
+- First-pass T5 needs-changes finding: resolved by this correction.
 ```
 
-## Grounding read (Scout, exact head)
 
-- Slice full text: docs/specs/064-adobe-parity-inventory/slice-32-first-push-query-edge-cases.md:1-96 (assumptions 47-53, regression contract 55-71)
-- ADR-0066: docs/decisions/adr-0066-chamber-result-bridge-order.md:1-91 (lines 58, 60, 84-86)
-- Core park and pending fetch: core/wrapped-sdk-host.js:352-381, 589-594, 610-685. Result handling: 783-797
-- Chamber drive and bridge: connectors/alloy/alloy-chamber.worker.js:284-328, 610-621
-- Adapter entry lifecycle, pump and gate: adapters/eds/index.js:1937-1967, 2219-2287, 2302-2348, 2359-2392, 2556-2559
-- Renderer gate: adapters/eds/personalization-render.js:362-380
+## Closure addendum (section 8 canon check)
 
-## Evidence gaps (honest)
+# Round-2 closure addendum: spec 064, section 8, for slice 064-32
 
-- Not witnessed in a browser or test. This is a static counterexample from the code at this head, not a reproduced failure.
-- How a fetch push reaches the core park (core pending while the chamber's Alloy still sends) was not traced through `shapeAlloyBoot` or the consent vector. The slice and ADR name that case themselves; the counterexample applies wherever it occurs with fetch transport.
-- That Alloy 2.31.1 applies no fetch timeout of its own is not read in the bundle (unavailable). If Alloy did time out, the push would settle late, as a rejection, still likely after the 250 ms cap.
-- reviews/slice-32-history.md, ADR-0063, the bug-007 record and spec.md were not read. Per the kickoff, earlier rounds' reasoning was not imported.
+This addendum is separate. The round-2 reports and evidence in ../064-32-frame-critique-round2/ are unchanged.
+
+- Head eb97316e5f9b73aedf04299eb03ec05041d6747f, tree 6649b011094dfcf2a3e80066f82c3721285084ee, clean (see head.txt). Model: Claude Opus 5.5 (claude-opus-5.5).
+- Scoped lookup: one scout-regex_search, pattern `064-32|^## 8\.|slice-32`, limited to docs/specs/064-adobe-parity-inventory/spec.md. It found 6 matches: lines 49-53, 62-66, 77-81, 437-445, 552-557 and 561-563.
+- Ranges read with scout-investigate_expand:
+  - spec.md 439-470: all of section 8 up to section 9
+  - spec.md 545-565: the status list containing the 064-32 row, through section 13
+- No referenced selector needed reading. Section 8 has no 064-32 row, criteria or acceptance block. Line 462 says each slice carries its own acceptance in its file.
+- Findings:
+  - Line 443 ("064-32 covers its edge cases") is consistent with the slice scope.
+  - Line 555 says 064-32 is IN_PROGRESS and round 9 is "framing only". It says Proposed ADR-0066 "would order the chamber result behind bridge requests and make the gate settlement-only", with nothing implemented and an owner decision pending. That is consistent with a Proposed, unimplemented ADR.
+  - The phrase "settlement-only" is a short summary that doesn't mention the 250 ms cap, which still applies to a parked fetch (corrected ADR line 58, slice T5). It doesn't deny the cap, so this is not a canon conflict. It is a non-blocking wording note to settle at acceptance.
+  - Line 563's status note still names round 8. It is consistent: the slice stays IN_PROGRESS pending the owner.
+- Verdicts: unchanged. ADR-0066 pass, slice 064-32 pass. No real canon conflict was found.
+- Evidence:
+  - events.snapshot.jsonl: a byte copy of the session event log, timed in snapshot-clock.txt
+  - tool-events.jsonl: the tool events from this closure turn, up to the snapshot
