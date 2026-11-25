@@ -559,3 +559,5 @@ Review rounds are capped at three before owner review (owner decision). Findings
 ## 13. Clarifications
 
 None open.
+
+**064-32 status (round 8 failed final review):** all three passes on `e808b4b1` returned needs-changes. Slice 064-32 stays IN_PROGRESS, pending owner decision. Earlier rows and lines in this file that say 064-32 closed or reached parity are not supported and stand as failed-review findings. See `064-adobe-parity-inventory/reviews/slice-32-history.md`.

@@ -134,3 +134,25 @@ Disposition of the round 7 findings:
 | Stale docs and board | Reconciled. The review stubs are marked superseded. The board is regenerated. |
 
 Honest limits: bodies carry no originating-event tag, so an unrelated same-type request still releases an equal-typed push. A tag needs a core or chamber contract change, which this slice does not take. The retirement timer is a bound, not an event. No browser loss below 250 ms was witnessed in rounds 7 or 8. The slice stays IN_PROGRESS until the coordinator's final set passes.
+
+## Round 8 final reviews: failed
+
+Three fresh Opus 5.5 native passes on `e808b4b1` all returned needs-changes.
+
+| Pass | Agent | Verdict |
+|---|---|---|
+| compliance | 384f62ab | needs-changes |
+| craft | a537253b | needs-changes |
+| reconciliation | f6adb7d1 | needs-changes |
+
+Provenance: the coordinator launched all three. Each received the full patch (1420 of 1420 lines, verified afterwards). Complete reports and original clocks are kept by the coordinator.
+
+Shared blocker: the request's real origin identity is still not established. Oldest eventType matching, where an untyped entry matches any events body, can credit another entry, including overlapping settled unloading pushes. This is a static counterexample. No browser loss was witnessed.
+
+Craft read the retirement, cap, controls and warm/cold code as correct. Same-type and untyped overlap tests and real-serialization tests are still missing.
+
+Reconciliation also flagged: closure, met and navigation-order claims that are not supported (spec.md line 79, slice Findings and reconciliation text), `verdict: superseded` frontmatter in the craft and reconciliation stubs that does not match the allowed schema, a stale decomposition line, and own-request overclaims.
+
+These claims and the stubs stay as they are. They are recorded as failed-review findings, not repaired. Round 8 is exhausted. No ninth repair, waiver, contract change, PR, live capture or landing is authorized.
+
+Status: IN_PROGRESS, pending owner decision. Nothing landed on vendor-adobe. The round 8 disposition table above is superseded by this section.
