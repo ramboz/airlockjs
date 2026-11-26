@@ -1268,6 +1268,60 @@ describe.runIf(real)("064-20 personalization and host DOM (real Chromium)", () =
     }
   });
 
+  describe("064-32 (ADR-0066): the chamber's result and fatal follow the requests the event reserved (pinned Alloy 2.31.1, SYNTHETIC responses)", () => {
+    const LINK = "web.webinteraction.linkClicks";
+    const IDENTITY_STORE = JSON.stringify({ requestId: "00000000-0000-0000-0000-000000000066", handle: [{ type: "state:store", payload: [{ key: "kndctr_908936ED5D35CC220A495CD4_AdobeOrg_identity", value: "SYNTHETIC-066", maxAge: 34128000 }] }, { type: "personalization:decisions", payload: [] }] });
+    const answer = (req) => (req.method() === "POST" ? { status: 200, headers: { "content-type": "application/json", ...cors(req) }, body: IDENTITY_STORE } : { status: 204, headers: cors(req), body: "" });
+    const UNLOAD = { event: "unload", page_location: "https://site/p", documentUnloading: true, xdm: { eventType: LINK } };
+
+    // T4 and T8: the first page view stores the identity, so stock sends the next documentUnloading event as a beacon whose Blob body is read before it is posted.
+    for (const blob of [{ ms: 150 }, { ms: 20 }, { ms: 100, reject: true }]) {
+      it(`T4/T8: the beacon's intercepted-fetch reaches the host before the event's result (Blob read ${blob.reject ? "rejected" : "fulfilled"} after ${blob.ms} ms)`, async () => {
+        let bridge = [];
+        await replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + ZONE, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }] }, respond: answer, run: async (page) => {
+          await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x }), PV_XDM);
+          await page.waitForFunction(() => window.__bridge.some((b) => b.type === "result"), null, { timeout: 15000 });
+          await page.evaluate((o) => window.__command("rig:slowBlob", o), blob);
+          await page.evaluate(() => { window.__bridge.length = 0; });
+          await page.evaluate((e) => window.__handle.push(e), UNLOAD);
+          await page.waitForFunction(() => window.__bridge.some((b) => b.type === "result"), null, { timeout: 15000 });
+          await page.waitForTimeout(400);
+          bridge = await page.evaluate(() => window.__bridge.slice());
+        } });
+        const kinds = bridge.map((b) => (b.type === "intercepted-fetch" ? (b.beacon ? "beacon" : "fetch") : b.type));
+        expect(kinds).toContain("beacon");
+        expect(kinds.indexOf("beacon")).toBeLessThan(kinds.indexOf("result"));
+      }, T);
+    }
+
+    it("T1: a documentUnloading beacon whose Blob body is read late is dispatched before the redirect navigates", async () => {
+      const order = [];
+      const URL_TO = "https://redirect.example/landing";
+      const REDIRECT_BODY = { requestId: "00000000-0000-0000-0000-000000000066", handle: [{ type: "personalization:decisions", payload: [{ id: "vr", scope: "__view__", scopeDetails: { decisionProvider: "TGT", activity: { id: "act-vr" } }, items: [{ id: "rd", schema: `${NS}redirect-item`, data: { content: URL_TO } }] }] }] };
+      await replayFixture(browser, "s4-base", { event: null, bodyHtml: '<div id="v"></div>' + ZONE, bootOptions: { placements: [{ scope: "__view__", selector: "#v", minHeight: 0 }], redirectTimeoutMs: 5000 }, respond: answer, run: async (page) => {
+        await page.route(URL_TO, (route) => route.fulfill({ status: 200, contentType: "text/html", body: "<title>landed</title>" }));
+        page.on("request", (rq) => {
+          if (rq.isNavigationRequest() && rq.url() === URL_TO) order.push("navigate");
+          else if (/interact|adobedc/.test(rq.url()) && rq.method() === "POST") {
+            let type = "?"; try { type = JSON.parse(rq.postData()).events[0].xdm.eventType; } catch (_) { /* a body the rig cannot parse is still a request */ }
+            order.push(type);
+          }
+        });
+        await page.evaluate((x) => window.__handle.push({ event: "page_view", xdm: x }), PV_XDM);
+        await page.waitForFunction(() => window.__bridge.some((b) => b.type === "result"), null, { timeout: 15000 });
+        await page.evaluate(() => window.__command("rig:slowBlob", { ms: 150 }));
+        await page.evaluate(({ body, e }) => {
+          window.__handle.command("applyResponse", { responseBody: body, renderDecisions: true }).catch(() => {});
+          window.__handle.push(e);
+        }, { body: REDIRECT_BODY, e: UNLOAD });
+        await page.waitForTimeout(1500);
+      } });
+      expect(order).toContain("navigate");
+      expect(order).toContain(LINK);
+      expect(order.indexOf(LINK)).toBeLessThan(order.indexOf("navigate"));
+    }, T);
+  });
+
   describe("M3 and row 11/12: ruleset items as data (SYNTHETIC ruleset answer, no capture)", () => {
     const SURFACE = "web://main--aem-eds-airlock-poc--adobe-rnd.aem.page/";
     const rule = (key, value, id, content) => ({ condition: { type: "group", definition: { logic: "and", conditions: [{ type: "matcher", definition: { key, matcher: "eq", values: [value] } }] } }, consequences: [{ id: `cq-${id}`, type: "schema", detail: { id, schema: `${NS}json-content-item`, data: { content } } }] });

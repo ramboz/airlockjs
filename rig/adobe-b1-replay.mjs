@@ -63,7 +63,7 @@ for (const level of ["warn", "error"]) {
   const native = console[level].bind(console);
   console[level] = (...a) => { try { for (const x of a) if (x && typeof x === "object" && x.kind) window.__diag.push(JSON.parse(JSON.stringify(x))); } catch (e) {} native(...a); };
 }
-window.__observed = []; window.__responses = []; window.__results = new Map(); window.__seq = 0;
+window.__bridge = []; window.__observed = []; window.__responses = []; window.__results = new Map(); window.__seq = 0;
 const NativeWorker = window.Worker;
 window.Worker = class extends NativeWorker {
   constructor(...a) {
@@ -71,6 +71,8 @@ window.Worker = class extends NativeWorker {
     window.__worker = this;
     this.addEventListener("message", (e) => {
       const m = e.data || {};
+      // 064-32: the order in which the chamber's bridge messages reach the main thread (a request, then the event's result or fatal).
+      if (m.type === "intercepted-fetch" || m.type === "result" || m.type === "fatal") window.__bridge.push({ type: m.type, beacon: !!m.beacon, url: m.url });
       if (m.type === "rig-observed") window.__observed.push(m.request);
       if (m.type === "rig-response") window.__responses.push(m.response);
       if (m.type === "rig-command-result") window.__results.get(m.id)?.(m);

@@ -614,9 +614,10 @@ async function drive(event) {
     summary.sendEventSettled = dropped.length === 0 ? "fulfilled" : "rejected: " + (dropped[0] && dropped[0].reason);
     // ready is [] for the wrapped-SDK path: alloy's egress rides the INTERCEPTED
     // fetch → main-thread dispatch (AC4), not the wire-protocol EgressRequest array.
-    post("result", { summary, ready });
+    // ADR-0066: the event's answer joins the bridge queue behind the requests the event reserved, so the host sees them first.
+    postInOrder(() => post("result", { summary, ready }));
   } catch (err) {
-    post("fatal", { phase: "sendEvent", message: err && err.message, stack: (err && err.stack) || "", summary });
+    postInOrder(() => post("fatal", { phase: "sendEvent", message: err && err.message, stack: (err && err.stack) || "", summary }));
   }
 }
 

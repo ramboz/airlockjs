@@ -96,3 +96,21 @@ No acceptance criterion is accepted yet. AC1 to AC4 and AC5 a and c were impleme
 ### Round 8 final reviews: failed
 
 All three fresh final passes on `e808b4b1` returned needs-changes. Request origin identity is still not established: oldest eventType matching can credit another entry. The met, closure and own-request wording above is not supported and stands as a failed-review finding. Round 8 is exhausted. The slice stays IN_PROGRESS, pending owner decision. Details are in `reviews/slice-32-history.md`.
+
+## Round 10: implementation of ADR-0066 (candidate, not reviewed)
+
+The chamber now posts `result` and `fatal` through `postInOrder`, so they follow the bridge requests the event reserved. The adapter no longer credits requests to entries. An entry retires on its own settlement, a consent-ring drop, or dispose. The 250 ms cap, the gate snapshot, display draining, the `redirectWaitMs` path and every seal, consent and allowlist check are unchanged. Core is unchanged.
+
+Tests T1 to T9 are in `test/adobe-apply-response-queue.test.js` (hermetic: T2, T3, T5, T6, T9) and `test/adobe-b4-personalization.test.js` (real Chromium with pinned Alloy 2.31.1: T1, T4, T8). T7 is the existing bug 007 test in `test/adobe-b2-egress.test.js`, still green. On the unchanged `dc7f54eb` source, T2, T3 and T9 fail and the three T4/T8 variants fail. A1 and A2 were witnessed: the beacon's `intercepted-fetch` reaches the host after the old `result`, and the Blob read settles whether it is fulfilled or rejected.
+
+Mutations: M1 (`result` outside `postInOrder`) turns T4/T8 red (3 tests). M3 (an entry credited on a fetch) turns 2 hermetic tests red. M4 (retirement left to the cap alone) turns 5 hermetic tests red; it uses completed cases, not the parked fetch. M2 (`fatal` outside `postInOrder`) turns nothing red. `routeBatch` records a failing event as a drop and does not throw, so the `fatal` branch has no reachable path I could drive. That ordering is kept for consistency and is not proved by a test.
+
+Residuals, stated plainly:
+- A parked fetch has no egress and no settlement. The 250 ms cap releases it. This is by design in ADR-0066.
+- The ring-drop release is not tested on its own. One drop leaves other pending entries, so it is not observable.
+- The hermetic cap test models a held push with no result and no egress. It does not drive a real core-parked fetch.
+- A vendor retry after settlement is outside the bounded guarantee (T9).
+- The `-t navigationGate` selector from the dispatch matches no test name in the b4 file (84 skipped). The real runs use `-t ADR-0066`.
+- The browser-oracle job failed once on the accepted docs commit in an unrelated test (064-21 B5). It was not diagnosed.
+
+Raw receipts are kept outside the repository. Nothing here is accepted. No final review has run. The slice stays IN_PROGRESS.

@@ -1836,7 +1836,6 @@ export async function bootAlloy(opts = {}) {
           const sent = fetch(req.url, { method: req.method || "POST", headers: req.headers || {}, body: req.body, ...(req.init || {}) });
           // The display's own watch resolves at issue only for a keepalive request, which the browser may finish after the navigation; any other waits for its answer (bounded by the renderer's timer). No claim that a started plain request survives the navigation.
           if (watch && req.init && req.init.keepalive === true) watch.issued();
-          notifyFetchIssued(req, !!watch);
           res = await sent;
           if (watch) watch.issued();
         } catch (e) {
@@ -1931,31 +1930,12 @@ export async function bootAlloy(opts = {}) {
   let appliesIssued = 0;
   const rulesetSubscribers = new Set();
   const deliveries = createDeliveryTracker();
-  // 064-32 (round 6): a redirect navigates after its display is sent. A push the page makes right after awaiting the apply is on its way
-  // through the worker (queued, dequeued by the pump, or in the worker round trip), and stock has already put it on the wire, so the navigation
-  // waits for each such event's own request to be issued (or for the event to settle without one). Bounded, so a held event never blocks it for good.
+  // 064-32 (ADR-0066): a redirect navigates after its display is sent. A push the page makes right after awaiting the apply is on its way
+  // through the worker, and stock has already put its request on the wire, so the navigation waits for each such entry to settle. An entry
+  // retires on its own settlement only: the chamber's result or fatal (which follow the requests the event reserved on the bridge), a consent-ring
+  // drop, or dispose. No request is credited to an entry. An entry that never settles (a fetch the core parked for consent, a lost result)
+  // is released by the cap below, with no egress and no synthetic response.
   const pendingIssue = new Set();
-  // A request is credited to the OLDEST pending entry it could belong to, never to whichever entry happens to be running when it arrives: an
-  // Alloy events request (never an identity or consent command, never a redirect display's own request) whose first event has the entry's
-  // declared eventType (an entry with no declared type matches any events request). Entries are matched in call order, so a documentUnloading
-  // entry that settled before its request was issued still gets its own late request, and a same-type request cannot be credited to a newer entry
-  // ahead of an older one. Equal bodies are interchangeable. An unmatched request releases nothing, so attribution errs towards waiting longer.
-  const ownsRequest = (entry, body) => {
-    if (typeof body !== "string") return false;
-    let parsed;
-    try { parsed = JSON.parse(body); } catch (_) { return false; }
-    const events = parsed && Array.isArray(parsed.events) ? parsed.events : null;
-    if (!events || !events.length) return false;
-    const eventType = entry.event && entry.event.params && entry.event.params.xdm && entry.event.params.xdm.eventType;
-    if (typeof eventType !== "string") return true;
-    return !!(events[0] && events[0].xdm && events[0].xdm.eventType === eventType);
-  };
-  const notifyFetchIssued = (req, isRedirectDisplay) => {
-    if (isRedirectDisplay) return;
-    for (const entry of pendingIssue) {
-      if (ownsRequest(entry, req && req.body)) { entry.markIssued(); return; }
-    }
-  };
   const NAVIGATION_GATE_MS = 250;
   const navigationGate = () => new Promise((resolve) => {
     setTimeout(() => {
@@ -2219,13 +2199,7 @@ export async function bootAlloy(opts = {}) {
   const runEntry = async (entry) => {
     const { event, resolve, reject, gate, onSettled, calledWarm, appliedAfterCall } = entry;
     try { await runEntryBody({ event, resolve, reject, gate, onSettled, calledWarm, appliedAfterCall }); } finally {
-      // A documentUnloading event settles before its request is issued, so only its own request releases it. One that never issues a request
-      // is retired after the navigation cap, so the pending set cannot grow and no later gate waits on it.
-      const unloading = !!(event && event.params && event.params.documentUnloading);
-      if (entry.markIssued) {
-        if (!unloading) entry.markIssued();
-        else { const t = setTimeout(entry.markIssued, NAVIGATION_GATE_MS); if (t && t.unref) t.unref(); }
-      }
+      if (entry.markIssued) entry.markIssued();
     }
   };
   const runEntryBody = async ({ event, resolve, reject, gate, onSettled, calledWarm, appliedAfterCall }) => {

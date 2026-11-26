@@ -44,6 +44,12 @@ self.addEventListener("message", async (event) => {
       }
       return post({ type: "rig-command-result", id: m.id, result: true });
     }
+    // 064-32: Alloy's own Blob body read (the beacon of a documentUnloading event) settles after `ms`, fulfilled or rejected.
+    if (m.command === "rig:slowBlob") {
+      const real = self.Blob.prototype.text;
+      self.Blob.prototype.text = function () { return new Promise((resolve, reject) => setTimeout(() => (m.options.reject ? reject(new Error("blob read failed")) : real.call(this).then(resolve, reject)), m.options.ms)); };
+      return post({ type: "rig-command-result", id: m.id, result: true });
+    }
     if (m.command === "rig:loadElement") {
       const el = self.document.createElement(m.options.tag);
       el.src = m.options.url;

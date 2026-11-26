@@ -266,15 +266,16 @@ describe("064-32 round 7: a rejected apply is not counted and a failed store doe
   });
 });
 
-describe("064-32 round 7: a redirect navigation waits for the push's own request, not for any request (hermetic)", () => {
-  // The redirect display goes out first. The push is called while that display is on the wire, so it is queued when the navigation gate looks,
-  // and then runs with its own request held. A request that is not the push's must not release the navigation.
-  const arrange = async (pushEvent = view("a")) => {
+describe("064-32 (ADR-0066): a redirect navigation waits for each queued push to settle, not for a request that looks like its own (hermetic)", () => {
+  // The redirect display goes out first. The pushes are called while that display is on the wire, so they are queued when the navigation gate
+  // looks. Each leaves the gate only on its own settlement (the chamber's `result` or `fatal`, which follow its request), a ring drop or dispose.
+  // No request is credited to an entry: a request that matches by eventType or body proves nothing about whose it is.
+  const arrange = async (pushEvents = [view("a")]) => {
     Worker.holdPushes = true;
     let pushed = false;
     let handleRef;
     vi.stubGlobal("fetch", vi.fn((url, init) => {
-      if (!pushed && handleRef && String((init && init.body) || "").includes("decisioning.propositionDisplay")) { pushed = true; handleRef.push(pushEvent); }
+      if (!pushed && handleRef && String((init && init.body) || "").includes("decisioning.propositionDisplay")) { pushed = true; for (const e of pushEvents) handleRef.push(e); }
       return Promise.resolve({ status: 200, statusText: "OK", headers: { get: () => "application/json" }, text: async () => "{}" });
     }));
     const { handle, worker } = await boot({ consent: GRANTED, redirectTimeoutMs: 5000 });
@@ -282,52 +283,85 @@ describe("064-32 round 7: a redirect navigation waits for the push's own request
     const applied = handle.command("applyResponse", { responseBody: {}, renderDecisions: true });
     await vi.waitFor(() => expect(worker.messages.some((m) => m.type === "command")).toBe(true));
     worker.emit({ type: "command-result", id: worker.messages.find((m) => m.type === "command").id, result: { propositions: [REDIRECT] } });
-    await vi.waitFor(() => expect(worker.heldPushes).toHaveLength(1));
+    await vi.waitFor(() => expect(worker.heldPushes.length).toBeGreaterThan(0));
     return { worker, applied };
   };
-  const pushBody = JSON.stringify({ events: [{ xdm: { eventType: "web.webpagedetails.pageViews" } }] });
+  const settle = (worker) => worker.emit({ type: "result", summary: { booted: true }, ready: [] });
+  const linkBody = JSON.stringify({ events: [{ xdm: { eventType: "web.webinteraction.linkClicks" } }] });
+  const identityBody = JSON.stringify({ query: { identity: { fetch: ["ECID"] } } });
+  const stamp = () => performance.now();
 
-  for (const [name, body] of [
-    ["a request that carries no events (identity)", JSON.stringify({ query: { identity: { fetch: ["ECID"] } } })],
-    ["an events request of another event type", JSON.stringify({ events: [{ xdm: { eventType: "web.webinteraction.linkClicks" } }] })],
-  ]) {
-    it(`${name} does not release the navigation while the push is posted but unissued`, async () => {
-      const { worker, applied } = await arrange();
-      worker.fire(body, true);
-      await tick(60);
-      expect(replaced).toEqual([]);
-      worker.fire(pushBody);
-      await vi.waitFor(() => expect(replaced).toHaveLength(1));
-      await applied;
-    });
-  }
-
-  it("the push's own request releases the navigation well before the cap", async () => {
-    const { worker, applied } = await arrange();
-    worker.fire(pushBody);
-    await vi.waitFor(() => expect(replaced).toHaveLength(1), { timeout: 120 });
-    await applied;
-  });
-
-  it("a push with no declared eventType is released by an events request, not by an identity request", async () => {
-    const { worker, applied } = await arrange({ event: "custom_event", page_location: "https://site/p" });
-    worker.fire(JSON.stringify({ query: { identity: { fetch: ["ECID"] } } }), true);
-    await tick(60);
+  it("T3: an untyped pending entry is not released by a typed events request that arrives while it is unsettled", async () => {
+    const { worker, applied } = await arrange([{ event: "custom_event", page_location: "https://site/p" }]);
+    worker.fire(linkBody, true);
+    worker.fire(identityBody, true);
+    await tick(80);
     expect(replaced).toEqual([]);
-    worker.fire(JSON.stringify({ events: [{ xdm: { eventType: "web.webinteraction.linkClicks" } }] }));
+    settle(worker);
     await vi.waitFor(() => expect(replaced).toHaveLength(1), { timeout: 120 });
     await applied;
   });
 
-  it("a documentUnloading push that settled before its request is released by that request, before the cap", async () => {
+  it("T2: a settled documentUnloading entry no longer holds the gate, so a same-type overlapping push releases on its own settlement", async () => {
     const unloading = { event: "unload", page_location: "https://site/p", documentUnloading: true, xdm: { eventType: "web.webinteraction.linkClicks" } };
     Worker.settleHeld = true;
-    const { worker, applied } = await arrange(unloading);
-    worker.fire(JSON.stringify({ events: [{ xdm: { eventType: "web.webpagedetails.pageViews" } }] }), true);
+    const { worker, applied } = await arrange([unloading, { event: "click", page_location: "https://site/p", xdm: { eventType: "web.webinteraction.linkClicks" } }]);
+    await vi.waitFor(() => expect(worker.heldPushes).toHaveLength(2));
     await tick(60);
     expect(replaced).toEqual([]);
-    worker.fire(JSON.stringify({ events: [{ xdm: { eventType: "web.webinteraction.linkClicks" } }] }));
+    const started = stamp();
+    settle(worker);
     await vi.waitFor(() => expect(replaced).toHaveLength(1), { timeout: 120 });
+    expect(stamp() - started).toBeLessThan(150);
+    await applied;
+  });
+
+  it("T9: a late request of a retired entry cannot release a newer entry", async () => {
+    const { worker, applied } = await arrange([{ event: "a", page_location: "https://site/p", xdm: { eventType: "web.webinteraction.linkClicks" } }, { event: "b", page_location: "https://site/p", xdm: { eventType: "web.webinteraction.linkClicks" } }]);
+    settle(worker);
+    await vi.waitFor(() => expect(worker.heldPushes).toHaveLength(2));
+    worker.fire(linkBody, true);
+    await tick(80);
+    expect(replaced).toEqual([]);
+    settle(worker);
+    await vi.waitFor(() => expect(replaced).toHaveLength(1), { timeout: 120 });
+    await applied;
+  });
+
+  it("T5: a completed no-request case (result with no request) releases the navigation well before the cap", async () => {
+    const { worker, applied } = await arrange();
+    await tick(40);
+    expect(replaced).toEqual([]);
+    const started = stamp();
+    settle(worker);
+    await vi.waitFor(() => expect(replaced).toHaveLength(1), { timeout: 120 });
+    expect(stamp() - started).toBeLessThan(150);
+    await applied;
+  });
+
+  it("T5: a worker fatal for the push releases the navigation before the cap", async () => {
+    const { worker, applied } = await arrange();
+    await tick(40);
+    expect(replaced).toEqual([]);
+    const started = stamp();
+    worker.emit({ type: "fatal", message: "alloy failed" });
+    await vi.waitFor(() => expect(replaced).toHaveLength(1), { timeout: 120 });
+    expect(stamp() - started).toBeLessThan(150);
+    await applied;
+  });
+
+  it("T5/T6: a push with no result and no egress (a parked fetch, or a result that never comes) leaves the existing 250 ms cap to release the navigation", async () => {
+    const { applied } = await arrange();
+    const fetchCalls = () => globalThis.fetch.mock.calls.length;
+    const before = fetchCalls();
+    const started = stamp();
+    await tick(150);
+    expect(replaced).toEqual([]);
+    await vi.waitFor(() => expect(replaced).toHaveLength(1), { timeout: 600 });
+    const waited = stamp() - started;
+    expect(waited).toBeGreaterThan(200);
+    expect(waited).toBeLessThan(500);
+    expect(fetchCalls()).toBe(before);
     await applied;
   });
 });
